@@ -1,0 +1,13 @@
+{
+  "name": "ecoeco-robos",
+  "private": true,
+  "type": "module",
+  "description": "Robôs que atualizam indicadores e notícias da EcoEco no Supabase",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "mercado": "node atualizar-mercado.mjs",
+    "noticias": "node atualizar-noticias.mjs",
+    "tudo": "node atualizar-mercado.mjs && node atualizar-noticias.mjs",
+    "teste": "DRY_RUN=1 FIXTURES=1 node atualizar-mercado.mjs && DRY_RUN=1 FIXTURES=1 node atualizar-noticias.mjs"
+  }
+}

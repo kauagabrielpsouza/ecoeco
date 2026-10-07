@@ -1,0 +1,35 @@
+# EcoEco · Robô que atualiza indicadores e notícias a cada 30 minutos
+# Precisa de 3 segredos no GitHub (Settings > Secrets and variables > Actions):
+#   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, BRAPI_TOKEN
+name: Atualizar mercado e notícias
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"   # a cada 30 minutos (horário UTC; o GitHub pode atrasar alguns minutos)
+  workflow_dispatch: {}       # botão "Run workflow" para rodar na hora
+
+concurrency:
+  group: atualizar-dados
+  cancel-in-progress: true
+
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: scripts
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      BRAPI_TOKEN: ${{ secrets.BRAPI_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Indicadores (Banco Central, IBGE, B3)
+        run: node atualizar-mercado.mjs
+      - name: Notícias (RSS)
+        if: always()
+        run: node atualizar-noticias.mjs

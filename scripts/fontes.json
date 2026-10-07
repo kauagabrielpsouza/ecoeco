@@ -1,0 +1,8 @@
+{
+  "copom": ["2026-11-04", "2026-12-09"],
+  "noticias": [
+    { "nome": "Agência Brasil", "url": "https://agenciabrasil.ebc.com.br/rss/economia/feed.xml", "resumo": true, "filtrar": false },
+    { "nome": "InfoMoney", "url": "https://www.infomoney.com.br/feed/", "resumo": false, "filtrar": true }
+  ],
+  "palavras_economia": ["juro", "selic", "inflação", "ipca", "dólar", "câmbio", "bolsa", "ibovespa", "ações", "economia", "pib", "fiscal", "banco", "copom", "petróleo", "safra", "soja", "milho", "agro", "mercado", "investimento", "lucro", "balanço", "exporta", "importa", "emprego", "desemprego", "imposto", "tribut", "crédito", "renda", "dívida", "tesouro", "fed", "china", "commodit", "indústria", "varejo", "salário", "orçamento"]
+}
