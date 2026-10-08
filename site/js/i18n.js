@@ -330,4 +330,41 @@
     "page.privacy.5.h": ["Fase de teste", "Test phase"],
     "page.privacy.5.t": ["A EcoEco está em teste fechado. Não pedimos e-mail nem documentos: a conta usa só nome de usuário e senha, guardada de forma criptografada. Mensagens só ficam visíveis para quem participa da conversa.", "EcoEco is in a closed test. We do not ask for email or documents: your account uses only a username and a password, stored encrypted. Messages are visible only to the people in the conversation."]
   });
+
+  // -------------------------------------------------------------------
+  // Entrar e criar conta
+  // -------------------------------------------------------------------
+  add({
+    "auth.tagline": ["A rede de quem vive e estuda economia.", "The network for people who live and study economics."],
+    "auth.pitch": ["Debata ideias, acompanhe as notícias e os indicadores do dia e conecte-se com quem entende do assunto.", "Debate ideas, follow the day's news and indicators, and connect with people who know the subject."],
+    "auth.signIn": ["Entrar", "Sign in"],
+    "auth.signUp": ["Criar conta", "Create account"],
+    "auth.signInHint": ["Use seu nome de usuário e senha.", "Use your username and password."],
+    "auth.signUpHint": ["Só precisamos de um nome de usuário e uma senha. Nada de e-mail ou dados pessoais.", "All we need is a username and a password. No email, no personal data."],
+    "auth.username": ["Nome de usuário", "Username"],
+    "auth.usernamePh": ["ex.: kaua.economia", "e.g. kaua.economics"],
+    "auth.password": ["Senha", "Password"],
+    "auth.password2": ["Repita a senha", "Repeat password"],
+    "auth.invite": ["Código de convite", "Invite code"],
+    "auth.invitePh": ["Peça para quem te convidou", "Ask the person who invited you"],
+    "auth.terms": ["Li e aceito as Regras da comunidade e os Termos de uso. Entendo que a EcoEco está em fase de teste.", "I have read and accept the Community rules and the Terms of use. I understand EcoEco is in a test phase."],
+    "auth.createAccount": ["Criar minha conta", "Create my account"],
+    "auth.toSignUp": ["Ainda não tem conta? Criar conta", "Don't have an account yet? Create one"],
+    "auth.toSignIn": ["Já tem conta? Entrar", "Already have an account? Sign in"],
+    "auth.forgot": ["Esqueceu a senha? Fale com a administração da EcoEco para redefinir.", "Forgot your password? Ask the EcoEco team to reset it."],
+    "auth.wait": ["Aguarde…", "Please wait…"],
+    "auth.err.username": ["O nome de usuário precisa ter de 3 a 24 caracteres: letras minúsculas, números, ponto ou _.", "Usernames must have 3 to 24 characters: lowercase letters, numbers, dot or _."],
+    "auth.err.short": ["A senha precisa ter pelo menos 8 caracteres.", "Passwords must have at least 8 characters."],
+    "auth.err.wrong": ["Usuário ou senha incorretos.", "Wrong username or password."],
+    "auth.err.mismatch": ["As senhas não são iguais.", "The passwords don't match."],
+    "auth.err.terms": ["Para criar a conta, aceite as Regras e os Termos.", "To create your account, accept the Rules and the Terms."],
+    "auth.err.taken": ["Esse nome de usuário já está em uso.", "That username is already taken."],
+    "auth.err.invite": ["Código de convite inválido ou esgotado.", "Invalid or used-up invite code."],
+    "auth.err.signup": ["Não foi possível criar a conta. Confira o convite e tente outro nome de usuário.", "Couldn't create the account. Check the invite code and try another username."],
+    "auth.err.confirm": ["Conta criada, mas o login automático não aconteceu. No Supabase, desligue “Confirm email” (veja o ROTEIRO) e tente entrar.", "Account created, but automatic sign-in didn't happen. In Supabase, turn off “Confirm email” (see ROTEIRO) and try signing in."],
+    "auth.err.network": ["Sem conexão com o servidor. Tente de novo.", "No connection to the server. Please try again."],
+    "err.privateOnly": ["Somente seus próprios dados privados", "Only your own private data"],
+    "err.noEdit": ["Sem permissão para editar", "You don't have permission to edit this"],
+    "err.noDelete": ["Sem permissão para apagar", "You don't have permission to delete this"]
+  });
 })();

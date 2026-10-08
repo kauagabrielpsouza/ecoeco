@@ -10,6 +10,9 @@
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, EMAIL_DOMAIN, REQUIRE_INVITE } from "../config.js";
 
+// Textos da interface (js/i18n.js, carregado antes deste arquivo)
+const I18N = window.I18N, t = I18N.t;
+
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: { persistSession: true, autoRefreshToken: true }
 });
@@ -44,7 +47,7 @@ let channel = null;
 function realCollection(path) {
   const m = /^data\/users\/([^/]+)$/.exec(path);
   if (m) {
-    if (m[1] !== me.id) throw Object.assign(new Error("Somente seus próprios dados privados"), { code: "permission_denied" });
+    if (m[1] !== me.id) throw Object.assign(new Error(t("err.privateOnly")), { code: "permission_denied" });
     return "private";
   }
   return path;
@@ -152,13 +155,13 @@ function collection(path) {
           });
           const { data: rows, error } = await sb.from("docs").update({ data: next }).eq("collection", col).eq("id", id).select("id");
           if (error) throw mapError(error);
-          if (!rows || !rows.length) throw Object.assign(new Error("Sem permissão para editar"), { code: "permission_denied" });
+          if (!rows || !rows.length) throw Object.assign(new Error(t("err.noEdit")), { code: "permission_denied" });
           applyLocal(col, id, next);
         },
         async delete() {
           const { data: rows, error } = await sb.from("docs").delete().eq("collection", col).eq("id", id).select("id");
           if (error) throw mapError(error);
-          if (!rows || !rows.length) throw Object.assign(new Error("Sem permissão para apagar"), { code: "permission_denied" });
+          if (!rows || !rows.length) throw Object.assign(new Error(t("err.noDelete")), { code: "permission_denied" });
           applyLocal(col, id, null);
         }
       };
@@ -272,59 +275,63 @@ function authScreen() {
     let mode = "login";
     const vals = {};
     const keep = () => box.querySelectorAll("input").forEach((i) => { vals[i.id] = i.type === "checkbox" ? i.checked : i.value; });
+    // msg = chave do dicionário (assim a mensagem também muda de idioma)
     const draw = (msg) => {
       if (box.querySelector("#authForm")) keep();
+      const login = mode === "login";
       box.innerHTML =
         '<div class="login"><section class="l"><div class="logo-lg"><span class="tile"><img data-logo alt=""></span><span><b>Eco<span class="g">Eco</span></b><small>The Economy Ecosystem</small></span></div>' +
-        '<h1>A rede de quem vive e estuda economia.</h1><p style="margin:0;font-size:17px;opacity:.92;max-width:440px">Debata ideias, acompanhe as notícias e os indicadores do dia e conecte-se com quem entende do assunto.</p></section>' +
+        '<h1>' + t("auth.tagline") + '</h1><p style="margin:0;font-size:17px;opacity:.92;max-width:440px">' + t("auth.pitch") + '</p></section>' +
         '<section class="r"><form class="box" id="authForm" novalidate>' +
-        '<h2 style="margin:0;font-size:30px">' + (mode === "login" ? "Entrar" : "Criar conta") + '</h2>' +
-        '<p class="muted" style="margin:0">' + (mode === "login" ? "Use seu nome de usuário e senha." : "Só precisamos de um nome de usuário e uma senha. Nada de e-mail ou dados pessoais.") + '</p>' +
-        '<label class="field" for="au-user">Nome de usuário<input id="au-user" autocomplete="username" maxlength="24" placeholder="ex.: kaua.economia" required></label>' +
-        '<label class="field" for="au-pass">Senha<input id="au-pass" type="password" autocomplete="' + (mode === "login" ? "current-password" : "new-password") + '" minlength="8" required></label>' +
-        (mode === "signup" ? '<label class="field" for="au-pass2">Repita a senha<input id="au-pass2" type="password" autocomplete="new-password" minlength="8" required></label>' +
-          (REQUIRE_INVITE ? '<label class="field" for="au-invite">Código de convite<input id="au-invite" autocomplete="off" placeholder="Peça para quem te convidou" required></label>' : '') +
-          '<label style="display:flex;gap:8px;align-items:flex-start;font-size:13.5px"><input type="checkbox" id="au-terms" style="margin-top:3px"> <span>Li e aceito as Regras da comunidade e os Termos de uso. Entendo que a EcoEco está em fase de teste.</span></label>' : '') +
-        (msg ? '<p role="alert" style="margin:0;color:var(--down);font-weight:600;font-size:14px">' + esc(msg) + '</p>' : '') +
-        '<button class="btn" type="submit" style="height:46px;font-size:15px">' + (mode === "login" ? "Entrar" : "Criar minha conta") + '</button>' +
-        '<button type="button" class="linkname" id="au-switch" style="color:var(--accent);text-align:left">' + (mode === "login" ? "Ainda não tem conta? Criar conta" : "Já tem conta? Entrar") + '</button>' +
-        '<p class="muted" style="margin:0;font-size:12.5px;line-height:1.5">Esqueceu a senha? Fale com a administração da EcoEco para redefinir.</p>' +
+        '<button type="button" class="linkname" id="au-lang" lang="' + (I18N.lang === "en" ? "pt-BR" : "en") + '" style="align-self:flex-end;font-size:13px;color:var(--accent)">' + (I18N.lang === "en" ? "Português" : "English") + '</button>' +
+        '<h2 style="margin:0;font-size:30px">' + t(login ? "auth.signIn" : "auth.signUp") + '</h2>' +
+        '<p class="muted" style="margin:0">' + t(login ? "auth.signInHint" : "auth.signUpHint") + '</p>' +
+        '<label class="field" for="au-user">' + t("auth.username") + '<input id="au-user" autocomplete="username" maxlength="24" placeholder="' + t("auth.usernamePh") + '" required></label>' +
+        '<label class="field" for="au-pass">' + t("auth.password") + '<input id="au-pass" type="password" autocomplete="' + (login ? "current-password" : "new-password") + '" minlength="8" required></label>' +
+        (!login ? '<label class="field" for="au-pass2">' + t("auth.password2") + '<input id="au-pass2" type="password" autocomplete="new-password" minlength="8" required></label>' +
+          (REQUIRE_INVITE ? '<label class="field" for="au-invite">' + t("auth.invite") + '<input id="au-invite" autocomplete="off" placeholder="' + t("auth.invitePh") + '" required></label>' : '') +
+          '<label style="display:flex;gap:8px;align-items:flex-start;font-size:13.5px"><input type="checkbox" id="au-terms" style="margin-top:3px"> <span>' + t("auth.terms") + '</span></label>' : '') +
+        (msg ? '<p role="alert" style="margin:0;color:var(--down);font-weight:600;font-size:14px">' + esc(t(msg)) + '</p>' : '') +
+        '<button class="btn" type="submit" style="height:46px;font-size:15px">' + t(login ? "auth.signIn" : "auth.createAccount") + '</button>' +
+        '<button type="button" class="linkname" id="au-switch" style="color:var(--accent);text-align:left">' + t(login ? "auth.toSignUp" : "auth.toSignIn") + '</button>' +
+        '<p class="muted" style="margin:0;font-size:12.5px;line-height:1.5">' + t("auth.forgot") + '</p>' +
         '</form></section></div>';
       box.querySelectorAll("img[data-logo]").forEach((i) => { if (window.__ECO_LOGO) i.src = window.__ECO_LOGO; });
       box.querySelectorAll("input").forEach((i) => { if (vals[i.id] === undefined || i.type === "password") return; if (i.type === "checkbox") i.checked = !!vals[i.id]; else i.value = vals[i.id]; });
       const firstEmpty = [...box.querySelectorAll("input")].find((i) => i.type !== "checkbox" && !i.value);
       if (msg && firstEmpty) firstEmpty.focus();
       box.querySelector("#au-switch").onclick = () => { mode = mode === "login" ? "signup" : "login"; draw(); };
+      box.querySelector("#au-lang").onclick = () => { I18N.setLang(I18N.lang === "en" ? "pt" : "en"); draw(msg); const b = box.querySelector("#au-lang"); if (b) b.focus(); };
       box.querySelector("#authForm").onsubmit = async (ev) => {
         ev.preventDefault();
         const btn = box.querySelector('button[type="submit"]');
         const u = cleanUser(box.querySelector("#au-user").value);
         const p = box.querySelector("#au-pass").value;
-        if (!validUser(u)) return draw("O nome de usuário precisa ter de 3 a 24 caracteres: letras minúsculas, números, ponto ou _.");
-        if (p.length < 8) return draw("A senha precisa ter pelo menos 8 caracteres.");
-        btn.disabled = true; btn.textContent = "Aguarde…";
+        if (!validUser(u)) return draw("auth.err.username");
+        if (p.length < 8) return draw("auth.err.short");
+        btn.disabled = true; btn.textContent = t("auth.wait");
         try {
           if (mode === "login") {
             const { data, error } = await sb.auth.signInWithPassword({ email: toEmail(u), password: p });
-            if (error) return draw("Usuário ou senha incorretos.");
+            if (error) return draw("auth.err.wrong");
             session = data.session;
           } else {
-            if (p !== box.querySelector("#au-pass2").value) return draw("As senhas não são iguais.");
-            if (!box.querySelector("#au-terms").checked) return draw("Para criar a conta, aceite as Regras e os Termos.");
+            if (p !== box.querySelector("#au-pass2").value) return draw("auth.err.mismatch");
+            if (!box.querySelector("#au-terms").checked) return draw("auth.err.terms");
             const code = REQUIRE_INVITE ? box.querySelector("#au-invite").value.trim() : "";
             const avail = await sb.rpc("username_available", { p_username: u });
-            if (avail.data === false) return draw("Esse nome de usuário já está em uso.");
+            if (avail.data === false) return draw("auth.err.taken");
             const inv = await sb.rpc("invite_valid", { p_code: code });
-            if (inv.data === false) return draw("Código de convite inválido ou esgotado.");
+            if (inv.data === false) return draw("auth.err.invite");
             const { data, error } = await sb.auth.signUp({ email: toEmail(u), password: p, options: { data: { username: u, invite_code: code } } });
-            if (error) return draw("Não foi possível criar a conta. Confira o convite e tente outro nome de usuário.");
-            if (!data.session) return draw("Conta criada, mas o login automático não aconteceu. No Supabase, desligue “Confirm email” (veja o ROTEIRO) e tente entrar.");
+            if (error) return draw("auth.err.signup");
+            if (!data.session) return draw("auth.err.confirm");
             session = data.session;
           }
           box.remove();
           resolve(session);
         } catch (e) {
-          draw("Sem conexão com o servidor. Tente de novo.");
+          draw("auth.err.network");
         }
       };
     };
@@ -357,7 +364,7 @@ async function start() {
 window.EcoBackend = {
   async signOut() { await sb.auth.signOut(); location.reload(); },
   async changePassword(newPass) {
-    if (!newPass || newPass.length < 8) throw new Error("A senha precisa ter pelo menos 8 caracteres.");
+    if (!newPass || newPass.length < 8) throw new Error(t("auth.err.short"));
     const { error } = await sb.auth.updateUser({ password: newPass });
     if (error) throw new Error(error.message);
   },
@@ -380,5 +387,5 @@ window.EcoBackend = {
 
 start().then((api) => window.__ecoResolve(api)).catch((e) => {
   console.error(e);
-  document.body.insertAdjacentHTML("afterbegin", '<p role="alert" style="padding:16px;background:#C83E3E;color:#fff;margin:0">Não foi possível conectar ao servidor da EcoEco. Confira o arquivo config.js.</p>');
+  document.body.insertAdjacentHTML("afterbegin", '<p role="alert" style="padding:16px;background:#C83E3E;color:#fff;margin:0">' + t("err.connect") + '</p>');
 });
