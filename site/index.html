@@ -747,7 +747,7 @@ button.tickrow:hover{background:var(--soft)}
   }
 
   /* ---------- identity helpers ---------- */
-  const U = (id) => S.users[id] || { name: id === S.meId ? (S.meName || "Você") : "Pessoa" };
+  const U = (id) => S.users[id] || { name: id === S.meId ? (S.meName || tr("common.you")) : tr("common.person") };
   const hueOf = (id) => { const u = S.users[id]; if (u && typeof u.hue === "number") return HUES[u.hue % HUES.length]; let h = 0; for (const c of String(id)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return HUES[h % HUES.length]; };
   const initials = (name) => (name || "?").trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
   const handle = (id) => { const u = U(id); return u.username ? "@" + u.username : ""; };
@@ -756,7 +756,7 @@ button.tickrow:hover{background:var(--soft)}
     const [bg, fg] = hueOf(id); const n = U(id).name;
     const style = 'style="background:' + bg + ';color:' + fg + '"';
     if (act === false) return '<span class="av s' + size + '" ' + style + ' aria-hidden="true">' + avInner(id) + '</span>';
-    return '<button type="button" class="av s' + size + '" ' + style + ' data-go="profile:' + esc(id) + '" aria-label="Ver perfil de ' + esc(n) + '">' + avInner(id) + '</button>';
+    return '<button type="button" class="av s' + size + '" ' + style + ' data-go="profile:' + esc(id) + '" aria-label="' + tr("common.viewProfile", { name: esc(n) }) + '">' + avInner(id) + '</button>';
   };
   const following = () => new Set(S.follows.filter((f) => f.from === S.meId).map((f) => f.to));
   const followerCount = (id) => S.follows.filter((f) => f.to === id).length;
@@ -885,18 +885,18 @@ button.tickrow:hover{background:var(--soft)}
   function sanctionText(short) {
     const s = S.sanction; if (!s) return "";
     const when = s.until ? fmtDT(s.until) : "";
-    const head = s.kind === "banimento" ? "Sua conta foi banida." : "Sua conta está suspensa até " + when + ".";
-    return short ? head + " Você não pode publicar, comentar, votar nem mandar mensagens."
-      : head + (s.reason ? " Motivo: " + s.reason + "." : "") + " Você ainda pode ler, mas não pode publicar, comentar, votar nem mandar mensagens. Se achar que é um engano, fale com a administração da EcoEco.";
+    const head = s.kind === "banimento" ? tr("sanc.banned") : tr("sanc.suspended", { when });
+    return short ? head + " " + tr("sanc.short")
+      : head + (s.reason ? " " + tr("sanc.reason", { reason: s.reason }) : "") + " " + tr("sanc.long");
   }
   const sanctionBanner = () => S.sanction ? '<div class="banner sanction" role="status" style="background:color-mix(in srgb,var(--down) 14%,var(--surface));border-bottom:1px solid var(--down)">' + esc(sanctionText(false)) + '</div>' : '';
   async function write(fn, okMsg) {
-    if (!canAct()) { toast(S.sanction ? sanctionText(true) : S.db ? "Entre na sua conta para interagir." : "Sem conexão com o banco de dados nesta visualização."); return false; }
+    if (!canAct()) { toast(S.sanction ? sanctionText(true) : tr(S.db ? "err.signIn" : "err.noDb")); return false; }
     try { await fn(); if (okMsg) toast(okMsg); return true; }
     catch (e) {
-      if (e && e.code === "quota_exceeded") toast("O banco de dados está cheio. Avise a administração da EcoEco.");
-      else if (e && e.code === "invalid_argument") toast("Não foi possível salvar. Se anexou uma imagem, tente uma menor.");
-      else toast("Não deu para salvar agora. Tente de novo.");
+      if (e && e.code === "quota_exceeded") toast(tr("err.dbFull"));
+      else if (e && e.code === "invalid_argument") toast(tr("err.tooBig"));
+      else toast(tr("err.save"));
       return false;
     }
   }
@@ -908,7 +908,7 @@ button.tickrow:hover{background:var(--soft)}
   const modDel = (colName, id) => {
     if (!S.isAdmin || !loggedIn()) return "";
     const armed = S.confirmDel === colName + ":" + id;
-    return '<button type="button" class="linkname" style="font-weight:' + (armed ? 700 : 400) + ';font-size:12.5px;color:' + (armed ? "var(--down)" : "var(--ink2)") + '" data-act="cdel" data-col="' + colName + '" data-id="' + esc(id) + '">' + (armed ? "Confirmar exclusão" : "Excluir") + '</button>';
+    return '<button type="button" class="linkname" style="font-weight:' + (armed ? 700 : 400) + ';font-size:12.5px;color:' + (armed ? "var(--down)" : "var(--ink2)") + '" data-act="cdel" data-col="' + colName + '" data-id="' + esc(id) + '">' + tr(armed ? "common.confirmDelete" : "common.delete") + '</button>';
   };
   async function removeDoc(colName, id, ownerId) {
     if (ownerId && ownerId !== S.meId && S.isAdmin && window.EcoBackend && window.EcoBackend.adminDelete) return window.EcoBackend.adminDelete(colName, id);
@@ -1026,7 +1026,7 @@ button.tickrow:hover{background:var(--soft)}
     }
     const last = vals[n - 1];
     const endLabel = '<text x="' + Math.min(W - R, x(n - 1)) + '" y="' + (y(last) + (last < 0 ? 16 : -8)) + '" text-anchor="end" style="fill:var(--ink);font-weight:600">' + esc(fmtNum(last)) + (c.unit ? esc(c.unit) : "") + '</text>';
-    return '<div class="chart"><h3>' + esc(c.title || "Gráfico") + '</h3><svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(c.title || "Gráfico") + '">' + g + marks + endLabel + lab + '</svg>' + (c.source ? '<p class="muted" style="margin:4px 0 0;font-size:12px">Fonte: ' + esc(c.source) + '</p>' : '') + '</div>';
+    return '<div class="chart"><h3>' + esc(c.title || tr("comp.chart")) + '</h3><svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(c.title || tr("comp.chart")) + '">' + g + marks + endLabel + lab + '</svg>' + (c.source ? '<p class="muted" style="margin:4px 0 0;font-size:12px">Fonte: ' + esc(c.source) + '</p>' : '') + '</div>';
   }
 
   /* ---------- post pieces ---------- */
@@ -1481,7 +1481,7 @@ button.tickrow:hover{background:var(--soft)}
     }).join("");
   }
   function avStack(ids) { ids = ids.slice(0, 5); return ids.length ? '<span class="avstack">' + ids.map((i) => avatar(i, 24, false)).join("") + '</span>' : ''; }
-  const backHead = (to, title, sub, right) => '<div class="head" style="flex-direction:row;align-items:center;padding-bottom:14px"><button type="button" class="iconbtn" data-go="' + esc(to) + '" aria-label="Voltar">' + svg(I.back, 20) + '</button><span style="display:flex;flex-direction:column;line-height:1.25;min-width:0"><h1 style="font-size:19px">' + title + '</h1>' + (sub ? '<span class="muted" style="font-size:13px">' + sub + '</span>' : '') + '</span>' + (right || '') + '</div>';
+  const backHead = (to, title, sub, right) => '<div class="head" style="flex-direction:row;align-items:center;padding-bottom:14px"><button type="button" class="iconbtn" data-go="' + esc(to) + '" aria-label="' + tr("common.back") + '">' + svg(I.back, 20) + '</button><span style="display:flex;flex-direction:column;line-height:1.25;min-width:0"><h1 style="font-size:19px">' + title + '</h1>' + (sub ? '<span class="muted" style="font-size:13px">' + sub + '</span>' : '') + '</span>' + (right || '') + '</div>';
   const secHead = (title, desc, right, extra) => '<div class="head"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><h1>' + title + '</h1>' + (right || '') + '</div>' + (desc ? '<p class="muted" style="margin:-8px 0 0;font-size:13.5px">' + desc + '</p>' : '') + (extra || '<div style="height:2px"></div>') + '</div>';
   const eyebrow = (t) => '<div style="padding:14px 20px 4px" class="eyebrow">' + t + '</div>';
   const delBtn = (colName, id, label) => { const armed = S.confirmDel === colName + ":" + id; return '<button type="button" class="btn ghost small' + (armed ? ' armed' : '') + '" data-act="del" data-col="' + colName + '" data-id="' + esc(id) + '">' + (armed ? tr("common.confirmDelete") : (label || tr("common.delete"))) + '</button>'; };
@@ -2003,10 +2003,10 @@ button.tickrow:hover{background:var(--soft)}
   // Hashtags que sigo (privado: fica no estado da própria pessoa)
   const followedTags = () => (S.pstate && Array.isArray(S.pstate.tags)) ? S.pstate.tags : [];
   async function toggleTagFollow(tag) {
-    if (!canAct()) { toast("Entre na sua conta para seguir hashtags."); return; }
+    if (!canAct()) { toast(S.sanction ? sanctionText(true) : tr("tag.signIn")); return; }
     const on = followedTags().includes(tag);
     await saveState({ tags: on ? followedTags().filter((t) => t !== tag) : followedTags().concat(tag), tagSeen: Object.assign({}, S.pstate.tagSeen, on ? {} : { [tag]: now() }) });
-    toast(on ? "Você deixou de seguir #" + tag : "Agora você segue #" + tag + ". As publicações aparecem na aba Seguindo.");
+    toast(tr(on ? "tag.unfollowed" : "tag.followed", { tag }));
     render();
   }
 
@@ -2028,74 +2028,74 @@ button.tickrow:hover{background:var(--soft)}
   /* ---------- moderação ---------- */
   /* ---------- painel de administração (SQL 07) ---------- */
   const fmtDT = (v) => L.dateTime(v);
-  const ADM_NEEDS_SQL = "O painel precisa do arquivo supabase/07_moderacao_admin.sql rodado no Supabase.";
+  const ADM_NEEDS_SQL = "adm.needsSql";
   async function loadAdmin(which) {
     const rpc = window.EcoBackend && window.EcoBackend.rpc;
-    if (!rpc) { S.adm.err = ADM_NEEDS_SQL; render(); return; }
+    if (!rpc) { S.adm.err = tr(ADM_NEEDS_SQL); render(); return; }
     S.adm.err = ""; S.adm.loading = which; render();
     try {
       if (which === "accounts" || which === "log") S.adm.users = await rpc("admin_list_users");
       if (which === "invites") S.adm.invites = await rpc("admin_list_invites");
       if (which === "log") S.adm.log = await rpc("admin_list_log", { p_limit: 200 });
-    } catch (e) { S.adm.err = /function|does not exist|schema cache|404/i.test((e && (e.detail || e.message)) || "") ? ADM_NEEDS_SQL : "Não foi possível carregar: " + ((e && (e.detail || e.message)) || "erro desconhecido"); }
+    } catch (e) { S.adm.err = /function|does not exist|schema cache|404/i.test((e && (e.detail || e.message)) || "") ? tr(ADM_NEEDS_SQL) : tr("adm.loadErr", { err: (e && (e.detail || e.message)) || "?" }); }
     S.adm.loading = ""; render();
   }
   async function admCall(name, args, okMsg, reload) {
     try { await window.EcoBackend.rpc(name, args); toast(okMsg); S.adm.form = null; await loadAdmin(reload); }
-    catch (e) { toast((e && (e.detail || e.message)) || "Não foi possível concluir."); }
+    catch (e) { toast((e && (e.detail || e.message)) || tr("adm.failed")); }
   }
-  const admName = (uid) => { const u = (S.adm.users || []).find((x) => x.user_id === uid); return u && u.username ? "@" + u.username : (S.users[uid] ? U(uid).name : "conta " + String(uid || "").slice(0, 8)); };
+  const admName = (uid) => { const u = (S.adm.users || []).find((x) => x.user_id === uid); return u && u.username ? "@" + u.username : (S.users[uid] ? U(uid).name : tr("adm.account", { id: String(uid || "").slice(0, 8) })); };
   function admStatus(u) {
-    if (u.kind === "banimento") return '<span class="pill" style="background:color-mix(in srgb,var(--down) 16%,transparent);color:var(--down)">Banida</span>';
-    if (u.kind === "suspensao" && u.until && new Date(u.until) > new Date()) return '<span class="pill gold">Suspensa até ' + esc(fmtDT(u.until)) + '</span>';
-    return '<span class="pill acc">Ativa</span>';
+    if (u.kind === "banimento") return '<span class="pill" style="background:color-mix(in srgb,var(--down) 16%,transparent);color:var(--down)">' + tr("adm.banned") + '</span>';
+    if (u.kind === "suspensao" && u.until && new Date(u.until) > new Date()) return '<span class="pill gold">' + tr("adm.suspendedUntil", { when: esc(fmtDT(u.until)) }) + '</span>';
+    return '<span class="pill acc">' + tr("adm.active") + '</span>';
   }
   function viewAdminAccounts() {
     const list = S.adm.users || [], f = S.adm.form;
-    if (!list.length) return '<p class="empty">' + (S.adm.loading ? "Carregando contas…" : "Nenhuma conta encontrada.") + '</p>';
+    if (!list.length) return '<p class="empty">' + tr(S.adm.loading ? "common.loading" : "adm.noAccounts") + '</p>';
     return list.map((u) => {
       const me = u.user_id === S.meId, active = u.kind === "banimento" || (u.kind === "suspensao" && u.until && new Date(u.until) > new Date());
       const open = f && f.user === u.user_id;
       const form = !open ? '' : '<div class="banner" style="margin:0;border-radius:10px;display:flex;flex-direction:column;gap:10px">' +
         (f.kind === "pw"
-          ? '<label class="field" for="adm-pw">Senha temporária (mín. 8 caracteres)<input id="adm-pw" type="text" autocomplete="off" minlength="8"></label><span class="muted" style="font-size:12.5px">Passe a senha para a pessoa por um canal seguro e peça para ela trocar em Configurações › Senha.</span>'
-          : (f.kind === "suspend" ? '<label class="field" for="adm-days">Suspender por quantos dias?<input id="adm-days" type="number" min="1" max="3650" value="7" inputmode="numeric"></label>' : '<span style="font-size:13.5px">O banimento vale até alguém desfazer.</span>') +
-            '<label class="field" for="adm-reason">Motivo (a pessoa vai ver)<input id="adm-reason" maxlength="300" autocomplete="off"></label>') +
-        '<span class="row" style="justify-content:flex-end;gap:6px"><button type="button" class="btn ghost small" data-act="admcancel">Cancelar</button><button type="button" class="btn ' + (f.kind === "pw" ? "" : "danger ") + 'small" data-act="admsubmit">' + (f.kind === "pw" ? "Definir senha" : f.kind === "suspend" ? "Confirmar suspensão" : "Confirmar banimento") + '</button></span></div>';
-      return '<article class="item"><div class="row" style="justify-content:space-between;gap:8px"><b style="font-size:15px">' + esc(u.username ? "@" + u.username : "(sem nome de usuário)") + '</b><span class="row" style="gap:6px">' + (u.is_admin ? '<span class="pill">Admin</span>' : '') + (me ? '<span class="pill">Você</span>' : '') + admStatus(u) + '</span></div>' +
-        '<span class="muted" style="font-size:12.5px">Cadastro: ' + esc(fmtDT(u.created_at)) + ' · último acesso: ' + esc(fmtDT(u.last_sign_in_at)) + '</span>' +
-        (active && u.reason ? '<span style="font-size:13px">Motivo: ' + esc(u.reason) + '</span>' : '') +
+          ? '<label class="field" for="adm-pw">' + tr("adm.pwLabel") + '<input id="adm-pw" type="text" autocomplete="off" minlength="8"></label><span class="muted" style="font-size:12.5px">' + tr("adm.pwHint") + '</span>'
+          : (f.kind === "suspend" ? '<label class="field" for="adm-days">' + tr("adm.days") + '<input id="adm-days" type="number" min="1" max="3650" value="7" inputmode="numeric"></label>' : '<span style="font-size:13.5px">' + tr("adm.banNote") + '</span>') +
+            '<label class="field" for="adm-reason">' + tr("adm.reasonLabel") + '<input id="adm-reason" maxlength="300" autocomplete="off"></label>') +
+        '<span class="row" style="justify-content:flex-end;gap:6px"><button type="button" class="btn ghost small" data-act="admcancel">' + tr("common.cancel") + '</button><button type="button" class="btn ' + (f.kind === "pw" ? "" : "danger ") + 'small" data-act="admsubmit">' + tr(f.kind === "pw" ? "adm.setPw" : f.kind === "suspend" ? "adm.confirmSuspend" : "adm.confirmBan") + '</button></span></div>';
+      return '<article class="item"><div class="row" style="justify-content:space-between;gap:8px"><b style="font-size:15px">' + esc(u.username ? "@" + u.username : tr("adm.noUsername")) + '</b><span class="row" style="gap:6px">' + (u.is_admin ? '<span class="pill">Admin</span>' : '') + (me ? '<span class="pill">' + tr("common.you") + '</span>' : '') + admStatus(u) + '</span></div>' +
+        '<span class="muted" style="font-size:12.5px">' + tr("adm.joined", { when: esc(fmtDT(u.created_at)) }) + ' · ' + tr("adm.lastSeen", { when: esc(fmtDT(u.last_sign_in_at)) }) + '</span>' +
+        (active && u.reason ? '<span style="font-size:13px">' + tr("adm.reason", { reason: esc(u.reason) }) + '</span>' : '') +
         (open ? form : '<div class="row" style="justify-content:flex-end;gap:6px">' +
-          (me ? '' : active ? '<button type="button" class="btn ghost small" data-act="admlift" data-id="' + esc(u.user_id) + '">Desfazer ' + (u.kind === "banimento" ? "banimento" : "suspensão") + '</button>'
-            : '<button type="button" class="btn ghost small" data-act="admform" data-kind="suspend" data-id="' + esc(u.user_id) + '">Suspender</button><button type="button" class="btn ghost small" data-act="admform" data-kind="ban" data-id="' + esc(u.user_id) + '">Banir</button>') +
-          (me ? '' : '<button type="button" class="btn ghost small" data-act="admform" data-kind="pw" data-id="' + esc(u.user_id) + '">Senha temporária</button>') + '</div>') + '</article>';
+          (me ? '' : active ? '<button type="button" class="btn ghost small" data-act="admlift" data-id="' + esc(u.user_id) + '">' + tr(u.kind === "banimento" ? "adm.undoBan" : "adm.undoSuspend") + '</button>'
+            : '<button type="button" class="btn ghost small" data-act="admform" data-kind="suspend" data-id="' + esc(u.user_id) + '">' + tr("adm.suspend") + '</button><button type="button" class="btn ghost small" data-act="admform" data-kind="ban" data-id="' + esc(u.user_id) + '">' + tr("adm.ban") + '</button>') +
+          (me ? '' : '<button type="button" class="btn ghost small" data-act="admform" data-kind="pw" data-id="' + esc(u.user_id) + '">' + tr("adm.tempPw") + '</button>') + '</div>') + '</article>';
     }).join("");
   }
   function viewAdminInvites() {
     const list = S.adm.invites || [];
-    return '<form id="invForm" class="row" style="padding:16px 20px;gap:10px;align-items:flex-end;border-bottom:1px solid var(--line)"><label class="field" for="adm-code" style="flex:2;min-width:160px">Novo código<input id="adm-code" maxlength="30" autocomplete="off" placeholder="Ex.: TURMA-UEM" style="text-transform:uppercase"></label><label class="field" for="adm-max" style="flex:1;min-width:110px">Limite de usos<input id="adm-max" type="number" min="1" max="10000" value="30" inputmode="numeric"></label><button type="submit" class="btn small">Criar convite</button></form>' +
-      (list.length ? list.map((i) => '<article class="item"><div class="row" style="justify-content:space-between"><b style="font-family:var(--mono);font-size:15px">' + esc(i.code) + '</b>' + (i.active ? '<span class="pill acc">Ativo</span>' : '<span class="pill">Desativado</span>') + '</div><span class="muted" style="font-size:13px">' + i.uses + ' de ' + i.max_uses + (i.max_uses === 1 ? ' uso' : ' usos') + ' · criado em ' + esc(fmtDT(i.created_at)) + '</span><div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost small" data-act="adminv" data-id="' + esc(i.code) + '" data-on="' + (i.active ? "0" : "1") + '">' + (i.active ? "Desativar" : "Reativar") + '</button></div></article>').join("")
-        : '<p class="empty">' + (S.adm.loading ? "Carregando convites…" : "Nenhum convite criado.") + '</p>');
+    return '<form id="invForm" class="row" style="padding:16px 20px;gap:10px;align-items:flex-end;border-bottom:1px solid var(--line)"><label class="field" for="adm-code" style="flex:2;min-width:160px">' + tr("adm.newCode") + '<input id="adm-code" maxlength="30" autocomplete="off" placeholder="' + tr("adm.codePh") + '" style="text-transform:uppercase"></label><label class="field" for="adm-max" style="flex:1;min-width:110px">' + tr("adm.maxUses") + '<input id="adm-max" type="number" min="1" max="10000" value="30" inputmode="numeric"></label><button type="submit" class="btn small">' + tr("adm.createInvite") + '</button></form>' +
+      (list.length ? list.map((i) => '<article class="item"><div class="row" style="justify-content:space-between"><b style="font-family:var(--mono);font-size:15px">' + esc(i.code) + '</b>' + (i.active ? '<span class="pill acc">' + tr("adm.invActive") + '</span>' : '<span class="pill">' + tr("adm.invOff") + '</span>') + '</div><span class="muted" style="font-size:13px">' + tr.n("adm.uses", i.max_uses, { used: i.uses }) + ' · ' + tr("adm.created", { when: esc(fmtDT(i.created_at)) }) + '</span><div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost small" data-act="adminv" data-id="' + esc(i.code) + '" data-on="' + (i.active ? "0" : "1") + '">' + tr(i.active ? "adm.deactivate" : "adm.reactivate") + '</button></div></article>').join("")
+        : '<p class="empty">' + tr(S.adm.loading ? "common.loading" : "adm.noInvites") + '</p>');
   }
   function viewAdminLog() {
     const list = S.adm.log || [];
-    if (!list.length) return '<p class="empty">' + (S.adm.loading ? "Carregando registro…" : "Nada registrado ainda.") + '</p>';
+    if (!list.length) return '<p class="empty">' + tr(S.adm.loading ? "common.loading" : "adm.noLog") + '</p>';
     return list.map((l) => {
       const snap = l.snapshot || {}, preview = snap.text || snap.title || snap.name || "";
       return '<article class="item"><div class="row" style="justify-content:space-between"><b style="font-size:14px">' + esc(admName(l.admin_id)) + ' ' + esc(l.action) + '</b><span class="muted" style="font-size:12.5px">' + esc(fmtDT(l.created_at)) + '</span></div>' +
-        (l.target_user ? '<span style="font-size:13px">Conta: ' + esc(admName(l.target_user)) + '</span>' : '') +
-        (l.target_collection ? '<span class="muted" style="font-size:12.5px">Tipo: ' + esc(l.target_collection) + (l.target_id ? ' · ' + esc(l.target_id) : '') + '</span>' : (l.target_id ? '<span class="muted" style="font-size:12.5px">' + esc(l.target_id) + '</span>' : '')) +
-        (l.reason ? '<span style="font-size:13px">Motivo: ' + esc(l.reason) + '</span>' : '') +
-        (preview ? '<div class="modpost"><span class="muted" style="font-size:12.5px">Cópia do conteúdo</span><p style="margin:4px 0 0;white-space:pre-wrap;overflow-wrap:anywhere">' + esc(String(preview).slice(0, 600)) + '</p></div>' : '') + '</article>';
+        (l.target_user ? '<span style="font-size:13px">' + tr("adm.logAccount", { name: esc(admName(l.target_user)) }) + '</span>' : '') +
+        (l.target_collection ? '<span class="muted" style="font-size:12.5px">' + tr("adm.logType", { type: esc(l.target_collection) }) + (l.target_id ? ' · ' + esc(l.target_id) : '') + '</span>' : (l.target_id ? '<span class="muted" style="font-size:12.5px">' + esc(l.target_id) + '</span>' : '')) +
+        (l.reason ? '<span style="font-size:13px">' + tr("adm.reason", { reason: esc(l.reason) }) + '</span>' : '') +
+        (preview ? '<div class="modpost"><span class="muted" style="font-size:12.5px">' + tr("adm.copy") + '</span><p style="margin:4px 0 0;white-space:pre-wrap;overflow-wrap:anywhere">' + esc(String(preview).slice(0, 600)) + '</p></div>' : '') + '</article>';
     }).join("");
   }
   function viewModeration() {
-    if (!S.isAdmin) return backHead("settings", "Moderação") + '<p class="empty">Só a administração da EcoEco acessa a moderação.</p>';
+    if (!S.isAdmin) return backHead("settings", tr("set.moderation")) + '<p class="empty">' + tr("mod.only") + '</p>';
     const f = S.modTab;
     const list = S.reports.filter((r) => f === "pending" ? (r.status || "pendente") === "pendente" : (r.status || "pendente") !== "pendente").sort(byNew);
     const pend = S.reports.filter((r) => (r.status || "pendente") === "pendente").length;
-    const head = backHead("settings", "Moderação", pend + (pend === 1 ? " denúncia pendente" : " denúncias pendentes")) +
-      '<div class="head" style="position:static;padding-top:10px"><div class="tabs" role="tablist" aria-label="Moderação">' + [["pending", "Denúncias"], ["done", "Resolvidas"], ["accounts", "Contas"], ["invites", "Convites"], ["log", "Registro"]].map(([k, l]) => '<button type="button" role="tab" data-act="modtab" data-id="' + k + '" aria-selected="' + (f === k) + '">' + l + '</button>').join("") + '</div></div>';
+    const head = backHead("settings", tr("set.moderation"), tr.n("mod.pending", pend)) +
+      '<div class="head" style="position:static;padding-top:10px"><div class="tabs" role="tablist" aria-label="' + tr("set.moderation") + '">' + [["pending", tr("mod.tab.reports")], ["done", tr("mod.tab.done")], ["accounts", tr("mod.tab.accounts")], ["invites", tr("mod.tab.invites")], ["log", tr("mod.tab.log")]].map(([k, l]) => '<button type="button" role="tab" data-act="modtab" data-id="' + k + '" aria-selected="' + (f === k) + '">' + l + '</button>').join("") + '</div></div>';
     if (["accounts", "invites", "log"].includes(f)) {
       if (S.adm.err) return head + '<p class="empty">' + esc(S.adm.err) + '</p>';
       return head + (f === "accounts" ? viewAdminAccounts() : f === "invites" ? viewAdminInvites() : viewAdminLog());
@@ -2103,11 +2103,11 @@ button.tickrow:hover{background:var(--soft)}
     return head +
       (list.length ? list.map((r) => {
         const p = (S.raw.posts || S.posts).find((x) => x.id === r.post);
-        return '<article class="item"><div class="row" style="justify-content:space-between"><span class="pill ' + ((r.status || "pendente") === "pendente" ? "gold" : "") + '">' + esc(r.status || "pendente") + '</span><span class="muted" style="font-size:12.5px">' + rel(r.createdAt) + ' · por ' + esc(U(r.by).name) + '</span></div>' +
-          '<b style="font-size:14.5px">Motivo: ' + esc(r.reason || "") + '</b>' +
-          (p ? '<div class="modpost"><span class="muted" style="font-size:12.5px">Publicação de ' + esc(U(p.author).name) + ' · ' + rel(p.createdAt) + '</span><p style="margin:4px 0 0;white-space:pre-wrap;overflow-wrap:anywhere">' + esc(p.text || "(sem texto)") + '</p><button type="button" class="linkname" style="color:var(--accent);font-size:13px" data-go="post:' + esc(p.id) + '">Abrir publicação</button></div>' : (r.snapshot ? '<div class="modpost"><span class="muted" style="font-size:12.5px">Conteúdo removido' + (r.snapshotAuthor ? ' · de ' + esc(U(r.snapshotAuthor).name) : '') + '</span><p style="margin:4px 0 0;white-space:pre-wrap;overflow-wrap:anywhere">' + esc(r.snapshot) + '</p></div>' : '<p class="muted" style="margin:0;font-size:13.5px">A publicação já foi removida.</p>')) +
-          ((r.status || "pendente") === "pendente" ? '<div class="row" style="justify-content:flex-end">' + '<button type="button" class="btn ghost small" data-act="modkeep" data-id="' + esc(r.id) + '">Manter publicação</button>' + (p ? '<button type="button" class="btn danger small" data-act="modremove" data-id="' + esc(r.id) + '">Remover publicação</button>' : '') + '</div>' : '') + '</article>';
-      }).join("") : '<p class="empty">' + (f === "pending" ? "Nenhuma denúncia pendente." : "Nenhuma denúncia resolvida ainda.") + '</p>');
+        return '<article class="item"><div class="row" style="justify-content:space-between"><span class="pill ' + ((r.status || "pendente") === "pendente" ? "gold" : "") + '">' + esc(L.DICT.pt["mod.status." + (r.status || "pendente")] != null ? tr("mod.status." + (r.status || "pendente")) : r.status) + '</span><span class="muted" style="font-size:12.5px">' + rel(r.createdAt) + ' · ' + tr("mod.by", { name: esc(U(r.by).name) }) + '</span></div>' +
+          '<b style="font-size:14.5px">' + tr("adm.reason", { reason: esc(REASONS.indexOf(r.reason) >= 0 ? tr("report.r" + REASONS.indexOf(r.reason)) : (r.reason || "")) }) + '</b>' +
+          (p ? '<div class="modpost"><span class="muted" style="font-size:12.5px">' + tr("mod.postBy", { name: esc(U(p.author).name) }) + ' · ' + rel(p.createdAt) + '</span><p style="margin:4px 0 0;white-space:pre-wrap;overflow-wrap:anywhere">' + esc(p.text || tr("mod.noText")) + '</p><button type="button" class="linkname" style="color:var(--accent);font-size:13px" data-go="post:' + esc(p.id) + '">' + tr("mod.openPost") + '</button></div>' : (r.snapshot ? '<div class="modpost"><span class="muted" style="font-size:12.5px">' + tr("mod.removed") + (r.snapshotAuthor ? ' · ' + tr("mod.from", { name: esc(U(r.snapshotAuthor).name) }) : '') + '</span><p style="margin:4px 0 0;white-space:pre-wrap;overflow-wrap:anywhere">' + esc(r.snapshot) + '</p></div>' : '<p class="muted" style="margin:0;font-size:13.5px">' + tr("mod.alreadyRemoved") + '</p>')) +
+          ((r.status || "pendente") === "pendente" ? '<div class="row" style="justify-content:flex-end">' + '<button type="button" class="btn ghost small" data-act="modkeep" data-id="' + esc(r.id) + '">' + tr("mod.keep") + '</button>' + (p ? '<button type="button" class="btn danger small" data-act="modremove" data-id="' + esc(r.id) + '">' + tr("mod.remove") + '</button>' : '') + '</div>' : '') + '</article>';
+      }).join("") : '<p class="empty">' + tr(f === "pending" ? "mod.noneP" : "mod.noneD") + '</p>');
   }
 
   /* ---------- páginas institucionais ---------- */
@@ -2322,8 +2322,8 @@ button.tickrow:hover{background:var(--soft)}
     $("#shell").hidden = on;
     $("#bottom").hidden = on;
     if (!on) return;
-    $("#login").innerHTML = '<div class="login"><section class="l"><div class="logo-lg"><span class="tile"><img src="' + LOGO + '" alt=""></span><span><b>Eco<span class="g">Eco</span></b><small>The Economy Ecosystem</small></span></div><h1>A rede de quem vive e estuda economia.</h1><p style="margin:0;font-size:17px;opacity:.92;max-width:440px">Debata ideias, acompanhe as notícias e os indicadores do dia e conecte-se com quem entende do assunto.</p></section>' +
-      '<section class="r"><div class="box"><h2 style="margin:0;font-family:var(--serif);font-size:30px">Entrar</h2><p class="muted" style="margin:0">Você saiu da sua conta neste navegador.</p><button type="button" class="btn" style="height:46px;font-size:15px" data-act="signin">Entrar na minha conta</button><p class="muted" style="margin:0;font-size:12.5px;line-height:1.5">Entre com o seu nome de usuário e senha.</p></div></section></div>';
+    $("#login").innerHTML = '<div class="login"><section class="l"><div class="logo-lg"><span class="tile"><img src="' + LOGO + '" alt=""></span><span><b>Eco<span class="g">Eco</span></b><small>The Economy Ecosystem</small></span></div><h1>' + tr("auth.tagline") + '</h1><p style="margin:0;font-size:17px;opacity:.92;max-width:440px">' + tr("auth.pitch") + '</p></section>' +
+      '<section class="r"><div class="box"><h2 style="margin:0;font-family:var(--serif);font-size:30px">' + tr("auth.signIn") + '</h2><p class="muted" style="margin:0">' + tr("auth.signedOut") + '</p><button type="button" class="btn" style="height:46px;font-size:15px" data-act="signin">' + tr("auth.signInMine") + '</button><p class="muted" style="margin:0;font-size:12.5px;line-height:1.5">' + tr("auth.signInHint") + '</p></div></section></div>';
   }
 
   /* ---------- render ---------- */
@@ -2358,7 +2358,7 @@ button.tickrow:hover{background:var(--soft)}
     const mode = S.fileMode;
     try {
       if (mode === "photo" || mode === "cover") {
-        if (!file.type.startsWith("image/")) { toast("Escolha uma imagem (JPG, PNG ou WEBP)."); return; }
+        if (!file.type.startsWith("image/")) { toast(tr("h.pickImage")); return; }
         const data = mode === "photo" ? await cropSquare(file, 240) : await readImage(file, 1200, 400, 0.78);
         const target = S.onb || S.edit; if (!target) return;
         if (S.edit) captureEdit(); else captureOnb();
@@ -2375,7 +2375,7 @@ button.tickrow:hover{background:var(--soft)}
           const up = await S.assets.upload(file, needType && guess ? { type: guess } : undefined);
           S.att = { kind, asset: up.id, name: file.name.slice(0, 80), size: up.sizeBytes || file.size, mime: up.contentType };
         } else {
-          if (kind !== "image") { toast("O envio de vídeos e arquivos não está disponível agora. Fotos funcionam normalmente."); return; }
+          if (kind !== "image") { toast(tr("h.noVideo")); return; }
           const data = await readImage(file, 1100, 1100, 0.72);
           S.att = { kind: "image", data, name: file.name.slice(0, 80), size: Math.round(data.length * 0.75) };
         }
@@ -2383,7 +2383,7 @@ button.tickrow:hover{background:var(--soft)}
       }
     } catch (e) {
       const code = e && e.code;
-      toast(code === "too_large" ? "Arquivo grande demais (limite de 20 MB)." : code === "unsupported_type" ? "Tipo de arquivo não aceito. Use imagem, vídeo MP4/WEBM, PDF, CSV ou texto." : "Não foi possível anexar esse arquivo.");
+      toast(code === "too_large" ? tr("h.fileBig") : code === "unsupported_type" ? tr("h.fileType") : tr("h.fileErr"));
     } finally { S.uploading = false; if (mode === "attach") render(); }
   });
 
@@ -2410,7 +2410,7 @@ button.tickrow:hover{background:var(--soft)}
     switch (act) {
       case "menu": S.menu = S.menu === id ? null : id; if (S.confirmDel && S.confirmDel.startsWith("posts:")) S.confirmDel = null; render(); return;
       case "acct": S.acct = !S.acct; renderNav(); if (S.acct) { const f = $("#acctmenu button"); if (f) f.focus(); } return;
-      case "block": { if (!canAct()) { toast("Entre na sua conta para bloquear."); return; } if (id === S.meId) return; S.menu = null; S.blockAsk = id; render(); renderModal(); return; }
+      case "block": { if (!canAct()) { toast(tr("h.signInBlock")); return; } if (id === S.meId) return; S.menu = null; S.blockAsk = id; render(); renderModal(); return; }
       case "doblock": {
         const bid = S.blockAsk; if (!bid) return;
         const ok = await write(async () => {
@@ -2426,42 +2426,42 @@ button.tickrow:hover{background:var(--soft)}
       case "admcancel": S.adm.form = null; render(); return;
       case "admsubmit": {
         const fm = S.adm.form; if (!fm) return;
-        if (fm.kind === "pw") { const pw = ($("#adm-pw") || {}).value || ""; if (pw.length < 8) { toast("A senha precisa ter pelo menos 8 caracteres."); return; } await admCall("admin_set_password", { p_user: fm.user, p_password: pw }, "Senha temporária definida.", "accounts"); return; }
-        const reason = (($("#adm-reason") || {}).value || "").trim(); if (!reason) { toast("Informe o motivo."); const el = $("#adm-reason"); if (el) el.focus(); return; }
-        if (fm.user === S.meId) { toast("Você não pode suspender nem banir a si mesmo."); return; }
+        if (fm.kind === "pw") { const pw = ($("#adm-pw") || {}).value || ""; if (pw.length < 8) { toast(tr("auth.err.short")); return; } await admCall("admin_set_password", { p_user: fm.user, p_password: pw }, tr("adm.pwDone"), "accounts"); return; }
+        const reason = (($("#adm-reason") || {}).value || "").trim(); if (!reason) { toast(tr("adm.needReason")); const el = $("#adm-reason"); if (el) el.focus(); return; }
+        if (fm.user === S.meId) { toast(tr("adm.notSelf")); return; }
         const days = parseInt(($("#adm-days") || {}).value, 10);
-        if (fm.kind === "suspend" && !(days >= 1 && days <= 3650)) { toast("Informe de 1 a 3650 dias."); return; }
-        await admCall("admin_set_sanction", { p_user: fm.user, p_kind: fm.kind === "ban" ? "banimento" : "suspensao", p_days: fm.kind === "ban" ? null : days, p_reason: reason }, fm.kind === "ban" ? "Conta banida." : "Conta suspensa por " + days + (days === 1 ? " dia." : " dias."), "accounts");
+        if (fm.kind === "suspend" && !(days >= 1 && days <= 3650)) { toast(tr("adm.badDays")); return; }
+        await admCall("admin_set_sanction", { p_user: fm.user, p_kind: fm.kind === "ban" ? "banimento" : "suspensao", p_days: fm.kind === "ban" ? null : days, p_reason: reason }, fm.kind === "ban" ? tr("adm.bannedDone") : tr.n("adm.suspendedDone", days), "accounts");
         return;
       }
-      case "admlift": await admCall("admin_lift_sanction", { p_user: id }, "Conta liberada.", "accounts"); return;
-      case "adminv": await admCall("admin_set_invite_active", { p_code: id, p_active: t.dataset.on === "1" }, t.dataset.on === "1" ? "Convite reativado." : "Convite desativado.", "invites"); return;
-      case "modkeep": await write(() => col("reports").doc(id).update({ status: "mantida", resolvedAt: now(), resolvedBy: S.meId }), "Denúncia resolvida: publicação mantida"); return;
-      case "modremove": { const r = S.reports.find((x) => x.id === id); if (!r) return; const rp = (S.raw.posts || S.posts).find((x) => x.id === r.post); await write(async () => { try { await removeDoc("posts", r.post, rp && rp.author); } catch (e) {} await col("reports").doc(id).update({ status: "removida", resolvedAt: now(), resolvedBy: S.meId, snapshot: rp ? String(rp.text || "").slice(0, 1000) : "", snapshotAuthor: rp ? rp.author : "" }); }, "Publicação removida"); if (rp && rp.media) delFile(rp.media.asset); return; }
+      case "admlift": await admCall("admin_lift_sanction", { p_user: id }, tr("adm.lifted"), "accounts"); return;
+      case "adminv": await admCall("admin_set_invite_active", { p_code: id, p_active: t.dataset.on === "1" }, t.dataset.on === "1" ? tr("adm.invOn") : tr("adm.invOffDone"), "invites"); return;
+      case "modkeep": await write(() => col("reports").doc(id).update({ status: "mantida", resolvedAt: now(), resolvedBy: S.meId }), tr("mod.kept")); return;
+      case "modremove": { const r = S.reports.find((x) => x.id === id); if (!r) return; const rp = (S.raw.posts || S.posts).find((x) => x.id === r.post); await write(async () => { try { await removeDoc("posts", r.post, rp && rp.author); } catch (e) {} await col("reports").doc(id).update({ status: "removida", resolvedAt: now(), resolvedBy: S.meId, snapshot: rp ? String(rp.text || "").slice(0, 1000) : "", snapshotAuthor: rp ? rp.author : "" }); }, tr("mod.removedDone")); if (rp && rp.media) delFile(rp.media.asset); return; }
       case "notiff": S.notifF = id; render(); return;
       case "bell": S.bell = !S.bell; renderNav(); if (S.bell) { const f = $("#bellpop button, #bellpop [data-go]"); if (f) f.focus(); } return;
       case "bellall": S.bell = false; go("notifications"); return;
       case "markall": S.prevSeen = now(); S.seenNotif = now(); store.set("eco-seen", S.seenNotif); render(); toast(tr("notif.markedAll")); return;
       case "newsf": S.newsF = id; render(); return;
-      case "savenews": { if (!S.db || !loggedIn()) return; const i = +id; const key = newsKey(i); const ex = S.savedAll.some((x) => x.id === key); try { const ref = privRef(key); if (ex) await ref.delete(); else await ref.set({ news: NEWS[i].href, createdAt: now() }); toast(ex ? "Notícia removida dos salvos" : "Notícia salva"); } catch (e) { toast("Não deu para salvar agora."); } return; }
+      case "savenews": { if (!S.db || !loggedIn()) return; const i = +id; const key = newsKey(i); const ex = S.savedAll.some((x) => x.id === key); try { const ref = privRef(key); if (ex) await ref.delete(); else await ref.set({ news: NEWS[i].href, createdAt: now() }); toast(ex ? tr("h.newsUnsaved") : tr("h.newsSaved")); } catch (e) { toast(tr("err.save")); } return; }
       case "libk": S.libF.kind = id; render(); return;
       case "libsaved": S.libF.saved = !S.libF.saved; render(); return;
-      case "savelib": { if (!S.db || !loggedIn()) return; const ex = isLibSaved(id); try { const ref = privRef("lib__" + id); if (ex) await ref.delete(); else await ref.set({ lib: id, createdAt: now() }); toast(ex ? "Material removido dos salvos" : "Material salvo"); } catch (e) { toast("Não deu para salvar agora."); } return; }
-      case "watch": { const t2 = String(id).toUpperCase(); if (!watchList().includes(t2)) await saveState({ watch: watchList().concat(t2).slice(0, 30) }); toast("$" + t2 + " está na sua lista"); render(); return; }
+      case "savelib": { if (!S.db || !loggedIn()) return; const ex = isLibSaved(id); try { const ref = privRef("lib__" + id); if (ex) await ref.delete(); else await ref.set({ lib: id, createdAt: now() }); toast(ex ? tr("h.libUnsaved") : tr("h.libSaved")); } catch (e) { toast(tr("err.save")); } return; }
+      case "watch": { const t2 = String(id).toUpperCase(); if (!watchList().includes(t2)) await saveState({ watch: watchList().concat(t2).slice(0, 30) }); toast(tr("h.inList", { t: t2 })); render(); return; }
       case "unwatch": await saveState({ watch: watchList().filter((x) => x !== id) }); render(); return;
       case "postticker": S.draft = "$" + id + " "; go("compose"); return;
-      case "pin": { S.menu = null; const cur2 = U(S.meId).pinned; await write(() => col("users").doc(S.meId).update({ pinned: cur2 === id ? "" : id }), cur2 === id ? "Publicação desafixada" : "Publicação fixada no seu perfil"); return; }
+      case "pin": { S.menu = null; const cur2 = U(S.meId).pinned; await write(() => col("users").doc(S.meId).update({ pinned: cur2 === id ? "" : id }), cur2 === id ? tr("h.unpinned") : tr("h.pinned")); return; }
       case "ob2c": { const a2 = S.onb2.comms; S.onb2.comms = a2.includes(id) ? a2.filter((x) => x !== id) : a2.concat(id); renderModal(); return; }
       case "ob2f": { const a2 = S.onb2.follow; S.onb2.follow = a2.includes(id) ? a2.filter((x) => x !== id) : a2.concat(id); renderModal(); return; }
       case "ob2skip": S.onb2 = null; renderModal(); return;
-      case "ob2done": { const o2 = S.onb2; S.onb2 = null; renderModal(); await write(async () => { for (const c of o2.comms) await col("members").doc(c + "__" + S.meId).set({ comm: c, user: S.meId, createdAt: now() }); for (const f of o2.follow) await col("follows").doc(S.meId + "__" + f).set({ from: S.meId, to: f, createdAt: now() }); }, "Tudo pronto. Boas-vindas à EcoEco!"); return; }
+      case "ob2done": { const o2 = S.onb2; S.onb2 = null; renderModal(); await write(async () => { for (const c of o2.comms) await col("members").doc(c + "__" + S.meId).set({ comm: c, user: S.meId, createdAt: now() }); for (const f of o2.follow) await col("follows").doc(S.meId + "__" + f).set({ from: S.meId, to: f, createdAt: now() }); }, tr("h.allSet")); return; }
       case "compact": S.compact = !S.compact; store.set("eco-compact", S.compact); applyCompact(); render(); return;
-      case "unmute": S.menu = null; S.muted = S.muted.filter((m) => m !== id); store.set("eco-muted", S.muted); toast(U(id).name + " voltou a aparecer no seu feed."); render(); return;
+      case "unmute": S.menu = null; S.muted = S.muted.filter((m) => m !== id); store.set("eco-muted", S.muted); toast(tr("h.unmuted", { name: U(id).name })); render(); return;
       case "save": {
-        if (!S.db || !loggedIn()) { toast("Entre na sua conta para salvar publicações."); return; }
+        if (!S.db || !loggedIn()) { toast(tr("h.signInSave")); return; }
         const ex = isSaved(id);
-        try { const ref = S.db.collection("data/users/" + S.meId).doc(id); if (ex) await ref.delete(); else await ref.set({ post: id, createdAt: now() }); toast(ex ? "Removida dos salvos" : "Publicação salva. Veja em Perfil › Salvos"); }
-        catch (e) { toast("Não deu para salvar agora."); }
+        try { const ref = S.db.collection("data/users/" + S.meId).doc(id); if (ex) await ref.delete(); else await ref.set({ post: id, createdAt: now() }); toast(ex ? tr("h.postUnsaved") : tr("h.postSaved")); }
+        catch (e) { toast(tr("err.save")); }
         render(); return;
       }
       case "editpost": { const p = S.posts.find((x) => x.id === id); if (!p) return; S.editing = id; S.editDraft = p.text || ""; render(); const el = $("#ept"); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); } return; }
@@ -2475,7 +2475,7 @@ button.tickrow:hover{background:var(--soft)}
       case "tagfollow": await toggleTagFollow(id); return;
       case "posttag":S.draft = (S.draft ? S.draft.trim() + " " : "") + "#" + id + " "; go("compose"); { const el = $("#comp"); if (el) el.setSelectionRange(0, 0); } return;
       case "close": S.edit = null; S.report = null; S.chartModal = null; S.form = null; S.blockAsk = null; renderModal(); return;
-      case "newform": if (!canAct()) { toast("Entre na sua conta para publicar."); return; } S.form = { kind: id, v: {} }; renderModal(); { const el = $("#genForm input, #genForm textarea"); if (el) el.focus(); } return;
+      case "newform": if (!canAct()) { toast(tr("h.signInPost")); return; } S.form = { kind: id, v: {} }; renderModal(); { const el = $("#genForm input, #genForm textarea"); if (el) el.focus(); } return;
       case "join": { const ex = isMember(id); await toggleDoc("members", id + "__" + S.meId, ex, { comm: id, user: S.meId, createdAt: now() }); return; }
       case "artf": S.artFilter = id; render(); return;
       case "akind": S.artDraft.kind = id; saveDraft(); render(); return;
@@ -2498,25 +2498,25 @@ button.tickrow:hover{background:var(--soft)}
       }
       case "lightbox": openLightbox(t.dataset.src, t.dataset.cap); return;
       case "alike": { const ex = S.articleLikes.some((l) => l.article === id && l.user === S.meId); await toggleDoc("articleLikes", id + "__" + S.meId, ex, { article: id, user: S.meId, createdAt: now() }); return; }
-      case "shareart": { const a = S.articles.find((x) => x.id === id); if (!a) return; S.shareArticle = id; S.draft = S.draft || ""; go("compose"); toast("O texto foi anexado. Escreva um comentário e publique."); return; }
+      case "shareart": { const a = S.articles.find((x) => x.id === id); if (!a) return; S.shareArticle = id; S.draft = S.draft || ""; go("compose"); toast(tr("h.articleAttached")); return; }
       case "rm-share": S.shareArticle = null; render(); return;
-      case "sharedeb": { if (!S.debates.some((x) => x.id === id)) return; S.shareDebate = id; S.shareArticle = null; go("compose"); toast("O debate foi anexado. Escreva o que você pensa e publique."); return; }
+      case "sharedeb": { if (!S.debates.some((x) => x.id === id)) return; S.shareDebate = id; S.shareArticle = null; go("compose"); toast(tr("h.debateAttached")); return; }
       case "rm-sharedeb": S.shareDebate = null; render(); return;
       case "argside": { const ta = $("#ain"); if (ta) S.argDraft = ta.value; S.argSide = id; render(); const el = $("#ain"); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); } return; }
       case "argfilter": S.argFilter = id; render(); return;
-      case "unvote": { const did = S.view.split(":")[1]; const my = myVote(did); if (my) await write(() => col("votes").doc(my.id).delete(), "Voto desfeito"); return; }
+      case "unvote": { const did = S.view.split(":")[1]; const my = myVote(did); if (my) await write(() => col("votes").doc(my.id).delete(), tr("h.voteUndone")); return; }
       case "editart": { const a = S.articles.find((x) => x.id === id); if (!a) return; const atts = attsOf(a); S.artDraft = Object.assign(blankArt(), { id, kind: a.kind || "Artigo", title: a.title || "", summary: a.summary || "", body: a.body || "", atts: atts.map((x) => Object.assign({ key: attKey(), status: "done" }, x)), orig: atts.filter((x) => x.type !== "link").map((x) => x.url) }); renumberImgs(S.artDraft); go("write:" + id); return; }
       case "savejob": {
-        if (!S.db || !loggedIn()) { toast("Entre na sua conta para salvar vagas."); return; }
+        if (!S.db || !loggedIn()) { toast(tr("h.signInJobs")); return; }
         const ex = isJobSaved(id);
-        try { const ref = S.db.collection("data/users/" + S.meId).doc("job__" + id); if (ex) await ref.delete(); else await ref.set({ job: id, createdAt: now() }); toast(ex ? "Vaga removida dos salvos" : "Vaga salva. Veja no filtro “Salvas”."); }
-        catch (e) { toast("Não deu para salvar agora."); }
+        try { const ref = S.db.collection("data/users/" + S.meId).doc("job__" + id); if (ex) await ref.delete(); else await ref.set({ job: id, createdAt: now() }); toast(ex ? tr("h.jobUnsaved") : tr("h.jobSaved")); }
+        catch (e) { toast(tr("err.save")); }
         return;
       }
       case "jobk": S.jobF.kind = id; render(); return;
       case "jobm": S.jobF.mode = S.jobF.mode === id ? "all" : id; render(); return;
       case "jobsaved": S.jobF.saved = !S.jobF.saved; render(); return;
-      case "rsvp": { const ex = S.rsvps.some((r) => r.event === id && r.user === S.meId); if (await toggleDoc("rsvps", id + "__" + S.meId, ex, { event: id, user: S.meId, createdAt: now() })) toast(ex ? "Presença cancelada" : "Presença confirmada. O evento está na sua agenda."); return; }
+      case "rsvp": { const ex = S.rsvps.some((r) => r.event === id && r.user === S.meId); if (await toggleDoc("rsvps", id + "__" + S.meId, ex, { event: id, user: S.meId, createdAt: now() })) toast(ex ? tr("ev.rsvpOff") : tr("ev.rsvpOn")); return; }
       case "evtab": S.evTab = id; render(); return;
       case "del": {
         const cname = t.dataset.col, key = cname + ":" + id;
@@ -2526,7 +2526,7 @@ button.tickrow:hover{background:var(--soft)}
         const tp = cname === "topics" ? S.topics.find((x) => x.id === id) : null;
         const art = cname === "articles" ? S.articles.find((x) => x.id === id) : null;
         const docx = ((S.raw && S.raw[cname]) || S[cname] || []).find((x) => x.id === id);
-        if (await write(() => removeDoc(cname, id, docx && docx.author), "Excluído")) { if (art) delFiles(attsOf(art)); go(back || (tp ? "community:" + tp.comm : "feed")); }
+        if (await write(() => removeDoc(cname, id, docx && docx.author), tr("common.excluded"))) { if (art) delFiles(attsOf(art)); go(back || (tp ? "community:" + tp.comm : "feed")); }
         return;
       }
       // Excluir comentários e respostas (moderação), com confirmação, sem sair da tela
@@ -2536,11 +2536,11 @@ button.tickrow:hover{background:var(--soft)}
         if (S.confirmDel !== key) { S.confirmDel = key; render(); const b = document.querySelector('[data-act="cdel"][data-col="' + cname + '"][data-id="' + CSS.escape(id) + '"]'); if (b) b.focus(); return; }
         S.confirmDel = null;
         const docx = ((S.raw && S.raw[cname]) || S[cname] || []).find((x) => x.id === id);
-        if (await write(() => removeDoc(cname, id, docx && docx.author), "Comentário excluído")) render();
+        if (await write(() => removeDoc(cname, id, docx && docx.author), tr("h.commentDeleted"))) render();
         return;
       }
       case "signout": if (window.EcoBackend) { window.EcoBackend.signOut(); return; } S.acct = false; S.signedOut = true; store.set("eco-signed-out", true); S.onb = null; S.edit = null; render(); return;
-      case "signin": S.signedOut = false; store.set("eco-signed-out", false); if (S.meId && S.db && !S.users[S.meId]) S.onb = { name: S.meName, username: cleanUser(S.meName), headline: "", photo: "" }; render(); toast(S.meId ? "Bem-vindo(a) de volta!" : "Não foi possível identificar sua conta nesta visualização."); return;
+      case "signin": S.signedOut = false; store.set("eco-signed-out", false); if (S.meId && S.db && !S.users[S.meId]) S.onb = { name: S.meName, username: cleanUser(S.meName), headline: "", photo: "" }; render(); toast(S.meId ? tr("h.welcomeBack") : tr("h.noAccount")); return;
       case "browse": S.signedOut = false; S.browseOnly = true; store.set("eco-signed-out", false); render(); return;
       case "datamenu": S.dataMenu = !S.dataMenu; render(); return;
       case "insert": { const ta = $("#comp"); S.draft = ta ? ta.value : S.draft; S.draft = (S.draft && !/\s$/.test(S.draft) ? S.draft + " " : S.draft) + t.dataset.val; S.dataMenu = false; render(); const el = $("#comp"); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); } return; }
@@ -2559,10 +2559,10 @@ button.tickrow:hover{background:var(--soft)}
       case "rm-cover": captureEdit(); S.edit.cover = ""; renderModal(); return;
       case "pollvote": { const opt = +t.dataset.opt; const key = id + "__" + S.meId; const mine = S.pollVotes.find((v) => v.post === id && v.user === S.meId); await write(() => (mine && mine.opt === opt) ? col("pollVotes").doc(key).delete() : col("pollVotes").doc(key).set({ post: id, user: S.meId, opt, createdAt: now() })); return; }
       case "like": { const ex = likesOf(id).some((l) => l.user === S.meId); await toggleDoc("likes", id + "__" + S.meId, ex, { post: id, user: S.meId, createdAt: now() }); return; }
-      case "repost": { if (postAuthor(id) === S.meId) { toast("Você não pode republicar a sua própria publicação."); return; } const ex =repostsOf(id).some((r) => r.user === S.meId); if (await toggleDoc("reposts", id + "__" + S.meId, ex, { post: id, user: S.meId, createdAt: now() })) toast(ex ? "Republicação desfeita" : "Republicado no seu perfil"); return; }
+      case "repost": { if (postAuthor(id) === S.meId) { toast(tr("post.cantRepost")); return; } const ex =repostsOf(id).some((r) => r.user === S.meId); if (await toggleDoc("reposts", id + "__" + S.meId, ex, { post: id, user: S.meId, createdAt: now() })) toast(ex ? tr("h.repostUndone") : tr("h.reposted")); return; }
       case "follow": { const ex = following().has(id); await toggleDoc("follows", S.meId + "__" + id, ex, { from: S.meId, to: id, createdAt: now() }); return; }
       case "up": { const ex = S.ups.some((u) => u.arg === id && u.user === S.meId); await toggleDoc("ups", id + "__" + S.meId, ex, { arg: id, user: S.meId, createdAt: now() }); return; }
-      case "vote": { const did = S.view.split(":")[1]; if (!did) return; if (id !== "A" && id !== "B") return; const my = myVote(did); if (my && my.side === id) return; const key = my ? my.id : did + "__" + S.meId; await write(() => col("votes").doc(key).set({ debate: did, side: id, user: S.meId, createdAt: now() }), my ? "Voto alterado" : "Voto registrado"); return; }
+      case "vote": { const did = S.view.split(":")[1]; if (!did) return; if (id !== "A" && id !== "B") return; const my = myVote(did); if (my && my.side === id) return; const key = my ? my.id : did + "__" + S.meId; await write(() => col("votes").doc(key).set({ debate: did, side: id, user: S.meId, createdAt: now() }), my ? tr("h.voteChanged") : tr("h.voteSaved")); return; }
       case "argdel": S.confirmDel = S.confirmDel === "args:" + id ? null : "args:" + id; render(); { const b = document.querySelector('[data-act="argdelok"]'); if (b) b.focus(); } return;
       case "argdelno": { const k = S.confirmDel; S.confirmDel = null; render(); const b = k && document.querySelector('[data-act="argdel"][data-id="' + CSS.escape(k.slice(5)) + '"]'); if (b) b.focus(); return; }
       case "argdelok": {
@@ -2570,21 +2570,21 @@ button.tickrow:hover{background:var(--soft)}
         if (a.author !== S.meId && !S.isAdmin) return;
         S.confirmDel = null;
         // O voto no debate não muda. Apoios e comentários do argumento são apagados pelo banco (SQL 05).
-        if (await write(() => removeDoc("args", id, a.author), "Argumento apagado")) render();
+        if (await write(() => removeDoc("args", id, a.author), tr("deb.deleted"))) render();
         return;
       }
       case "argc": S.openArgs[id] = !S.openArgs[id]; render(); if (S.openArgs[id]) { const el = document.getElementById("argc-" + id); if (el) el.focus(); } return;
-      case "mute": S.menu = null; S.muted = [...S.muted, id]; store.set("eco-muted", S.muted); toast(U(id).name + " foi silenciado(a) no seu feed."); render(); return;
+      case "mute": S.menu = null; S.muted = [...S.muted, id]; store.set("eco-muted", S.muted); toast(tr("h.muted", { name: U(id).name })); render(); return;
       case "report": S.report = id; render(); return;
       case "delete": {
         if (S.confirmDel !== "posts:" + id) { S.confirmDel = "posts:" + id; render(); const b = document.querySelector('[data-act="delete"][data-id="' + CSS.escape(id) + '"]'); if (b) b.focus(); return; }
         S.confirmDel = null; S.menu = null;
         const p = (S.raw.posts || S.posts).find((x) => x.id === id);
-        if (await write(() => removeDoc("posts", id, p && p.author), "Publicação excluída")) { if (p && p.media) delFile(p.media.asset); if (S.view === "post:" + id) go("feed"); else render(); }
+        if (await write(() => removeDoc("posts", id, p && p.author), tr("h.postDeleted"))) { if (p && p.media) delFile(p.media.asset); if (S.view === "post:" + id) go("feed"); else render(); }
         return;
       }
       case "edit": { const u = U(S.meId); S.edit = { name: u.name || "", username: u.username || "", headline: u.headline || "", bio: u.bio || "", role: u.role || "", school: u.school || "", city: u.city || "", link: u.link || "", education: u.education || "", experience: u.experience || "", photo: u.photo || "", cover: u.cover || "" }; renderModal(); return; }
-      case "discuss": { const n = NEWS[+id]; S.draft = "Sobre a notícia “" + n.title + "” (" + n.src + "): "; go("compose"); const el = $("#comp"); if (el) el.setSelectionRange(el.value.length, el.value.length); return; }
+      case "discuss": { const n = NEWS[+id]; S.draft = tr("h.aboutNews", { title: n.title, src: n.src }) + " "; go("compose"); const el = $("#comp"); if (el) el.setSelectionRange(el.value.length, el.value.length); return; }
     }
   });
 
@@ -2592,7 +2592,7 @@ button.tickrow:hover{background:var(--soft)}
     if (ev.target.dataset && ev.target.dataset.act === "privtoggle") {
       const k = ev.target.dataset.id, on = ev.target.checked;
       if (!["showDebates", "showCommunities"].includes(k) || !S.meId) return;
-      write(() => col("users").doc(S.meId).update({ [k]: on }), on ? "Agora aparece no seu perfil." : "Agora só você vê isso no seu perfil.");
+      write(() => col("users").doc(S.meId).update({ [k]: on }), on ? tr("set.privShown") : tr("set.privHidden"));
       return;
     }
     if (ev.target.dataset && ev.target.dataset.act === "notiftoggle") {
@@ -2602,7 +2602,7 @@ button.tickrow:hover{background:var(--soft)}
       toast(tr(ev.target.checked ? "set.notifOn" : "set.notifOff", { name: tr("notif.k." + k) }));
       return;
     }
-if (ev.target.id === "libtheme") { S.libF.theme = ev.target.value; render(); return; } if (ev.target.dataset && ev.target.dataset.act === "compact") { S.compact = ev.target.checked; store.set("eco-compact", S.compact); applyCompact(); renderNav(); toast(S.compact ? "Abas compactas ativadas" : "Abas completas ativadas"); } });
+if (ev.target.id === "libtheme") { S.libF.theme = ev.target.value; render(); return; } if (ev.target.dataset && ev.target.dataset.act === "compact") { S.compact = ev.target.checked; store.set("eco-compact", S.compact); applyCompact(); renderNav(); toast(S.compact ? tr("set.compactOn") : tr("set.compactOff")); } });
   document.addEventListener("input", (ev) => {
     const el = ev.target, id = el.id;
     if (id === "comp") S.draft = el.value;
@@ -2627,7 +2627,7 @@ if (ev.target.id === "libtheme") { S.libF.theme = ev.target.value; render(); ret
     else if (id.startsWith("attcap-")) { const x = S.artDraft.atts.find((a) => a.key === el.dataset.key); if (x) { x.caption = el.value; saveDraftSoon(); } }
     else if (/^a-(title|summary|body)$/.test(id)) { S.artDraft[id.slice(2)] = el.value; saveDraftSoon(); if (id === "a-body") { S.artDraft.caret = el.selectionStart; const c = $("#a-count"); if (c) c.textContent = wordInfo(el.value); } }
     else if (el.dataset.poll !== undefined && S.poll) S.poll[+el.dataset.poll] = el.value;
-    else if (S.chartModal && /^c-/.test(id)) { captureChart(); const p = $("#chartPrev"); if (p) p.innerHTML = chartSvg(S.chartModal.spec()) || '<p class="muted" style="margin:0">A prévia aparece quando houver dados válidos.</p>'; }
+    else if (S.chartModal && /^c-/.test(id)) { captureChart(); const p = $("#chartPrev"); if (p) p.innerHTML = chartSvg(S.chartModal.spec()) || '<p class="muted" style="margin:0">' + tr("chart.previewHint") + '</p>'; }
   });
 
   document.addEventListener("submit", async (ev) => {
@@ -2636,49 +2636,49 @@ if (ev.target.id === "libtheme") { S.libF.theme = ev.target.value; render(); ret
     if (f === "composer") {
       const text = S.draft.trim();
       const poll = S.poll ? S.poll.map((o) => o.trim()).filter(Boolean) : null;
-      if (S.poll && poll.length < 2) { toast("A votação precisa de pelo menos duas opções."); return; }
-      if (!text && !S.att && !S.chart && !poll && !S.shareArticle && !S.shareDebate) { toast("Escreva algo ou adicione um anexo, gráfico ou votação."); return; }
+      if (S.poll && poll.length < 2) { toast(tr("h.pollMin")); return; }
+      if (!text && !S.att && !S.chart && !poll && !S.shareArticle && !S.shareDebate) { toast(tr("h.emptyPost")); return; }
       const body = { author: S.meId, text: text.slice(0, 1000), createdAt: now() };
       if (S.att) body.media = S.att;
       if (S.chart) body.chart = S.chart;
       if (poll) body.poll = { options: poll.slice(0, 4) };
       if (S.shareArticle) body.article = S.shareArticle;
       if (S.shareDebate) body.debate = S.shareDebate;
-      if (await write(() => col("posts").add(body), "Publicado")) { S.draft = ""; S.att = null; S.chart = null; S.poll = null; S.shareArticle = null; S.shareDebate = null; render(); }
+      if (await write(() => col("posts").add(body), tr("h.posted"))) { S.draft = ""; S.att = null; S.chart = null; S.poll = null; S.shareArticle = null; S.shareDebate = null; render(); }
     } else if (f === "commentForm") {
       const text = S.commentDraft.trim(); if (!text) return;
       const pid = S.view.split(":")[1];
       const body = { post: pid, author: S.meId, text: text.slice(0, 600), createdAt: now() };
       if (S.replyTo) body.parent = S.replyTo;
-      if (await write(() => col("comments").add(body), S.replyTo ? "Resposta publicada" : null)) { S.commentDraft = ""; S.replyTo = null; render(); }
+      if (await write(() => col("comments").add(body), S.replyTo ? tr("h.replyPosted") : null)) { S.commentDraft = ""; S.replyTo = null; render(); }
     } else if (f === "editPostForm") {
       const el = $("#ept"); const text = (el ? el.value : S.editDraft).trim();
       const p = S.posts.find((x) => x.id === S.editing);
       if (!p) { S.editing = null; render(); return; }
-      if (!text && !p.media && !p.chart && !p.poll) { toast("A publicação não pode ficar vazia."); return; }
+      if (!text && !p.media && !p.chart && !p.poll) { toast(tr("h.postNotEmpty")); return; }
       if (text === (p.text || "")) { S.editing = null; render(); return; }
-      if (await write(() => col("posts").doc(p.id).update({ text: text.slice(0, 1000), editedAt: now() }), "Publicação editada")) { S.editing = null; render(); }
+      if (await write(() => col("posts").doc(p.id).update({ text: text.slice(0, 1000), editedAt: now() }), tr("h.postEdited"))) { S.editing = null; render(); }
     } else if (f === "pwForm") {
       const p1 = ($("#pw1") || {}).value || "", p2 = ($("#pw2") || {}).value || "";
-      if (p1.length < 8) { toast("A senha precisa ter pelo menos 8 caracteres."); return; }
-      if (p1 !== p2) { toast("As senhas não são iguais."); return; }
-      try { await window.EcoBackend.changePassword(p1); toast("Senha alterada."); $("#pw1").value = ""; $("#pw2").value = ""; } catch (e) { toast("Não foi possível trocar a senha agora."); }
+      if (p1.length < 8) { toast(tr("auth.err.short")); return; }
+      if (p1 !== p2) { toast(tr("auth.err.mismatch")); return; }
+      try { await window.EcoBackend.changePassword(p1); toast(tr("h.pwChanged")); $("#pw1").value = ""; $("#pw2").value = ""; } catch (e) { toast(tr("h.pwErr")); }
     } else if (f === "watchForm") {
       const t2 = (S.watchDraft || "").trim().toUpperCase().replace(/^\$/, "");
-      if (!/^[A-Z]{4}\d{1,2}$/.test(t2)) { toast("Use o código da B3, como PETR4, VALE3 ou BOVA11."); return; }
+      if (!/^[A-Z]{4}\d{1,2}$/.test(t2)) { toast(tr("h.badTicker")); return; }
       if (!watchList().includes(t2)) await saveState({ watch: watchList().concat(t2).slice(0, 30) });
-      S.watchDraft = ""; render(); toast("$" + t2 + " adicionado à sua lista");
+      S.watchDraft = ""; render(); toast(tr("h.addedList", { t: t2 }));
     } else if (f === "invForm") {
       const code = (($("#adm-code") || {}).value || "").trim().toUpperCase(), max = parseInt(($("#adm-max") || {}).value, 10);
-      if (!/^[A-Z0-9-]{4,30}$/.test(code)) { toast("O código deve ter de 4 a 30 letras, números ou hífen (sem espaço nem acento)."); const el = $("#adm-code"); if (el) el.focus(); return; }
-      if (!(max >= 1 && max <= 10000)) { toast("O limite de usos deve ser de 1 a 10000."); return; }
-      await admCall("admin_create_invite", { p_code: code, p_max_uses: max }, "Convite " + code + " criado.", "invites");
+      if (!/^[A-Z0-9-]{4,30}$/.test(code)) { toast(tr("adm.badCode")); const el = $("#adm-code"); if (el) el.focus(); return; }
+      if (!(max >= 1 && max <= 10000)) { toast(tr("adm.badMax")); return; }
+      await admCall("admin_create_invite", { p_code: code, p_max_uses: max }, tr("adm.invCreated", { code }), "invites");
     } else if (f === "genForm") {
       await submitForm();
     } else if (f === "topicForm") {
       const title = S.topicDraft.title.trim(), text = S.topicDraft.text.trim(); const cid = S.view.split(":")[1];
-      if (!title) { toast("Dê um título ao tópico."); return; }
-      if (await write(() => col("topics").add({ comm: cid, author: S.meId, title: title.slice(0, 120), text: text.slice(0, 2000), createdAt: now() }), "Tópico aberto")) { S.topicDraft = { title: "", text: "" }; render(); }
+      if (!title) { toast(tr("h.topicTitle")); return; }
+      if (await write(() => col("topics").add({ comm: cid, author: S.meId, title: title.slice(0, 120), text: text.slice(0, 2000), createdAt: now() }), tr("h.topicOpened"))) { S.topicDraft = { title: "", text: "" }; render(); }
     } else if (f === "treplyForm") {
       const text = S.treplyDraft.trim(); if (!text) return;
       if (await write(() => col("topicReplies").add({ topic: S.view.split(":")[1], author: S.meId, text: text.slice(0, 1500), createdAt: now() }))) { S.treplyDraft = ""; render(); }
@@ -2696,43 +2696,43 @@ if (ev.target.id === "libtheme") { S.libF.theme = ev.target.value; render(); ret
       if (await write(() => col("messages").add({ from: S.meId, to, text: text.slice(0, 1000), createdAt: now() }))) { S.msgDraft = ""; render(); }
     } else if (f === "argForm") {
       const did = S.view.split(":")[1]; const my = myVote(did); const pos = S.argSide || (my && my.side); const text = S.argDraft.trim();
-      if (!pos) { toast("Escolha sua posição: um dos lados ou “Depende”."); return; }
-      if (!text) { toast("Escreva seu argumento."); return; }
+      if (!pos) { toast(tr("h.choosePos")); return; }
+      if (!text) { toast(tr("h.writeArg")); return; }
       const ok = await write(async () => {
         await col("args").add({ debate: did, side: pos, author: S.meId, text: text.slice(0, 800), createdAt: now() });
         if (pos === "A" || pos === "B") { if (!my || my.side !== pos) await col("votes").doc(my ? my.id : did + "__" + S.meId).set({ debate: did, side: pos, user: S.meId, createdAt: now() }); }
-      }, "Argumento publicado");
+      }, tr("h.argPosted"));
       if (ok) { S.argDraft = ""; S.argSide = null; S.argFilter = "all"; render(); }
     } else if (f === "dcForm") {
       const text = S.dcDraft.trim(); if (!text) return;
-      if (await write(() => col("debateComments").add({ debate: S.view.split(":")[1], author: S.meId, text: text.slice(0, 1000), createdAt: now() }), "Resposta publicada")) { S.dcDraft = ""; render(); }
+      if (await write(() => col("debateComments").add({ debate: S.view.split(":")[1], author: S.meId, text: text.slice(0, 1000), createdAt: now() }), tr("h.replyPosted"))) { S.dcDraft = ""; render(); }
     } else if (ev.target.classList && ev.target.classList.contains("argcform")) {
       const aid = ev.target.dataset.arg; const text = (S.argcDraft[aid] || "").trim(); if (!text) return;
       if (await write(() => col("argComments").add({ arg: aid, author: S.meId, text: text.slice(0, 600), createdAt: now() }))) { S.argcDraft[aid] = ""; render(); const el = document.getElementById("argc-" + aid); if (el) el.focus(); }
     } else if (f === "chartForm") {
       captureChart();
       const spec = S.chartModal.spec();
-      if (spec.values.length < 2) { toast("Coloque pelo menos dois valores, um por linha (rótulo; valor)."); return; }
-      if (!spec.title) spec.title = "Gráfico";
+      if (spec.values.length < 2) { toast(tr("h.chartMin")); return; }
+      if (!spec.title) spec.title = tr("comp.chart");
       S.chart = spec; S.chartModal = null; render();
     } else if (f === "onbForm") {
       captureOnb();
-      const o = S.onb; if (!o.name.trim()) { toast("Escreva seu nome."); return; }
+      const o = S.onb; if (!o.name.trim()) { toast(tr("h.writeName")); return; }
       const un = cleanUser(o.username);
-      if (userTaken(un)) { toast("Esse nome de usuário já está em uso."); return; }
+      if (userTaken(un)) { toast(tr("auth.err.taken")); return; }
       const [bg] = hueOf(S.meId); const hue = HUES.findIndex((h) => h[0] === bg);
-      if (await write(() => col("users").doc(S.meId).set({ name: o.name.trim().slice(0, 60), username: un, headline: o.headline.trim().slice(0, 80), photo: o.photo || "", cover: "", bio: "", role: "", school: "", city: "", link: "", education: "", experience: "", hue: hue < 0 ? 0 : hue, fake: false, createdAt: now() }), "Perfil criado. Bem-vindo(a)!")) { S.onb = null; S.onb2 = { comms: [], follow: [] }; render(); renderModal(); }
+      if (await write(() => col("users").doc(S.meId).set({ name: o.name.trim().slice(0, 60), username: un, headline: o.headline.trim().slice(0, 80), photo: o.photo || "", cover: "", bio: "", role: "", school: "", city: "", link: "", education: "", experience: "", hue: hue < 0 ? 0 : hue, fake: false, createdAt: now() }), tr("h.profileCreated"))) { S.onb = null; S.onb2 = { comms: [], follow: [] }; render(); renderModal(); }
     } else if (f === "editForm") {
       captureEdit();
-      const e = S.edit; if (!e.name.trim()) { toast("O nome não pode ficar vazio."); return; }
+      const e = S.edit; if (!e.name.trim()) { toast(tr("h.nameEmpty")); return; }
       const un = cleanUser(e.username);
-      if (userTaken(un)) { toast("Esse nome de usuário já está em uso."); return; }
+      if (userTaken(un)) { toast(tr("auth.err.taken")); return; }
       const body = { name: e.name.trim().slice(0, 60), username: un, headline: e.headline.trim(), bio: e.bio.trim(), role: e.role.trim(), school: e.school.trim(), city: e.city.trim(), link: e.link.trim(), education: e.education.trim(), experience: e.experience.trim(), photo: e.photo || "", cover: e.cover || "" };
-      if (await write(() => col("users").doc(S.meId).update(body), "Perfil atualizado")) { S.edit = null; render(); }
+      if (await write(() => col("users").doc(S.meId).update(body), tr("h.profileUpdated"))) { S.edit = null; render(); }
     } else if (f === "repForm") {
       const r = document.querySelector('input[name="reason"]:checked');
       const pid = S.report;
-      if (await write(() => col("reports").add({ post: pid, by: S.meId, reason: REASONS[r ? +r.value : 0], createdAt: now(), status: "pendente" }), "Denúncia enviada. A moderação vai analisar.")) { S.report = null; renderModal(); }
+      if (await write(() => col("reports").add({ post: pid, by: S.meId, reason: REASONS[r ? +r.value : 0], createdAt: now(), status: "pendente" }), tr("h.reportSent"))) { S.report = null; renderModal(); }
     }
   });
 
