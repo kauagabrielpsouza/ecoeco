@@ -1040,10 +1040,10 @@ button.tickrow:hover{background:var(--soft)}
   function mediaHtml(m) {
     if (!m) return "";
     const src = esc(mediaSrc(m));
-    if (m.kind === "image") return '<div class="media"><img src="' + src + '" alt="' + esc(m.name || "Imagem anexada") + '" loading="lazy"></div>';
+    if (m.kind === "image") return '<div class="media"><img src="' + src + '" alt="' + esc(m.name || tr("post.attachedImage")) + '" loading="lazy"></div>';
     if (m.kind === "video") return '<div class="media"><video src="' + src + '" controls preload="metadata"></video></div>';
     const ext = (m.name || "arq").split(".").pop().slice(0, 4);
-    return '<a class="filecard" href="' + src + '" target="_blank" rel="noopener"><span class="ext">' + esc(ext) + '</span><span style="display:flex;flex-direction:column;min-width:0"><b style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(m.name || "Arquivo") + '</b><span class="muted" style="font-size:12.5px">' + (m.size ? fmtSize(m.size) + " · " : "") + 'abrir</span></span></a>';
+    return '<a class="filecard" href="' + src + '" target="_blank" rel="noopener"><span class="ext">' + esc(ext) + '</span><span style="display:flex;flex-direction:column;min-width:0"><b style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(m.name || tr("post.file")) + '</b><span class="muted" style="font-size:12.5px">' + (m.size ? fmtSize(m.size) + " · " : "") + tr("common.open") + '</span></span></a>';
   }
   function pollHtml(p) {
     const opts = p.poll.options || [];
@@ -1056,7 +1056,7 @@ button.tickrow:hover{background:var(--soft)}
       const pct = total ? Math.round(n / total * 100) : 0;
       const isMine = mine && mine.opt === i;
       return '<button type="button" class="pollopt' + (isMine ? " mine" : "") + '" data-act="pollvote" data-id="' + esc(p.id) + '" data-opt="' + i + '"' + (canAct() ? "" : " disabled") + ' aria-pressed="' + !!isMine + '">' + (showRes ? '<span class="fill" style="width:' + pct + '%"></span>' : '') + '<span>' + esc(o) + (isMine ? " ✓" : "") + '</span>' + (showRes ? '<span class="pct">' + pct + '%</span>' : '') + '</button>';
-    }).join("") + '<span class="muted" style="font-size:12.5px">' + plural(total, "voto", "votos") + (mine ? " · clique em outra opção para mudar seu voto" : (canAct() ? " · vote para ver o resultado" : " · entre na sua conta para votar e ver o resultado")) + '</span></div>';
+    }).join("") + '<span class="muted" style="font-size:12.5px">' + tr.n("poll.votes", total) + " · " + tr(mine ? "poll.change" : canAct() ? "poll.voteToSee" : "poll.signInToVote") + '</span></div>';
   }
   function postCard(p, opts) {
     const u = U(p.author);
@@ -1067,48 +1067,48 @@ button.tickrow:hover{background:var(--soft)}
     const mine = p.author === S.meId;
     const saved = isSaved(p.id);
     const menu = S.menu === p.id ? '<div class="menu" role="menu">' +
-      '<button type="button" role="menuitem" data-act="save" data-id="' + esc(p.id) + '">' + (saved ? "Remover dos salvos" : "Salvar publicação") + '</button>' +
-      (mine ? '<button type="button" role="menuitem" data-act="pin" data-id="' + esc(p.id) + '">' + (U(S.meId).pinned === p.id ? "Desafixar do perfil" : "Fixar no perfil") + '</button><button type="button" role="menuitem" data-act="editpost" data-id="' + esc(p.id) + '">Editar publicação</button><button type="button" role="menuitem" class="red" data-act="delete" data-id="' + esc(p.id) + '">' + (S.confirmDel === "posts:" + p.id ? "Confirmar exclusão" : "Excluir publicação") + '</button>' :
-        '<button type="button" role="menuitem" data-act="mute" data-id="' + esc(p.author) + '">Silenciar ' + esc(u.name) + '</button><button type="button" role="menuitem" class="red" data-act="block" data-id="' + esc(p.author) + '">Bloquear ' + esc(u.name) + '</button><button type="button" role="menuitem" class="red" data-act="report" data-id="' + esc(p.id) + '">Denunciar publicação</button>' + (S.isAdmin ? '<button type="button" role="menuitem" class="red" data-act="delete" data-id="' + esc(p.id) + '">' + (S.confirmDel === "posts:" + p.id ? "Confirmar exclusão" : "Excluir publicação (moderação)") + '</button>' : '')) + '</div>' : "";
+      '<button type="button" role="menuitem" data-act="save" data-id="' + esc(p.id) + '">' + tr(saved ? "post.unsave" : "post.save") + '</button>' +
+      (mine ? '<button type="button" role="menuitem" data-act="pin" data-id="' + esc(p.id) + '">' + tr(U(S.meId).pinned === p.id ? "post.unpin" : "post.pin") + '</button><button type="button" role="menuitem" data-act="editpost" data-id="' + esc(p.id) + '">' + tr("post.edit") + '</button><button type="button" role="menuitem" class="red" data-act="delete" data-id="' + esc(p.id) + '">' + tr(S.confirmDel === "posts:" + p.id ? "common.confirmDelete" : "post.delete") + '</button>' :
+        '<button type="button" role="menuitem" data-act="mute" data-id="' + esc(p.author) + '">' + tr("post.mute", { name: esc(u.name) }) + '</button><button type="button" role="menuitem" class="red" data-act="block" data-id="' + esc(p.author) + '">' + tr("post.block", { name: esc(u.name) }) + '</button><button type="button" role="menuitem" class="red" data-act="report" data-id="' + esc(p.id) + '">' + tr("post.report") + '</button>' + (S.isAdmin ? '<button type="button" role="menuitem" class="red" data-act="delete" data-id="' + esc(p.id) + '">' + tr(S.confirmDel === "posts:" + p.id ? "common.confirmDelete" : "post.deleteMod") + '</button>' : '')) + '</div>' : "";
     const editing = S.editing === p.id;
     const textHtml = editing
-      ? '<form class="editpost" id="editPostForm" style="display:flex;flex-direction:column;gap:8px"><label class="sr" for="ept">Editar publicação</label><textarea id="ept" rows="4" maxlength="1000" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line2);background:var(--bg);font-size:15px;resize:vertical">' + esc(S.editDraft) + '</textarea><div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost small" data-act="edit-cancel">Cancelar</button><button type="submit" class="btn small">Salvar alterações</button></div></form>'
+      ? '<form class="editpost" id="editPostForm" style="display:flex;flex-direction:column;gap:8px"><label class="sr" for="ept">' + tr("post.edit") + '</label><textarea id="ept" rows="4" maxlength="1000" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line2);background:var(--bg);font-size:15px;resize:vertical">' + esc(S.editDraft) + '</textarea><div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost small" data-act="edit-cancel">' + tr("common.cancel") + '</button><button type="submit" class="btn small">' + tr("common.saveChanges") + '</button></div></form>'
       : (p.text ? (opts && opts.full ? '<p class="text">' + richText(p.text) + '</p>' : '<div class="text" data-go="post:' + esc(p.id) + '" style="cursor:pointer">' + richText(p.text) + '</div>') : '');
     return '<article class="post">' + avatar(p.author, 42) +
       '<div class="body">' +
-      (opts && opts.pinned ? '<span class="repostline" style="color:var(--gold-ink)">' + svg(I.pin2, 14) + 'Publicação fixada</span>' : '') +
-      (reposter ? '<span class="repostline">' + svg(I.repost, 14) + (reposter.user === S.meId ? "Você republicou" : esc(U(reposter.user).name) + " republicou") + '</span>' : "") +
-      '<div class="meta"><button type="button" class="linkname" data-go="profile:' + esc(p.author) + '">' + esc(u.name) + '</button><span class="muted">' + esc(handle(p.author)) + (handle(p.author) ? " · " : "") + rel(p.createdAt) + (p.editedAt ? " · editado" : "") + '</span>' + (saved ? '<span title="Salvo" style="color:var(--accent);display:flex"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-label="Salvo"><path d="M6 3h12v18l-6-4-6 4z"/></svg></span>' : '') +
-      '<span class="more row">' + (loggedIn() ? '<button type="button" class="iconbtn" data-act="menu" data-id="' + esc(p.id) + '" aria-haspopup="menu" aria-expanded="' + (S.menu === p.id) + '" aria-label="Mais opções">' + dots + '</button>' : '') + menu + '</span></div>' +
+      (opts && opts.pinned ? '<span class="repostline" style="color:var(--gold-ink)">' + svg(I.pin2, 14) + tr("post.pinned") + '</span>' : '') +
+      (reposter ? '<span class="repostline">' + svg(I.repost, 14) + (reposter.user === S.meId ? tr("post.youReposted") : tr("post.reposted", { name: esc(U(reposter.user).name) })) + '</span>' : "") +
+      '<div class="meta"><button type="button" class="linkname" data-go="profile:' + esc(p.author) + '">' + esc(u.name) + '</button><span class="muted">' + esc(handle(p.author)) + (handle(p.author) ? " · " : "") + rel(p.createdAt) + (p.editedAt ? " · " + tr("post.edited") : "") + '</span>' + (saved ? '<span title="' + tr("post.saved") + '" style="color:var(--accent);display:flex"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-label="' + tr("post.saved") + '"><path d="M6 3h12v18l-6-4-6 4z"/></svg></span>' : '') +
+      '<span class="more row">' + (loggedIn() ? '<button type="button" class="iconbtn" data-act="menu" data-id="' + esc(p.id) + '" aria-haspopup="menu" aria-expanded="' + (S.menu === p.id) + '" aria-label="' + tr("common.moreOptions") + '">' + dots + '</button>' : '') + menu + '</span></div>' +
       textHtml +
       dataCard(p.text || "") + (p.article ? articleEmbed(p.article) : "") + (p.debate ? debateEmbed(p.debate) : "") + mediaHtml(p.media) + (p.chart ? chartSvg(p.chart) : "") + (p.poll ? pollHtml(p) : "") +
       '<div class="actions">' +
-      '<button type="button" class="like" data-act="like" data-id="' + esc(p.id) + '" aria-pressed="' + liked + '" aria-label="Curtir">' + svg(I.heart, 18, liked ? "currentColor" : "none") + likesOf(p.id).length + '</button>' +
-      '<button type="button" data-go="post:' + esc(p.id) + '" aria-label="Comentar">' + svg(I.comment, 18) + commentsOf(p.id).length + '</button>' +
-      '<button type="button" class="rep" data-act="repost" data-id="' + esc(p.id) + '" aria-pressed="' + rep + '"' + (mine ? ' disabled title="Você não pode republicar a sua própria publicação" aria-label="Republicar (indisponível na sua própria publicação)"' : ' aria-label="Republicar"') + '>' + svg(I.repost, 18) + repostsOf(p.id).length + '</button>' +
+      '<button type="button" class="like" data-act="like" data-id="' + esc(p.id) + '" aria-pressed="' + liked + '" aria-label="' + tr("post.like") + '">' + svg(I.heart, 18, liked ? "currentColor" : "none") + likesOf(p.id).length + '</button>' +
+      '<button type="button" data-go="post:' + esc(p.id) + '" aria-label="' + tr("post.comment") + '">' + svg(I.comment, 18) + commentsOf(p.id).length + '</button>' +
+      '<button type="button" class="rep" data-act="repost" data-id="' + esc(p.id) + '" aria-pressed="' + rep + '"' + (mine ? ' disabled title="' + tr("post.cantRepost") + '" aria-label="' + tr("post.repostUnavailable") + '"' : ' aria-label="' + tr("post.repost") + '"') + '>' + svg(I.repost, 18) + repostsOf(p.id).length + '</button>' +
       '</div></div></article>';
   }
 
   /* ---------- composer ---------- */
   function composerHtml() {
     const pend = [];
-    if (S.shareDebate) pend.push('<div class="pending"><button type="button" class="x" data-act="rm-sharedeb" aria-label="Remover debate">✕</button>' + debateEmbed(S.shareDebate) + '</div>');
-    if (S.shareArticle) pend.push('<div class="pending"><button type="button" class="x" data-act="rm-share" aria-label="Remover texto compartilhado">✕</button>' + articleEmbed(S.shareArticle) + '</div>');
-    if (S.att) pend.push('<div class="pending"><button type="button" class="x" data-act="rm-att" aria-label="Remover anexo">✕</button>' + mediaHtml(S.att) + '</div>');
-    if (S.chart) pend.push('<div class="pending"><button type="button" class="x" data-act="rm-chart" aria-label="Remover gráfico">✕</button>' + chartSvg(S.chart) + '</div>');
-    if (S.poll) pend.push('<div class="pending" style="display:flex;flex-direction:column;gap:8px"><button type="button" class="x" data-act="rm-poll" aria-label="Remover votação" style="background:var(--soft);color:var(--ink)">✕</button><span class="eyebrow">Votação</span>' +
-      S.poll.map((o, i) => '<label class="sr" for="po' + i + '">Opção ' + (i + 1) + '</label><input class="input" id="po' + i + '" data-poll="' + i + '" maxlength="60" placeholder="Opção ' + (i + 1) + '" value="' + esc(o) + '" style="border-radius:8px;flex:none;width:100%">').join("") +
-      (S.poll.length < 4 ? '<button type="button" class="mini" data-act="poll-add" style="align-self:flex-start">+ Adicionar opção</button>' : '') + '</div>');
-    return '<form class="composer" id="composer">' + avatar(S.meId, 42) + '<div style="flex:1;display:flex;flex-direction:column;gap:10px;min-width:0"><label class="sr" for="comp">Nova publicação</label><textarea id="comp" rows="2" placeholder="O que você pensa sobre economia hoje?">' + esc(S.draft) + '</textarea>' +
-      '<span class="muted" style="font-size:12.5px;margin-top:-6px">Use @ para mencionar alguém e # para marcar um tema.</span>' +
+    if (S.shareDebate) pend.push('<div class="pending"><button type="button" class="x" data-act="rm-sharedeb" aria-label="' + tr("comp.rmDebate") + '">✕</button>' + debateEmbed(S.shareDebate) + '</div>');
+    if (S.shareArticle) pend.push('<div class="pending"><button type="button" class="x" data-act="rm-share" aria-label="' + tr("comp.rmShare") + '">✕</button>' + articleEmbed(S.shareArticle) + '</div>');
+    if (S.att) pend.push('<div class="pending"><button type="button" class="x" data-act="rm-att" aria-label="' + tr("comp.rmAtt") + '">✕</button>' + mediaHtml(S.att) + '</div>');
+    if (S.chart) pend.push('<div class="pending"><button type="button" class="x" data-act="rm-chart" aria-label="' + tr("comp.rmChart") + '">✕</button>' + chartSvg(S.chart) + '</div>');
+    if (S.poll) pend.push('<div class="pending" style="display:flex;flex-direction:column;gap:8px"><button type="button" class="x" data-act="rm-poll" aria-label="' + tr("comp.rmPoll") + '" style="background:var(--soft);color:var(--ink)">✕</button><span class="eyebrow">' + tr("comp.poll") + '</span>' +
+      S.poll.map((o, i) => '<label class="sr" for="po' + i + '">' + tr("comp.option", { n: i + 1 }) + '</label><input class="input" id="po' + i + '" data-poll="' + i + '" maxlength="60" placeholder="' + tr("comp.option", { n: i + 1 }) + '" value="' + esc(o) + '" style="border-radius:8px;flex:none;width:100%">').join("") +
+      (S.poll.length < 4 ? '<button type="button" class="mini" data-act="poll-add" style="align-self:flex-start">+ ' + tr("comp.addOption") + '</button>' : '') + '</div>');
+    return '<form class="composer" id="composer">' + avatar(S.meId, 42) + '<div style="flex:1;display:flex;flex-direction:column;gap:10px;min-width:0"><label class="sr" for="comp">' + tr("comp.new") + '</label><textarea id="comp" rows="2" placeholder="' + tr("comp.ph") + '">' + esc(S.draft) + '</textarea>' +
+      '<span class="muted" style="font-size:12.5px;margin-top:-6px">' + tr("comp.hint") + '</span>' +
       pend.join("") +
       '<div class="tools">' +
-      '<button type="button" class="tool" data-act="attach" aria-label="Anexar foto, vídeo ou arquivo"' + (S.att ? ' aria-pressed="true"' : '') + '>' + svg(I.clip, 17) + 'Anexar</button>' +
-      '<button type="button" class="tool" data-act="chart"' + (S.chart ? ' aria-pressed="true"' : '') + '>' + svg(I.chart, 17) + 'Gráfico</button>' +
-      '<button type="button" class="tool" data-act="poll"' + (S.poll ? ' aria-pressed="true"' : '') + '>' + svg(I.poll, 17) + 'Votação</button>' +
-      '<button type="button" class="tool" data-act="datamenu" aria-haspopup="menu" aria-expanded="' + S.dataMenu + '"><span style="font-family:var(--mono);font-weight:600">$</span>Dado</button>' +
+      '<button type="button" class="tool" data-act="attach" aria-label="' + tr("comp.attachLabel") + '"' + (S.att ? ' aria-pressed="true"' : '') + '>' + svg(I.clip, 17) + tr("comp.attach") + '</button>' +
+      '<button type="button" class="tool" data-act="chart"' + (S.chart ? ' aria-pressed="true"' : '') + '>' + svg(I.chart, 17) + tr("comp.chart") + '</button>' +
+      '<button type="button" class="tool" data-act="poll"' + (S.poll ? ' aria-pressed="true"' : '') + '>' + svg(I.poll, 17) + tr("comp.poll") + '</button>' +
+      '<button type="button" class="tool" data-act="datamenu" aria-haspopup="menu" aria-expanded="' + S.dataMenu + '"><span style="font-family:var(--mono);font-weight:600">$</span>' + tr("comp.data") + '</button>' +
       (S.dataMenu ? '<div class="popover" role="menu" style="left:auto;right:90px">' + Object.keys(DATA).map((k) => '<button type="button" role="menuitem" data-act="insert" data-val="$' + k + ' "><b style="font-family:var(--mono)">$' + k + '</b> · ' + DATA[k][0] + '</button>').join("") + '</div>' : '') +
-      '<button type="submit" class="btn" style="margin-left:auto"' + (S.uploading ? " disabled" : "") + '>' + (S.uploading ? "Enviando…" : "Publicar") + '</button></div></div></form>';
+      '<button type="submit" class="btn" style="margin-left:auto"' + (S.uploading ? " disabled" : "") + '>' + tr(S.uploading ? "comp.sending" : "common.publish") + '</button></div></div></form>';
   }
 
   /* ---------- views ---------- */
@@ -1119,19 +1119,19 @@ button.tickrow:hover{background:var(--soft)}
     if (S.tab === "following") list = list.filter((p) => p.author === S.meId || fol.has(p.author) || repostsOf(p.id).some((r) => fol.has(r.user)) || (ftags.size && tagsIn(p.text).some((t) => ftags.has(t))));
     list = list.slice().sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     const searching = !!S.q.trim();
-    const searchBar = '<label class="search">' + svg(I.search, 18) + '<span class="sr">Buscar</span><input id="q" type="search" placeholder="Buscar pessoas, publicações, artigos, debates, vagas…" value="' + esc(S.q) + '"></label>';
+    const searchBar = '<label class="search">' + svg(I.search, 18) + '<span class="sr">' + tr("feed.search") + '</span><input id="q" type="search" placeholder="' + tr("feed.searchPh") + '" value="' + esc(S.q) + '"></label>';
     if (searching) return '<div class="head">' + searchBar + viewSearch(S.q.trim());
     return '<div class="head">' + searchBar +
-      '<div class="tabs" role="tablist" aria-label="Feed">' + [["foryou", "Para você"], ["following", "Seguindo"]].map(([id, l]) => '<button type="button" role="tab" data-tab="' + id + '" aria-selected="' + (S.tab === id) + '">' + l + '</button>').join("") + '</div></div>' +
-      (!S.db ? '<div class="banner">Conectando ao banco de dados…</div>' : (!loggedIn() ? '<div class="banner">Você está no modo leitura. Entre na sua conta para publicar e interagir.</div>' : '')) +
+      '<div class="tabs" role="tablist" aria-label="Feed">' + [["foryou", tr("feed.forYou")], ["following", tr("feed.following")]].map(([id, l]) => '<button type="button" role="tab" data-tab="' + id + '" aria-selected="' + (S.tab === id) + '">' + l + '</button>').join("") + '</div></div>' +
+      (!S.db ? '<div class="banner">' + tr("feed.connecting") + '</div>' : (!loggedIn() ? '<div class="banner">' + tr("feed.readOnly") + '</div>' : '')) +
       (canAct() ? composerHtml() : '') +
-      (list.length ? list.map((p) => postCard(p)).join("") : '<p class="empty">' + (S.tab === "following" ? "Nada por aqui ainda. Siga pessoas pelo quadro “Quem seguir” e as publicações delas aparecem nesta aba." : (S.q ? "Nenhuma publicação encontrada para essa busca." : "Ainda não há publicações.")) + '</p>');
+      (list.length ? list.map((p) => postCard(p)).join("") : '<p class="empty">' + tr(S.tab === "following" ? "feed.emptyFollowing" : S.q ? "feed.emptySearch" : "feed.empty") + '</p>');
   }
 
   function personRow(id) {
     const u = U(id); const fol = following().has(id);
     return '<div class="who" style="padding:12px 20px;border-bottom:1px solid var(--line)">' + avatar(id, 42) + '<button type="button" class="n" data-go="profile:' + esc(id) + '"><b style="font-size:14.5px">' + esc(u.name) + '</b><small>' + esc([handle(id), u.headline].filter(Boolean).join(" · ")) + '</small></button>' +
-      (canAct() && id !== S.meId ? '<button type="button" class="btn small' + (fol ? ' ghost' : '') + '" data-act="follow" data-id="' + esc(id) + '">' + (fol ? "Seguindo" : "Seguir") + '</button>' : '') + '</div>';
+      (canAct() && id !== S.meId ? '<button type="button" class="btn small' + (fol ? ' ghost' : '') + '" data-act="follow" data-id="' + esc(id) + '">' + tr(fol ? "follow.following" : "follow.follow") + '</button>' : '') + '</div>';
   }
   function viewSearch(q) {
     const ql = q.toLowerCase().replace(/^[@#$]/, "");
@@ -1150,48 +1150,48 @@ button.tickrow:hover{background:var(--soft)}
     const evs = S.events.filter((e) => has(e.title, e.org, e.place, e.format, e.desc)).sort((a, b) => (a.date || "").localeCompare(b.date || ""));
     const libs = S.library.filter((m) => has(m.title, m.authors, m.kind, m.theme, m.desc)).sort(byNew);
     const news = NEWS.map((n, i) => ({ n, i })).filter(({ n }) => has(n.title, n.prev, n.src, n.cat));
-    const commRow = (c) => { const n = memberCount(c.id); return '<button type="button" class="conv" data-go="community:' + esc(c.id) + '">' + commIcon(c) + '<span style="flex:1;min-width:0;display:flex;flex-direction:column;text-align:left"><b>' + esc(c.name) + '</b><span class="muted clamp1" style="font-size:13px">' + esc(c.desc || "") + '</span><span class="muted" style="font-size:12.5px">' + plural(n, "membro", "membros") + '</span></span></button>'; };
-    const newsRow = ({ n }) => '<article class="news"><div class="row muted" style="font-size:12.5px;flex-wrap:nowrap"><b style="color:var(--ink)">' + esc(n.src) + '</b>·<span>' + esc(n.cat) + '</span>' + (n.date ? '·<span>' + esc(n.date) + '</span>' : '') + '</div><h2>' + esc(n.title) + '</h2><a href="' + esc(n.href) + '" target="_blank" rel="noopener" style="font-weight:700;text-decoration:none;font-size:13.5px">Ler no site ↗</a></article>';
-    const tagRow = ([t, n]) => '<button type="button" class="conv" data-go="tag:' + esc(t) + '"><span class="av s42" style="background:var(--accent-soft);color:var(--accent);font-size:18px">#</span><span style="display:flex;flex-direction:column"><b>#' + esc(t) + '</b><span class="muted" style="font-size:13px">' + plural(n, "publicação", "publicações") + '</span></span></button>';
+    const commRow = (c) => { const n = memberCount(c.id); return '<button type="button" class="conv" data-go="community:' + esc(c.id) + '">' + commIcon(c) + '<span style="flex:1;min-width:0;display:flex;flex-direction:column;text-align:left"><b>' + esc(c.name) + '</b><span class="muted clamp1" style="font-size:13px">' + esc(c.desc || "") + '</span><span class="muted" style="font-size:12.5px">' + tr.n("comm.members", n) + '</span></span></button>'; };
+    const newsRow = ({ n }) => '<article class="news"><div class="row muted" style="font-size:12.5px;flex-wrap:nowrap"><b style="color:var(--ink)">' + esc(n.src) + '</b>·<span>' + esc(n.cat) + '</span>' + (n.date ? '·<span>' + esc(n.date) + '</span>' : '') + '</div><h2>' + esc(n.title) + '</h2><a href="' + esc(n.href) + '" target="_blank" rel="noopener" style="font-weight:700;text-decoration:none;font-size:13.5px">' + tr("news.read") + '</a></article>';
+    const tagRow = ([t, n]) => '<button type="button" class="conv" data-go="tag:' + esc(t) + '"><span class="av s42" style="background:var(--accent-soft);color:var(--accent);font-size:18px">#</span><span style="display:flex;flex-direction:column"><b>#' + esc(t) + '</b><span class="muted" style="font-size:13px">' + tr.n("post.count", n) + '</span></span></button>';
     const groups = [
-      ["people", "Pessoas", people, personRow],
-      ["posts", "Publicações", posts, (p) => postCard(p)],
-      ["tags", "Hashtags", tags, tagRow],
-      ["articles", "Artigos e projetos", arts, articleRow],
-      ["debates", "Debates", debs, (d) => debateCard(d)],
-      ["communities", "Comunidades", comms, commRow],
-      ["jobs", "Vagas", jobs, jobRow],
-      ["events", "Eventos", evs, evRow],
-      ["library", "Biblioteca", libs, libRow],
-      ["news", "Notícias", news, newsRow]
+      ["people", tr("search.people"), people, personRow],
+      ["posts", tr("search.posts"), posts, (p) => postCard(p)],
+      ["tags", tr("search.tags"), tags, tagRow],
+      ["articles", tr("search.articles"), arts, articleRow],
+      ["debates", tr("search.debates"), debs, (d) => debateCard(d)],
+      ["communities", tr("search.communities"), comms, commRow],
+      ["jobs", tr("search.jobs"), jobs, jobRow],
+      ["events", tr("search.events"), evs, evRow],
+      ["library", tr("search.library"), libs, libRow],
+      ["news", tr("search.news"), news, newsRow]
     ];
     const total = groups.reduce((s, g) => s + g[2].length, 0);
     const cur = groups.find((g) => g[0] === S.stab);
     let body;
-    if (cur) body = cur[2].length ? cur[2].map(cur[3]).join("") : '<p class="empty">Nada encontrado em ' + esc(cur[1].toLowerCase()) + '.</p>';
+    if (cur) body = cur[2].length ? cur[2].map(cur[3]).join("") : '<p class="empty">' + tr("search.noneIn", { type: esc(cur[1].toLowerCase()) }) + '</p>';
     else body = total ? groups.filter((g) => g[2].length).map(([id, label, list, fn]) =>
-        '<section aria-label="' + esc(label) + '"><div class="row" style="justify-content:space-between;padding:14px 20px 4px"><span class="eyebrow">' + esc(label) + ' (' + list.length + ')</span>' + (list.length > 3 ? '<button type="button" class="linkname" style="color:var(--accent);font-size:13px" data-act="stab" data-id="' + id + '">Ver todos</button>' : '') + '</div>' + list.slice(0, 3).map(fn).join("") + '</section>').join("")
-      : '<p class="empty">Nada encontrado para “' + esc(q) + '”. Tente outra palavra.</p>';
+        '<section aria-label="' + esc(label) + '"><div class="row" style="justify-content:space-between;padding:14px 20px 4px"><span class="eyebrow">' + esc(label) + ' (' + list.length + ')</span>' + (list.length > 3 ? '<button type="button" class="linkname" style="color:var(--accent);font-size:13px" data-act="stab" data-id="' + id + '">' + tr("common.seeAll") + '</button>' : '') + '</div>' + list.slice(0, 3).map(fn).join("") + '</section>').join("")
+      : '<p class="empty">' + tr("search.none", { q: esc(q) }) + '</p>';
     const chip = (id, label, n) => '<button type="button" class="chip" data-act="stab" data-id="' + id + '" aria-pressed="' + ((cur ? cur[0] : "all") === id) + '"' + (id !== "all" && !n ? ' disabled' : '') + '>' + esc(label) + ' (' + n + ')</button>';
-    return '<div class="row" style="justify-content:space-between;font-size:13.5px"><span class="muted">Resultados para “' + esc(q) + '”</span><button type="button" class="linkname" style="color:var(--accent)" data-act="clearq">Limpar busca</button></div>' +
-      '<div class="filters" role="group" aria-label="Tipo de resultado" style="padding-bottom:0">' + chip("all", "Tudo", total) + groups.filter(([id, , list]) => list.length || (cur && cur[0] === id)).map(([id, l, list]) => chip(id, l, list.length)).join("") + '</div></div>' + body;
+    return '<div class="row" style="justify-content:space-between;font-size:13.5px"><span class="muted">' + tr("search.results", { q: esc(q) }) + '</span><button type="button" class="linkname" style="color:var(--accent)" data-act="clearq">' + tr("search.clear") + '</button></div>' +
+      '<div class="filters" role="group" aria-label="' + tr("search.type") + '" style="padding-bottom:0">' + chip("all", tr("search.all"), total) + groups.filter(([id, , list]) => list.length || (cur && cur[0] === id)).map(([id, l, list]) => chip(id, l, list.length)).join("") + '</div></div>' + body;
   }
   function viewTag(tag) {
     const posts = S.posts.filter((p) => tagsIn(p.text).includes(tag) && !S.muted.includes(p.author)).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-    return '<div class="head" style="flex-direction:row;align-items:center;padding-bottom:14px"><button type="button" class="iconbtn" data-go="feed" aria-label="Voltar ao feed">' + svg(I.back, 20) + '</button><span style="display:flex;flex-direction:column;line-height:1.25"><h1 style="font-size:20px">#' + esc(tag) + '</h1><span class="muted" style="font-size:13px">' + posts.length + (posts.length === 1 ? " publicação" : " publicações") + '</span></span>' +
-      (canAct() ? '<span class="row" style="margin-left:auto;gap:6px"><button type="button" class="btn small' + (followedTags().includes(tag) ? ' ghost' : '') + '" data-act="tagfollow" data-id="' + esc(tag) + '" aria-pressed="' + followedTags().includes(tag) + '">' + (followedTags().includes(tag) ? "Seguindo" : "Seguir") + '</button><button type="button" class="btn ghost small" data-act="posttag" data-id="' + esc(tag) + '">Publicar com #' + esc(tag) + '</button></span>' : '') + '</div>' +
-      (posts.length ? posts.map((p) => postCard(p)).join("") : '<p class="empty">Nenhuma publicação com essa hashtag ainda.</p>');
+    return '<div class="head" style="flex-direction:row;align-items:center;padding-bottom:14px"><button type="button" class="iconbtn" data-go="feed" aria-label="' + tr("feed.back") + '">' + svg(I.back, 20) + '</button><span style="display:flex;flex-direction:column;line-height:1.25"><h1 style="font-size:20px">#' + esc(tag) + '</h1><span class="muted" style="font-size:13px">' + tr.n("post.count", posts.length) + '</span></span>' +
+      (canAct() ? '<span class="row" style="margin-left:auto;gap:6px"><button type="button" class="btn small' + (followedTags().includes(tag) ? ' ghost' : '') + '" data-act="tagfollow" data-id="' + esc(tag) + '" aria-pressed="' + followedTags().includes(tag) + '">' + tr(followedTags().includes(tag) ? "follow.following" : "follow.follow") + '</button><button type="button" class="btn ghost small" data-act="posttag" data-id="' + esc(tag) + '">' + tr("tag.postWith", { tag: esc(tag) }) + '</button></span>' : '') + '</div>' +
+      (posts.length ? posts.map((p) => postCard(p)).join("") : '<p class="empty">' + tr("tag.empty") + '</p>');
   }
   function viewPost(id) {
     const p = S.posts.find((x) => x.id === id);
-    if (!p) return '<div class="head"><h1>Publicação</h1></div><p class="empty">Esta publicação não existe mais.</p>';
+    if (!p) return '<div class="head"><h1>' + tr("post.title") + '</h1></div><p class="empty">' + tr("post.gone") + '</p>';
     const cs = commentsOf(id);
-    return '<div class="head" style="flex-direction:row;align-items:center;padding-bottom:14px"><button type="button" class="iconbtn" data-go="feed" aria-label="Voltar ao feed">' + svg(I.back, 20) + '</button><h1 style="font-size:19px">Publicação</h1></div>' +
+    return '<div class="head" style="flex-direction:row;align-items:center;padding-bottom:14px"><button type="button" class="iconbtn" data-go="feed" aria-label="' + tr("feed.back") + '">' + svg(I.back, 20) + '</button><h1 style="font-size:19px">' + tr("post.title") + '</h1></div>' +
       postCard(p, { full: true }) +
-      (canAct() ? (S.replyTo && cs.some((c) => c.id === S.replyTo) ? '<div class="banner" style="display:flex;align-items:center;gap:8px">Respondendo a <b>' + esc(U(cs.find((c) => c.id === S.replyTo).author).name) + '</b><button type="button" class="linkname" style="margin-left:auto;color:var(--accent)" data-act="reply-cancel">Cancelar</button></div>' : '') +
-        '<form class="inline-form" id="commentForm">' + avatar(S.meId, 36) + '<label class="sr" for="cin">Escreva um comentário</label><input class="input" id="cin" autocomplete="off" placeholder="' + (S.replyTo ? "Escreva sua resposta…" : "Escreva um comentário…") + '" value="' + esc(S.commentDraft) + '"><button class="btn" type="submit">' + (S.replyTo ? "Responder" : "Comentar") + '</button></form>' : '') +
-      '<div style="padding:12px 20px 4px" class="eyebrow">Comentários (' + cs.length + ')</div>' +
-      (cs.length ? cs.filter((c) => !c.parent || !cs.some((x) => x.id === c.parent)).map((c) => commentHtml(c, false) + cs.filter((r) => r.parent === c.id).map((r) => commentHtml(r, true)).join("")).join("") : '<p class="empty">Seja a primeira pessoa a comentar.</p>');
+      (canAct() ? (S.replyTo && cs.some((c) => c.id === S.replyTo) ? '<div class="banner" style="display:flex;align-items:center;gap:8px">' + tr("comment.replyingTo", { name: '<b>' + esc(U(cs.find((c) => c.id === S.replyTo).author).name) + '</b>' }) + '<button type="button" class="linkname" style="margin-left:auto;color:var(--accent)" data-act="reply-cancel">' + tr("common.cancel") + '</button></div>' : '') +
+        '<form class="inline-form" id="commentForm">' + avatar(S.meId, 36) + '<label class="sr" for="cin">' + tr("comment.write") + '</label><input class="input" id="cin" autocomplete="off" placeholder="' + tr(S.replyTo ? "comment.replyPh" : "comment.ph") + '" value="' + esc(S.commentDraft) + '"><button class="btn" type="submit">' + tr(S.replyTo ? "comment.reply" : "post.comment") + '</button></form>' : '') +
+      '<div style="padding:12px 20px 4px" class="eyebrow">' + tr("comment.title") + ' (' + cs.length + ')</div>' +
+      (cs.length ? cs.filter((c) => !c.parent || !cs.some((x) => x.id === c.parent)).map((c) => commentHtml(c, false) + cs.filter((r) => r.parent === c.id).map((r) => commentHtml(r, true)).join("")).join("") : '<p class="empty">' + tr("comment.first") + '</p>');
   }
   function commentHtml(c, isReply) {
     const likes = S.commentLikes.filter((l) => l.comment === c.id);
@@ -1199,8 +1199,8 @@ button.tickrow:hover{background:var(--soft)}
     return '<div class="comment" style="' + (isReply ? 'padding-left:68px;border-bottom-style:dashed' : '') + '">' + avatar(c.author, isReply ? 36 : 36) +
       '<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px"><div class="meta row" style="font-size:13.5px"><button type="button" class="linkname" data-go="profile:' + esc(c.author) + '">' + esc(U(c.author).name) + '</button><span class="muted">' + esc(handle(c.author)) + ' · ' + rel(c.createdAt) + '</span></div>' +
       '<p style="margin:0;font-size:14.5px;white-space:pre-wrap;overflow-wrap:anywhere">' + richText(c.text) + '</p>' +
-      '<div class="actions" style="gap:18px;font-size:13px"><button type="button" class="like" data-act="clike" data-id="' + esc(c.id) + '" aria-pressed="' + liked + '" aria-label="Curtir comentário"' + (canAct() ? '' : ' disabled') + '>' + svg(I.heart, 15, liked ? "currentColor" : "none") + likes.length + '</button>' +
-      (canAct() ? '<button type="button" data-act="reply" data-id="' + esc(isReply ? (c.parent || c.id) : c.id) + '" data-who="' + esc(U(c.author).username || "") + '">' + svg(I.comment, 15) + 'Responder</button>' : '') + modDel("comments", c.id) + '</div></div></div>';
+      '<div class="actions" style="gap:18px;font-size:13px"><button type="button" class="like" data-act="clike" data-id="' + esc(c.id) + '" aria-pressed="' + liked + '" aria-label="' + tr("comment.like") + '"' + (canAct() ? '' : ' disabled') + '>' + svg(I.heart, 15, liked ? "currentColor" : "none") + likes.length + '</button>' +
+      (canAct() ? '<button type="button" data-act="reply" data-id="' + esc(isReply ? (c.parent || c.id) : c.id) + '" data-who="' + esc(U(c.author).username || "") + '">' + svg(I.comment, 15) + tr("comment.reply") + '</button>' : '') + modDel("comments", c.id) + '</div></div></div>';
   }
 
   function viewProfile(id) {
@@ -1248,7 +1248,7 @@ button.tickrow:hover{background:var(--soft)}
     return '<div class="cover' + (u.cover ? '' : ' brandcover') + '" style="' + coverStyle + '"><button type="button" class="back" data-go="feed" aria-label="Voltar ao início">' + svg(I.back, 18) + '</button></div>' +
       '<div class="pbox"><div class="top"><span class="av s104" style="background:' + bg + ';color:' + fg + '">' + avInner(id) + '</span><span class="row">' +
       (own ? '<button type="button" class="btn ghost" data-act="edit">Editar perfil</button><button type="button" class="btn ghost" data-go="settings" aria-label="Configurações" title="Configurações" style="padding:0 12px;display:inline-flex;align-items:center">' + svg(I.gear, 18) + '</button>' :
-        (canAct() ? '<span style="position:relative;display:inline-flex"><button type="button" class="btn ghost" data-act="menu" data-id="prof:' + esc(id) + '" aria-haspopup="menu" aria-expanded="' + (S.menu === "prof:" + id) + '" aria-label="Mais opções" style="padding:0 10px;display:inline-flex;align-items:center">' + dots + '</button>' + (S.menu === "prof:" + id ? '<div class="menu" role="menu" style="top:46px">' + (S.muted.includes(id) ? '<button type="button" role="menuitem" data-act="unmute" data-id="' + esc(id) + '">Reativar no feed</button>' : '<button type="button" role="menuitem" data-act="mute" data-id="' + esc(id) + '">Silenciar ' + esc(u.name) + '</button>') + '<button type="button" role="menuitem" class="red" data-act="block" data-id="' + esc(id) + '">Bloquear ' + esc(u.name) + '</button></div>' : '') + '</span><button type="button" class="btn ghost" data-go="messages:' + esc(id) + '">Mensagem</button><button type="button" class="btn' + (fol ? ' ghost' : '') + '" data-act="follow" data-id="' + esc(id) + '" aria-pressed="' + fol + '">' + (fol ? "Seguindo" : "Seguir") + '</button>' : '')) + '</span></div>' +
+        (canAct() ? '<span style="position:relative;display:inline-flex"><button type="button" class="btn ghost" data-act="menu" data-id="prof:' + esc(id) + '" aria-haspopup="menu" aria-expanded="' + (S.menu === "prof:" + id) + '" aria-label="Mais opções" style="padding:0 10px;display:inline-flex;align-items:center">' + dots + '</button>' + (S.menu === "prof:" + id ? '<div class="menu" role="menu" style="top:46px">' + (S.muted.includes(id) ? '<button type="button" role="menuitem" data-act="unmute" data-id="' + esc(id) + '">Reativar no feed</button>' : '<button type="button" role="menuitem" data-act="mute" data-id="' + esc(id) + '">' + tr("post.mute", { name: esc(u.name) }) + '</button>') + '<button type="button" role="menuitem" class="red" data-act="block" data-id="' + esc(id) + '">' + tr("post.block", { name: esc(u.name) }) + '</button></div>' : '') + '</span><button type="button" class="btn ghost" data-go="messages:' + esc(id) + '">Mensagem</button><button type="button" class="btn' + (fol ? ' ghost' : '') + '" data-act="follow" data-id="' + esc(id) + '" aria-pressed="' + fol + '">' + (fol ? "Seguindo" : "Seguir") + '</button>' : '')) + '</span></div>' +
       '<div style="display:flex;flex-direction:column;gap:2px"><h1>' + esc(u.name) + '</h1>' + (u.username ? '<span class="muted">@' + esc(u.username) + '</span>' : '') + '</div>' +
       (u.headline ? '<p style="margin:0;font-weight:500">' + esc(u.headline) + '</p>' : (own ? '<p class="muted" style="margin:0">Adicione um título ao seu perfil em “Editar perfil”.</p>' : '')) +
       (u.bio ? '<p style="margin:0;white-space:pre-wrap">' + esc(u.bio) + '</p>' : '') +
@@ -1758,7 +1758,7 @@ button.tickrow:hover{background:var(--soft)}
       '<div class="bodytext">' + articleBody(a.body, attsOf(a)) + '</div>' + attSection(attsOf(a), a.body) +
       '<div class="actions"><button type="button" class="like" data-act="alike" data-id="' + esc(id) + '" aria-pressed="' + liked + '"' + (canAct() ? '' : ' disabled') + '>' + svg(I.heart, 18, liked ? "currentColor" : "none") + likes.length + (likes.length === 1 ? " curtida" : " curtidas") + '</button>' + (canAct() ? '<button type="button" data-act="shareart" data-id="' + esc(id) + '">' + svg(I.repost, 18) + 'Compartilhar no feed</button>' : '') + '</div></article>' +
       (canAct() ? '<form class="inline-form" id="acForm" style="border-top:1px solid var(--line)">' + avatar(S.meId, 36) + '<label class="sr" for="acin">Comentar o texto</label><input class="input" id="acin" autocomplete="off" placeholder="Comente este texto…" value="' + esc(S.acDraft) + '"><button class="btn" type="submit">Comentar</button></form>' : '') +
-      eyebrow("Comentários (" + cs.length + ")") + (cs.length ? cs.map((c) => simpleComment(c, "articleComments")).join("") : '<p class="empty">Seja a primeira pessoa a comentar.</p>');
+      eyebrow("Comentários (" + cs.length + ")") + (cs.length ? cs.map((c) => simpleComment(c, "articleComments")).join("") : '<p class="empty">' + tr("comment.first") + '</p>');
   }
   const blankArt = () => ({ id: null, kind: "Artigo", title: "", summary: "", body: "", atts: [], orig: [], removed: [], loaded: false, preview: false, linkForm: false, lurl: "", ltitle: "", caret: null });
   function viewWrite() {
