@@ -481,6 +481,11 @@ body.compact .brand .wm{display:none}
 .chip.pos.pB[aria-pressed="true"]{background:var(--gold);border-color:var(--gold);color:#17231F}
 .chip.pos.pN[aria-pressed="true"]{background:var(--ink2);border-color:var(--ink2);color:var(--surface)}
 .chip.votebtn{flex:1;min-width:0;height:auto;min-height:40px;padding:8px 12px;font-size:14px;line-height:1.3;white-space:normal}
+/* janelinha do sininho */
+.bellpop{position:fixed;z-index:70;width:min(380px,calc(100vw - 24px));max-height:min(70vh,540px);overflow:auto;background:var(--surface);border:1px solid var(--line2);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.28);display:flex;flex-direction:column}
+.bellpop .bp-head{justify-content:space-between;flex-wrap:nowrap;padding:12px 14px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--surface);z-index:1}
+.bellpop .notif{padding:10px 14px}
+.bellpop .bp-all{border:0;border-top:1px solid var(--line);background:var(--surface);color:var(--accent);font-weight:700;font-size:14px;padding:12px;position:sticky;bottom:0}
 /* anexos de artigos */
 .atted{display:flex;flex-direction:column;gap:10px;padding:14px;border:1px dashed var(--line2);border-radius:12px}
 .attitem{display:flex;gap:12px;align-items:flex-start;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--surface2)}
@@ -580,6 +585,7 @@ button.tickrow:hover{background:var(--soft)}
 .udot{width:10px;height:10px;border-radius:50%;background:var(--gold);flex:none}
 .bicon{position:relative;display:inline-flex}
 .bdot{position:absolute;top:-1px;right:-3px;width:9px;height:9px;border-radius:50%;background:var(--gold);border:2px solid var(--surface)}
+.bnum{position:absolute;top:-6px;right:-11px;min-width:18px;height:18px;padding:0 4px;border-radius:999px;background:var(--gold);color:#17231F;font-size:10.5px;font-weight:800;line-height:1;display:flex;align-items:center;justify-content:center;border:2px solid var(--surface)}
 @media (max-width:760px){.mkt{padding:16px}.mkt-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 <style>
@@ -788,8 +794,51 @@ button.tickrow:hover{background:var(--soft)}
   }
   const canAct = () => loggedIn() && S.canWrite && !!S.db;
 
+  // Tipos de notificação (a ordem é a dos filtros e das opções em Configurações)
+  const NOTIF_KINDS = [["likes", "Curtidas e apoios"], ["comments", "Comentários e respostas"], ["mentions", "Menções"], ["follows", "Novos seguidores"], ["messages", "Mensagens"], ["tags", "Hashtags que sigo"], ["topics", "Tópicos nas minhas comunidades"], ["args", "Argumentos nos meus debates"], ["events", "Presenças nos meus eventos"], ["other", "Outras"]];
+  const notifOff = () => (S.pstate && Array.isArray(S.pstate.notifOff)) ? S.pstate.notifOff : [];
+  function classifyNotif(t) {
+    if (/^mencionou/.test(t)) return "mentions";
+    if (/^(curtiu|apoiou)/.test(t)) return "likes";
+    if (/^(comentou|respondeu)/.test(t)) return "comments";
+    if (/^(começou a seguir|seguiu você)/.test(t)) return "follows";
+    if (/^mandou uma mensagem/.test(t)) return "messages";
+    if (/^vai participar/.test(t)) return "events";
+    return "other";
+  }
   function notifications() {
     if (!loggedIn()) return [];
+    const out = notifBase().map((n) => Object.assign({ k: classifyNotif(n.text || "") }, n));
+    // Novas publicações com hashtags que sigo, agrupadas por hashtag e por dia
+    const seen = (S.pstate && S.pstate.tagSeen) || {}, groups = {};
+    followedTags().forEach((tag) => S.posts.forEach((p) => {
+      if (p.author === S.meId || (p.createdAt || 0) <= (seen[tag] || 0) || !tagsIn(p.text).includes(tag)) return;
+      const day = new Date(p.createdAt || 0).toDateString(), key = tag + "|" + day;
+      const g = groups[key] || (groups[key] = { k: "tags", sys: true, tag, n: 0, t: 0, who: p.author, go: "tag:" + tag });
+      g.n++; if ((p.createdAt || 0) > g.t) { g.t = p.createdAt; g.who = p.author; }
+    }));
+    Object.values(groups).forEach((g) => { g.text = g.n === 1 ? "1 nova publicação em #" + g.tag : g.n + " novas publicações em #" + g.tag; out.push(g); });
+    // Novo tópico nas comunidades de que participo
+    const joined = {}; S.members.forEach((m) => { if (m.user === S.meId) joined[m.comm] = m.createdAt || 0; });
+    S.topics.forEach((tp) => {
+      if (tp.author === S.meId || !(tp.comm in joined) || (tp.createdAt || 0) <= joined[tp.comm]) return;
+      const c = S.communities.find((x) => x.id === tp.comm);
+      out.push({ k: "topics", who: tp.author, t: tp.createdAt, text: "criou o tópico “" + tp.title + "” em " + (c ? c.name : "uma comunidade") + ".", go: "topic:" + tp.id });
+    });
+    // Novo argumento nos debates em que votei ou argumentei (a partir da minha participação)
+    const since = {};
+    S.votes.forEach((v) => { if ((v.user || v.id) === S.meId) { const d = debOf(v); since[d] = Math.min(since[d] || Infinity, v.createdAt || 0); } });
+    S.args.forEach((a) => { if (a.author === S.meId) { const d = debOf(a); since[d] = Math.min(since[d] || Infinity, a.createdAt || 0); } });
+    S.args.forEach((a) => {
+      const d = debOf(a);
+      if (a.author === S.meId || !(d in since) || (a.createdAt || 0) <= since[d]) return;
+      const deb = S.debates.find((x) => x.id === d); if (!deb) return;
+      out.push({ k: "args", who: a.author, t: a.createdAt, text: "argumentou no debate “" + deb.title + "”.", go: "debate:" + d });
+    });
+    const off = new Set(notifOff());
+    return out.filter((n) => !off.has(n.k) && !isHidden(n.who)).sort((a, b) => (b.t || 0) - (a.t || 0));
+  }
+  function notifBase() {
     const mine = new Set(S.posts.filter((p) => p.author === S.meId).map((p) => p.id));
     const out = [];
     S.likes.forEach((l) => { if (mine.has(l.post) && l.user !== S.meId) out.push({ who: l.user, t: l.createdAt, text: "curtiu sua publicação.", go: "post:" + l.post }); });
@@ -816,7 +865,11 @@ button.tickrow:hover{background:var(--soft)}
     S.articleComments.forEach((c) => { if (c.author === S.meId) return; if (myArts[c.article]) out.push({ who: c.author, t: c.createdAt, text: "comentou seu texto: " + c.text, go: "article:" + c.article }); else if (mentionsMe(c.text)) out.push({ who: c.author, t: c.createdAt, text: "mencionou você num comentário.", go: "article:" + c.article }); });
     const myEvents = {}; S.events.forEach((e) => { if (e.author === S.meId) myEvents[e.id] = e; });
     S.rsvps.forEach((r) => { if (myEvents[r.event] && r.user !== S.meId) out.push({ who: r.user, t: r.createdAt, text: "vai participar do seu evento “" + myEvents[r.event].title + "”.", go: "event:" + r.event }); });
-    S.follows.forEach((f) => { if (f.to === S.meId) out.push({ who: f.from, t: f.createdAt, text: "começou a seguir você.", go: "profile:" + f.from }); });
+    S.follows.forEach((f) => {
+      if (f.to !== S.meId) return;
+      const mineF = S.follows.find((x) => x.from === S.meId && x.to === f.from && (x.createdAt || 0) < (f.createdAt || 0));
+      out.push({ who: f.from, t: f.createdAt, text: mineF ? "seguiu você de volta." : "começou a seguir você.", go: "profile:" + f.from });
+    });
     S.messages.forEach((m) => { if (m.to === S.meId) out.push({ who: m.from, t: m.createdAt, text: "mandou uma mensagem: " + m.text, go: "messages:" + m.from }); });
     return out.sort((a, b) => (b.t || 0) - (a.t || 0));
   }
@@ -891,7 +944,7 @@ button.tickrow:hover{background:var(--soft)}
     if (v.startsWith("profile:")) S.ptab = "posts";
     if (S.view.split(":")[0] === "write" && v.split(":")[0] !== "write") leaveWrite();
     if (v === "write" && S.artDraft.id) S.artDraft = blankArt();
-    S.view = v; S.menu = null; S.dataMenu = false; S.editing = null; S.replyTo = null; S.confirmDel = null; S.acct = false; if (v.startsWith("debate:")) { S.argFilter = "all"; S.argSide = null; }
+    S.bell = false; S.view = v; S.menu = null; S.dataMenu = false; S.editing = null; S.replyTo = null; S.confirmDel = null; S.acct = false; if (v.startsWith("debate:")) { S.argFilter = "all"; S.argSide = null; }
     if (v === "notifications") { S.prevSeen = S.seenNotif; S.seenNotif = now(); store.set("eco-seen", S.seenNotif); }
     if (!v.includes(":")) store.set("eco-view", v);
     render(); window.scrollTo(0, 0);
@@ -906,8 +959,10 @@ button.tickrow:hover{background:var(--soft)}
     const EXPL = ["explore", "news", "debates", "communities", "articles", "jobs", "events", "library", "market"];
     const cur = (id) => (id === base && (id !== "profile" || S.view === "profile:" + S.meId)) ? ' aria-current="page"' : "";
     const items = [["feed", "Início", I.home], ["notifications", "Notificações", I.bell, n], ["news", "Notícias", I.news], ["communities", "Comunidades", I.group], ["debates", "Debates", I.debate], ["articles", "Artigos", I.doc], ["jobs", "Vagas", I.work], ["events", "Eventos", I.cal], ["library", "Biblioteca", I.book], ["market", "Mercado", I.trend], ["messages", "Mensagens", I.mail, unreadConvs()], ["profile", "Perfil", I.user]];
-    $("#nav").innerHTML = items.map(([id, label, ic, c]) => '<button type="button" data-go="' + (id === "profile" ? "me" : id) + '"' + cur(id) + (S.compact ? ' title="' + label + '" aria-label="' + label + (c ? ", " + (c === 1 ? "1 nova" : c + " novas") : "") + '"' : '') + '>' + svg(ic, 22) + '<span class="lbl">' + label + '</span>' + (c ? '<span class="count" aria-label="' + (c === 1 ? "1 nova" : c + " novas") + '">' + c + '</span>' : '') + '</button>').join("");
-    $("#bottom").innerHTML = [["feed", "Início", I.home], ["notifications", "Avisos", I.bell], ["compose", "Publicar", I.plus], ["explore", "Explorar", I.grid], ["messages", "Mensagens", I.mail, unreadConvs()], ["profile", "Perfil", I.user]].map(([id, label, ic, c]) => '<button type="button" data-go="' + (id === "profile" ? "me" : id) + '"' + (id === "explore" ? (EXPL.includes(base) ? ' aria-current="page"' : '') : cur(id)) + (c ? ' aria-label="' + label + ', ' + c + ' novas"' : '') + '><span class="bicon">' + svg(ic, 22) + (c ? '<span class="bdot" aria-hidden="true"></span>' : '') + '</span>' + label + '</button>').join("");
+    // O sininho abre a janelinha de notificações; os outros itens trocam de tela
+    const navTarget = (id) => id === "notifications" ? 'data-act="bell" aria-haspopup="dialog" aria-expanded="' + !!S.bell + '"' : 'data-go="' + (id === "profile" ? "me" : id) + '"';
+    $("#nav").innerHTML = items.map(([id, label, ic, c]) => '<button type="button" ' + navTarget(id) + cur(id) + (S.compact ? ' title="' + label + '" aria-label="' + label + (c ? ", " + (c === 1 ? "1 nova" : c + " novas") : "") + '"' : '') + '>' + svg(ic, 22) + '<span class="lbl">' + label + '</span>' + (c ? '<span class="count" aria-label="' + (c === 1 ? "1 nova" : c + " novas") + '">' + c + '</span>' : '') + '</button>').join("");
+    $("#bottom").innerHTML = [["feed", "Início", I.home], ["notifications", "Avisos", I.bell, n], ["compose", "Publicar", I.plus], ["explore", "Explorar", I.grid], ["messages", "Mensagens", I.mail, unreadConvs()], ["profile", "Perfil", I.user]].map(([id, label, ic, c]) => '<button type="button" ' + navTarget(id) + (id === "explore" ? (EXPL.includes(base) ? ' aria-current="page"' : '') : cur(id)) + (c ? ' aria-label="' + label + ', ' + (c === 1 ? "1 nova" : c + " novas") + '"' : '') + '><span class="bicon">' + svg(ic, 22) + (c ? (id === "notifications" ? '<span class="bnum" aria-hidden="true">' + (c > 99 ? "99+" : c) + '</span>' : '<span class="bdot" aria-hidden="true"></span>') : '') + '</span>' + label + '</button>').join("");
     const me = U(S.meId);
     const [bg, fg] = hueOf(S.meId || "x");
     $("#mecard").innerHTML = '<span class="av s36" style="background:' + bg + ';color:' + fg + '">' + (S.meId ? avInner(S.meId) : "?") + '</span><span><b>' + esc(S.meId ? me.name : "Visitante") + '</b><small>' + esc(S.meId ? (handle(S.meId) || "Complete seu perfil") : "Modo leitura") + '</small></span>';
@@ -918,6 +973,7 @@ button.tickrow:hover{background:var(--soft)}
       '<div class="am-sec"><span class="am-label">' + svg(I.moon, 17) + 'Tema do site</span>' + themeSeg(true) + '</div>' +
       '<button type="button" role="menuitem" data-go="settings">' + svg(I.gear, 17) + 'Configurações</button>' +
       (S.meId ? '<button type="button" role="menuitem" class="red" data-act="signout">' + svg(I.logout, 17) + 'Sair da conta</button>' : '') : '';
+    renderBell();
     applyTheme();
   }
 
@@ -1167,14 +1223,41 @@ button.tickrow:hover{background:var(--soft)}
       '<div class="head" style="position:static;padding-top:12px"><div class="tabs" role="tablist" aria-label="Conteúdo do perfil">' + [["posts", "Publicações"], ["reposts", "Republicações"], ["articles", "Artigos"]].concat(own ? [["saved", "Salvos"]] : []).concat([["about", "Sobre"]]).map(([t, l]) => '<button type="button" role="tab" data-ptab="' + t + '" aria-selected="' + (tab === t) + '">' + l + '</button>').join("") + '</div></div>' + body;
   }
 
+  // Uma notificação (página completa e janelinha do sininho)
+  // Janelinha do sininho: últimas notificações + "Ver todas"
+  function renderBell() {
+    let box = $("#bellpop");
+    if (!S.bell || !loggedIn()) { if (box) box.remove(); return; }
+    if (!box) {
+      box = document.createElement("div"); box.id = "bellpop"; box.className = "bellpop";
+      box.setAttribute("role", "dialog"); box.setAttribute("aria-label", "Notificações");
+      document.body.appendChild(box);
+    }
+    const all = notifications(), unread = all.filter((n) => (n.t || 0) > S.seenNotif).length;
+    box.innerHTML = '<div class="row bp-head"><b style="font-size:15px">Notificações' + (unread ? ' <span class="muted" style="font-weight:500;font-size:13px">· ' + (unread === 1 ? "1 nova" : unread + " novas") + '</span>' : '') + '</b>' + (unread ? '<button type="button" class="linkname" style="color:var(--accent);font-size:13px" data-act="markall">Marcar todas como lidas</button>' : '') + '</div>' +
+      (all.length ? all.slice(0, 8).map((n) => notifItem(n, (n.t || 0) > S.seenNotif)).join("") : '<p class="muted" style="margin:0;padding:18px 14px;font-size:14px">Nenhuma notificação ainda.</p>') +
+      '<button type="button" class="bp-all" data-act="bellall">Ver todas</button>';
+    const a = [...document.querySelectorAll('[data-act="bell"]')].find((b) => b.offsetParent);
+    if (innerWidth < 700 || !a) box.style.cssText = "left:12px;right:12px;width:auto;bottom:calc(76px + env(safe-area-inset-bottom));top:auto";
+    else { const r = a.getBoundingClientRect(); box.style.cssText = "left:" + Math.round(r.right + 8) + "px;top:" + Math.round(Math.max(12, Math.min(r.top, innerHeight - 560))) + "px"; }
+  }
+  function closeBell(focusBell) {
+    if (!S.bell) return;
+    S.bell = false; renderNav();
+    if (focusBell) { const a = [...document.querySelectorAll('[data-act="bell"]')].find((b) => b.offsetParent); if (a) a.focus(); }
+  }
+  function notifItem(n, un) {
+    const who = n.sys ? '' : '<button type="button" class="linkname" data-go="profile:' + esc(n.who) + '">' + esc(U(n.who).name) + '</button> ';
+    return '<div class="notif' + (un ? ' unread' : '') + '">' + (n.sys ? '<span class="av s36" aria-hidden="true" style="background:var(--accent-soft);color:var(--accent);font-weight:700">#</span>' : avatar(n.who, 36)) + '<div style="flex:1;min-width:0"><p style="margin:0;font-size:14.5px;overflow-wrap:anywhere">' + (un ? '<span class="sr">Nova: </span>' : '') + who + esc(n.text) + '</p><button type="button" class="linkname muted" style="font-weight:400;font-size:13px" data-go="' + esc(n.go) + '">' + rel(n.t) + ' · abrir</button></div></div>';
+  }
   function viewNotifications() {
     const all = notifications();
     const list = S.notifF === "all" ? all : all.filter((n) => notifType(n) === S.notifF);
     const unread = all.filter((n) => (n.t || 0) > (S.prevSeen || 0)).length;
     return '<div class="head"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><h1>Notificações</h1>' + (loggedIn() && unread ? '<button type="button" class="btn ghost small" data-act="markall">Marcar todas como lidas</button>' : '') + '</div>' +
-      (loggedIn() ? '<div class="filters">' + NOTIF_TYPES.map(([k, l]) => { const n = k === "all" ? all.length : all.filter((x) => notifType(x) === k).length; return '<button type="button" class="chip" data-act="notiff" data-id="' + k + '" aria-pressed="' + (S.notifF === k) + '">' + l + (n ? ' (' + n + ')' : '') + '</button>'; }).join("") + '</div>' : '<div style="height:2px"></div>') + '</div>' +
+      (loggedIn() ? '<div class="filters">' + NOTIF_TYPES.map(([k, l]) => [k, l, k === "all" ? all.length : all.filter((x) => notifType(x) === k).length]).filter(([k, , n]) => k === "all" || n || S.notifF === k).map(([k, l, n]) => '<button type="button" class="chip" data-act="notiff" data-id="' + k + '" aria-pressed="' + (S.notifF === k) + '">' + l + (n ? ' (' + n + ')' : '') + '</button>').join("") + '</div>' : '<div style="height:2px"></div>') + '</div>' +
       (!loggedIn() ? '<p class="empty">Entre na sua conta para ver suas notificações.</p>' :
-        list.length ? list.map((n) => { const un = (n.t || 0) > (S.prevSeen || 0); return '<div class="notif' + (un ? ' unread' : '') + '">' + avatar(n.who, 36) + '<div style="flex:1;min-width:0"><p style="margin:0;font-size:14.5px;overflow-wrap:anywhere">' + (un ? '<span class="sr">Nova: </span>' : '') + '<button type="button" class="linkname" data-go="profile:' + esc(n.who) + '">' + esc(U(n.who).name) + '</button> ' + esc(n.text) + '</p><button type="button" class="linkname muted" style="font-weight:400;font-size:13px" data-go="' + esc(n.go) + '">' + rel(n.t) + ' · abrir</button></div></div>'; }).join("") :
+        list.length ? list.map((n) => notifItem(n, (n.t || 0) > (S.prevSeen || 0))).join("") :
         '<p class="empty">' + (S.notifF === "all" ? "Ainda não há notificações. Quando alguém curtir, comentar, votar, republicar, seguir você ou mandar mensagem, aparece aqui." : "Nenhuma notificação deste tipo.") + '</p>');
   }
 
@@ -1783,6 +1866,7 @@ button.tickrow:hover{background:var(--soft)}
       sec("Barra lateral", "No modo compacto, a barra lateral mostra só os ícones e o conteúdo ganha mais espaço.", '<label class="switch"><input type="checkbox" data-act="compact"' + (S.compact ? ' checked' : '') + '><span class="track" aria-hidden="true"></span><span>Abas compactas (só ícones)</span></label>') +
       (loggedIn() ? sec("Pessoas bloqueadas", "Vocês não veem o conteúdo um do outro e não podem trocar mensagens.", (() => { const bl = [...blockedByMe()]; return bl.length ? bl.map((id) => '<div class="row" style="flex-wrap:nowrap">' + avatar(id, 36, false) + '<span style="flex:1;min-width:0;display:flex;flex-direction:column"><b>' + esc(U(id).name) + '</b><span class="muted" style="font-size:12.5px">' + esc(handle(id)) + '</span></span><button type="button" class="btn ghost small" data-act="unblock" data-id="' + esc(id) + '">Desbloquear</button></div>').join("") : '<p class="muted" style="margin:0;font-size:14px">Ninguém bloqueado.</p>'; })()) : '') +
       sec("Pessoas silenciadas", "As publicações delas não aparecem no seu feed. Elas não são avisadas.", muted.length ? muted.map((id) => '<div class="row" style="flex-wrap:nowrap">' + avatar(id, 36) + '<span style="flex:1;min-width:0"><b>' + esc(U(id).name) + '</b></span><button type="button" class="btn ghost small" data-act="unmute" data-id="' + esc(id) + '">Reativar</button></div>').join("") : '<p class="muted" style="margin:0;font-size:14px">Ninguém silenciado.</p>') +
+      (loggedIn() ? sec("Notificações", "Escolha o que aparece no sininho e na aba Notificações.", '<div style="display:flex;flex-direction:column;gap:10px">' + NOTIF_KINDS.map(([k, l]) => '<label class="switch"><input type="checkbox" data-act="notiftoggle" data-id="' + k + '"' + (notifOff().includes(k) ? '' : ' checked') + '><span class="track" aria-hidden="true"></span><span>' + l + '</span></label>').join("") + '</div>') : '') +
       (loggedIn() ? sec("Hashtags que sigo", "As publicações com essas hashtags aparecem na aba Seguindo do feed. Só você vê esta lista.", followedTags().length ? followedTags().map((t) => '<div class="row" style="flex-wrap:nowrap"><button type="button" class="linkname" style="flex:1;min-width:0;text-align:left" data-go="tag:' + esc(t) + '">#' + esc(t) + '</button><button type="button" class="btn ghost small" data-act="tagfollow" data-id="' + esc(t) + '">Deixar de seguir</button></div>').join("") : '<p class="muted" style="margin:0;font-size:13.5px">Você ainda não segue nenhuma hashtag. Abra uma # e toque em “Seguir”.</p>') : '') +
       sec("Privacidade", "", '<p style="margin:0;font-size:14px;line-height:1.55">Seu perfil, publicações, argumentos e comentários ficam visíveis para quem tem conta na EcoEco. Mensagens aparecem só para você e a outra pessoa na tela, e publicações salvas e vagas salvas são privadas.</p>') +
       (S.isAdmin ? sec("Moderação", "Você administra a EcoEco beta.", '<button type="button" class="btn ghost small" data-go="moderation" style="align-self:flex-start">Abrir painel de denúncias' + (S.reports.filter((r) => (r.status || "pendente") === "pendente").length ? ' · ' + S.reports.filter((r) => (r.status || "pendente") === "pendente").length : '') + '</button>') : '') +
@@ -1861,16 +1945,8 @@ button.tickrow:hover{background:var(--soft)}
   }
 
   /* ---------- notificações: tipos ---------- */
-  const NOTIF_TYPES = [["all", "Todas"], ["likes", "Curtidas e apoios"], ["comments", "Comentários"], ["mentions", "Menções"], ["follows", "Seguidores"], ["messages", "Mensagens"], ["other", "Outras"]];
-  function notifType(n) {
-    const t = n.text || "";
-    if (/^mencionou/.test(t)) return "mentions";
-    if (/^(curtiu|apoiou)/.test(t)) return "likes";
-    if (/^(comentou|respondeu)/.test(t)) return "comments";
-    if (/^começou a seguir/.test(t)) return "follows";
-    if (/^mandou uma mensagem/.test(t)) return "messages";
-    return "other";
-  }
+  const NOTIF_TYPES = [["all", "Todas"]].concat(NOTIF_KINDS);
+  const notifType = (n) => n.k || classifyNotif(n.text || "");
 
   /* ---------- moderação ---------- */
   function viewModeration() {
@@ -2198,6 +2274,7 @@ button.tickrow:hover{background:var(--soft)}
   /* ---------- events ---------- */
   document.addEventListener("click", async (ev) => {
     const t = ev.target.closest("button, [data-go]");
+    if (S.bell && !ev.target.closest("#bellpop") && !ev.target.closest('[data-act="bell"]')) { S.bell = false; renderNav(); }
     if (!t && S.acct && !ev.target.closest("#mewrap")) { S.acct = false; renderNav(); }
     if (!t) { if (S.menu || S.dataMenu) { S.menu = null; S.dataMenu = false; render(); } return; }
     if (t.dataset.themeSet) { store.set("eco-theme", t.dataset.themeSet === "auto" ? null : t.dataset.themeSet); applyTheme(); return; }
@@ -2227,6 +2304,8 @@ button.tickrow:hover{background:var(--soft)}
       case "modkeep": await write(() => col("reports").doc(id).update({ status: "mantida", resolvedAt: now(), resolvedBy: S.meId }), "Denúncia resolvida: publicação mantida"); return;
       case "modremove": { const r = S.reports.find((x) => x.id === id); if (!r) return; const rp = (S.raw.posts || S.posts).find((x) => x.id === r.post); await write(async () => { try { await col("posts").doc(r.post).delete(); } catch (e) {} await col("reports").doc(id).update({ status: "removida", resolvedAt: now(), resolvedBy: S.meId, snapshot: rp ? String(rp.text || "").slice(0, 1000) : "", snapshotAuthor: rp ? rp.author : "" }); }, "Publicação removida"); if (rp && rp.media) delFile(rp.media.asset); return; }
       case "notiff": S.notifF = id; render(); return;
+      case "bell": S.bell = !S.bell; renderNav(); if (S.bell) { const f = $("#bellpop button, #bellpop [data-go]"); if (f) f.focus(); } return;
+      case "bellall": S.bell = false; go("notifications"); return;
       case "markall": S.prevSeen = now(); S.seenNotif = now(); store.set("eco-seen", S.seenNotif); render(); toast("Todas as notificações foram marcadas como lidas."); return;
       case "newsf": S.newsF = id; render(); return;
       case "savenews": { if (!S.db || !loggedIn()) return; const i = +id; const key = newsKey(i); const ex = S.savedAll.some((x) => x.id === key); try { const ref = privRef(key); if (ex) await ref.delete(); else await ref.set({ news: NEWS[i].href, createdAt: now() }); toast(ex ? "Notícia removida dos salvos" : "Notícia salva"); } catch (e) { toast("Não deu para salvar agora."); } return; }
@@ -2362,7 +2441,15 @@ button.tickrow:hover{background:var(--soft)}
     }
   });
 
-  document.addEventListener("change", (ev) => { if (ev.target.id === "libtheme") { S.libF.theme = ev.target.value; render(); return; } if (ev.target.dataset && ev.target.dataset.act === "compact") { S.compact = ev.target.checked; store.set("eco-compact", S.compact); applyCompact(); renderNav(); toast(S.compact ? "Abas compactas ativadas" : "Abas completas ativadas"); } });
+  document.addEventListener("change", (ev) => {
+    if (ev.target.dataset && ev.target.dataset.act === "notiftoggle") {
+      const k = ev.target.dataset.id, off = new Set(notifOff());
+      if (ev.target.checked) off.delete(k); else off.add(k);
+      saveState({ notifOff: [...off] }).then(() => renderNav());
+      toast((ev.target.checked ? "Ligado: " : "Desligado: ") + (NOTIF_KINDS.find((x) => x[0] === k) || ["", ""])[1]);
+      return;
+    }
+if (ev.target.id === "libtheme") { S.libF.theme = ev.target.value; render(); return; } if (ev.target.dataset && ev.target.dataset.act === "compact") { S.compact = ev.target.checked; store.set("eco-compact", S.compact); applyCompact(); renderNav(); toast(S.compact ? "Abas compactas ativadas" : "Abas completas ativadas"); } });
   document.addEventListener("input", (ev) => {
     const el = ev.target, id = el.id;
     if (id === "comp") S.draft = el.value;
@@ -2499,6 +2586,7 @@ button.tickrow:hover{background:var(--soft)}
   document.addEventListener("selectionchange", () => { const a = document.activeElement; if (a && a.id === "a-body") S.artDraft.caret = a.selectionStart; });
   document.addEventListener("keydown", (ev) => {
     if (ev.key === "Escape" && $("#lightbox")) { closeLightbox(); return; }
+    if (ev.key === "Escape" && S.bell) { closeBell(true); return; }
     if (ev.key === "Escape" && S.acct) { S.acct = false; renderNav(); $("#mecard").focus(); return; }
     if (ev.key === "Escape") { if (S.edit || S.report || S.chartModal || S.form || S.blockAsk) { S.edit = null; S.report = null; S.chartModal = null; S.form = null; S.blockAsk = null; renderModal(); } else if (S.menu || S.dataMenu) { S.menu = null; S.dataMenu = false; render(); } }
     if (ev.key === "Enter" && (ev.metaKey || ev.ctrlKey) && ev.target.id === "comp") { $("#composer").requestSubmit(); }
