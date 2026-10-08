@@ -1779,7 +1779,8 @@ button.tickrow:hover{background:var(--soft)}
       sec("Sobre a EcoEco", "", '<div class="row" style="gap:8px">' + Object.keys(PAGES).map((k) => '<button type="button" class="btn ghost small" data-go="page:' + k + '">' + PAGES[k].title + '</button>').join("") + '</div>') +
       (loggedIn() ? sec("Senha", "Escolha uma senha com pelo menos 8 caracteres.", '<form id="pwForm" class="row" style="align-items:flex-end"><label class="field" for="pw1" style="flex:1;min-width:180px">Nova senha<input id="pw1" type="password" autocomplete="new-password" minlength="8"></label><label class="field" for="pw2" style="flex:1;min-width:180px">Repita a senha<input id="pw2" type="password" autocomplete="new-password" minlength="8"></label><button type="submit" class="btn small" style="height:42px">Trocar senha</button></form>') : '') +
       (loggedIn() ? sec("Sessão", "", '<button type="button" class="btn danger" data-act="signout" style="align-self:flex-start">Sair da conta</button>') : '') +
-      '<p class="muted" style="margin:0;padding:8px 20px 28px;font-size:12.5px">EcoEco · The Economy Ecosystem · versão beta</p>';
+      '<p class="muted" style="margin:0;padding:8px 20px 0;font-size:12.5px">EcoEco · The Economy Ecosystem · versão beta</p>' +
+      '<p class="credits" style="margin:0;padding:2px 20px 28px;font-family:var(--sans);font-size:12px;color:var(--ink2)">Criado por Kauã</p>';
   }
 
   function sparkBars(vals, labels) {
