@@ -15,7 +15,7 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 });
 
 let session = null;
-let me = { id: null, username: "", isAdmin: false };
+let me = { id: null, username: "", isAdmin: false, sanction: null };
 
 /* ---------------------------------------------------------------------
  * Utilidades
@@ -177,7 +177,8 @@ const user = Object.freeze({
   name: async () => me.username,
   isOwner: async () => me.isAdmin,
   canEdit: async () => me.isAdmin,
-  can: async () => true,
+  // Conta suspensa ou banida não escreve (o banco também recusa: SQL 07)
+  can: async (what) => (what === "data.write" ? !me.sanction : true),
   profiles: async (ids) => Object.fromEntries([].concat(ids).map((i) => [i, { id: i, name: "", avatarUrl: "", color: "#146B4F", email: null, isMe: i === me.id, guest: false }])),
   search: async () => []
 });
@@ -342,6 +343,10 @@ async function start() {
   me.username = (session.user.user_metadata && session.user.user_metadata.username) || session.user.email.split("@")[0];
   const adm = await sb.from("admins").select("user_id").eq("user_id", me.id).maybeSingle();
   me.isAdmin = !!(adm && adm.data);
+  try {
+    const { data: sc } = await sb.rpc("my_sanction");
+    me.sanction = Array.isArray(sc) && sc.length ? sc[0] : null;
+  } catch (e) { me.sanction = null; }   // SQL 07 ainda não rodado
   loadLive().catch(() => {});
   watchLive();
   return {
@@ -360,8 +365,16 @@ window.EcoBackend = {
   // Chama uma função do banco (SQL). As funções conferem as permissões por dentro.
   async rpc(name, args) {
     const { data, error } = await sb.rpc(name, args || {});
-    if (error) throw mapError(error);
+    if (error) throw Object.assign(mapError(error), { detail: error.message || "" });
     return data;
+  },
+  // Suspensão/banimento da própria conta ({ kind, until, reason } ou null)
+  mySanction: () => me.sanction,
+  // Admin apaga conteúdo de outra pessoa: o banco guarda uma cópia no registro (SQL 07)
+  async adminDelete(col, id, reason) {
+    const { error } = await sb.rpc("admin_delete_doc", { p_collection: realCollection(col), p_id: id, p_reason: reason || "" });
+    if (error) throw mapError(error);
+    applyLocal(realCollection(col), id, null);
   }
 };
 

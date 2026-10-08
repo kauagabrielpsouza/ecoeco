@@ -713,7 +713,7 @@ button.tickrow:hover{background:var(--soft)}
     users: {}, posts: [], likes: [], reposts: [], comments: [], follows: [], votes: [], args: [], ups: [], messages: [], pollVotes: [], commentLikes: [], saved: [], savedJobs: [],
     communities: [], members: [], topics: [], topicReplies: [], articles: [], articleLikes: [], articleComments: [], jobs: [], events: [], rsvps: [],
     topicDraft: { title: "", text: "" }, treplyDraft: "", acDraft: "", artDraft: { id: null, kind: "Artigo", title: "", summary: "", body: "" }, shareArticle: null,
-    artFilter: "all", jobF: { kind: "all", mode: "all", q: "", saved: false }, evTab: "upcoming", form: null, confirmDel: null, acct: false, blocks: [], raw: {}, blockAsk: null, pstate: {}, savedAll: [], reports: [], isAdmin: false, modTab: "pending", notifF: "all", newsF: "all", libF: { kind: "all", theme: "all", q: "", saved: false }, library: [], convQ: "", watchDraft: "", onb2: null, compact: store.get("eco-compact", false),
+    artFilter: "all", jobF: { kind: "all", mode: "all", q: "", saved: false }, evTab: "upcoming", form: null, confirmDel: null, acct: false, blocks: [], raw: {}, blockAsk: null, pstate: {}, savedAll: [], reports: [], isAdmin: false, modTab: "pending", adm: { users: null, invites: null, log: null, err: "", loading: "", form: null }, notifF: "all", newsF: "all", libF: { kind: "all", theme: "all", q: "", saved: false }, library: [], convQ: "", watchDraft: "", onb2: null, compact: store.get("eco-compact", false),
     debates: [], debateComments: [], argComments: [], debQ: "", openArgs: {}, argcDraft: {}, dcDraft: "", argFilter: "all", argSide: null, shareDebate: null,
     view: store.get("eco-view", "feed"), tab: "foryou", ptab: "posts", q: "", stab: "all",
     editing: null, editDraft: "", replyTo: null,
@@ -875,8 +875,17 @@ button.tickrow:hover{background:var(--soft)}
   }
 
   /* ---------- db writes ---------- */
+  // Aviso para contas suspensas ou banidas (o banco também recusa: SQL 07)
+  function sanctionText(short) {
+    const s = S.sanction; if (!s) return "";
+    const when = s.until ? fmtDT(s.until) : "";
+    const head = s.kind === "banimento" ? "Sua conta foi banida." : "Sua conta está suspensa até " + when + ".";
+    return short ? head + " Você não pode publicar, comentar, votar nem mandar mensagens."
+      : head + (s.reason ? " Motivo: " + s.reason + "." : "") + " Você ainda pode ler, mas não pode publicar, comentar, votar nem mandar mensagens. Se achar que é um engano, fale com a administração da EcoEco.";
+  }
+  const sanctionBanner = () => S.sanction ? '<div class="banner sanction" role="status" style="background:color-mix(in srgb,var(--down) 14%,var(--surface));border-bottom:1px solid var(--down)">' + esc(sanctionText(false)) + '</div>' : '';
   async function write(fn, okMsg) {
-    if (!canAct()) { toast(S.db ? "Entre na sua conta para interagir." : "Sem conexão com o banco de dados nesta visualização."); return false; }
+    if (!canAct()) { toast(S.sanction ? sanctionText(true) : S.db ? "Entre na sua conta para interagir." : "Sem conexão com o banco de dados nesta visualização."); return false; }
     try { await fn(); if (okMsg) toast(okMsg); return true; }
     catch (e) {
       if (e && e.code === "quota_exceeded") toast("O banco de dados está cheio. Avise a administração da EcoEco.");
@@ -888,6 +897,13 @@ button.tickrow:hover{background:var(--soft)}
   const col = (c) => S.db.collection(c);
   // Apaga um documento. Quando um administrador apaga conteúdo de outra pessoa,
   // passa pela função do banco que guarda uma cópia no registro de moderação.
+  const canDel = (author) => (author === S.meId && canAct()) || (S.isAdmin && loggedIn());
+  // Link discreto "Excluir" de comentários, só para a administração
+  const modDel = (colName, id) => {
+    if (!S.isAdmin || !loggedIn()) return "";
+    const armed = S.confirmDel === colName + ":" + id;
+    return '<button type="button" class="linkname" style="font-weight:' + (armed ? 700 : 400) + ';font-size:12.5px;color:' + (armed ? "var(--down)" : "var(--ink2)") + '" data-act="cdel" data-col="' + colName + '" data-id="' + esc(id) + '">' + (armed ? "Confirmar exclusão" : "Excluir") + '</button>';
+  };
   async function removeDoc(colName, id, ownerId) {
     if (ownerId && ownerId !== S.meId && S.isAdmin && window.EcoBackend && window.EcoBackend.adminDelete) return window.EcoBackend.adminDelete(colName, id);
     return col(colName).doc(id).delete();
@@ -1047,7 +1063,7 @@ button.tickrow:hover{background:var(--soft)}
     const menu = S.menu === p.id ? '<div class="menu" role="menu">' +
       '<button type="button" role="menuitem" data-act="save" data-id="' + esc(p.id) + '">' + (saved ? "Remover dos salvos" : "Salvar publicação") + '</button>' +
       (mine ? '<button type="button" role="menuitem" data-act="pin" data-id="' + esc(p.id) + '">' + (U(S.meId).pinned === p.id ? "Desafixar do perfil" : "Fixar no perfil") + '</button><button type="button" role="menuitem" data-act="editpost" data-id="' + esc(p.id) + '">Editar publicação</button><button type="button" role="menuitem" class="red" data-act="delete" data-id="' + esc(p.id) + '">' + (S.confirmDel === "posts:" + p.id ? "Confirmar exclusão" : "Excluir publicação") + '</button>' :
-        '<button type="button" role="menuitem" data-act="mute" data-id="' + esc(p.author) + '">Silenciar ' + esc(u.name) + '</button><button type="button" role="menuitem" class="red" data-act="block" data-id="' + esc(p.author) + '">Bloquear ' + esc(u.name) + '</button><button type="button" role="menuitem" class="red" data-act="report" data-id="' + esc(p.id) + '">Denunciar publicação</button>') + '</div>' : "";
+        '<button type="button" role="menuitem" data-act="mute" data-id="' + esc(p.author) + '">Silenciar ' + esc(u.name) + '</button><button type="button" role="menuitem" class="red" data-act="block" data-id="' + esc(p.author) + '">Bloquear ' + esc(u.name) + '</button><button type="button" role="menuitem" class="red" data-act="report" data-id="' + esc(p.id) + '">Denunciar publicação</button>' + (S.isAdmin ? '<button type="button" role="menuitem" class="red" data-act="delete" data-id="' + esc(p.id) + '">' + (S.confirmDel === "posts:" + p.id ? "Confirmar exclusão" : "Excluir publicação (moderação)") + '</button>' : '')) + '</div>' : "";
     const editing = S.editing === p.id;
     const textHtml = editing
       ? '<form class="editpost" id="editPostForm" style="display:flex;flex-direction:column;gap:8px"><label class="sr" for="ept">Editar publicação</label><textarea id="ept" rows="4" maxlength="1000" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line2);background:var(--bg);font-size:15px;resize:vertical">' + esc(S.editDraft) + '</textarea><div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost small" data-act="edit-cancel">Cancelar</button><button type="submit" class="btn small">Salvar alterações</button></div></form>'
@@ -1178,7 +1194,7 @@ button.tickrow:hover{background:var(--soft)}
       '<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px"><div class="meta row" style="font-size:13.5px"><button type="button" class="linkname" data-go="profile:' + esc(c.author) + '">' + esc(U(c.author).name) + '</button><span class="muted">' + esc(handle(c.author)) + ' · ' + rel(c.createdAt) + '</span></div>' +
       '<p style="margin:0;font-size:14.5px;white-space:pre-wrap;overflow-wrap:anywhere">' + richText(c.text) + '</p>' +
       '<div class="actions" style="gap:18px;font-size:13px"><button type="button" class="like" data-act="clike" data-id="' + esc(c.id) + '" aria-pressed="' + liked + '" aria-label="Curtir comentário"' + (canAct() ? '' : ' disabled') + '>' + svg(I.heart, 15, liked ? "currentColor" : "none") + likes.length + '</button>' +
-      (canAct() ? '<button type="button" data-act="reply" data-id="' + esc(isReply ? (c.parent || c.id) : c.id) + '" data-who="' + esc(U(c.author).username || "") + '">' + svg(I.comment, 15) + 'Responder</button>' : '') + '</div></div></div>';
+      (canAct() ? '<button type="button" data-act="reply" data-id="' + esc(isReply ? (c.parent || c.id) : c.id) + '" data-who="' + esc(U(c.author).username || "") + '">' + svg(I.comment, 15) + 'Responder</button>' : '') + modDel("comments", c.id) + '</div></div></div>';
   }
 
   function viewProfile(id) {
@@ -1343,7 +1359,7 @@ button.tickrow:hover{background:var(--soft)}
       '<button type="button" class="up" data-act="argc" data-id="' + esc(x.id) + '" aria-expanded="' + open + '">' + svg(I.comment, 14) + ' ' + cs.length + (cs.length === 1 ? " comentário" : " comentários") + '</button>' +
       ((x.author === S.meId && canAct()) || S.isAdmin ? '<button type="button" class="up" style="margin-left:auto" data-act="argdel" data-id="' + esc(x.id) + '" aria-expanded="' + (S.confirmDel === "args:" + x.id) + '">Apagar</button>' : '') + '</div>' +
       (S.confirmDel === "args:" + x.id ? '<div class="banner row" role="alertdialog" aria-label="Confirmar exclusão do argumento" style="justify-content:space-between;margin:0;border-radius:10px"><span style="font-size:13.5px">Apagar este argumento? Os apoios e comentários dele também serão apagados.</span><span class="row" style="gap:6px"><button type="button" class="btn ghost small" data-act="argdelno">Cancelar</button><button type="button" class="btn danger small" data-act="argdelok" data-id="' + esc(x.id) + '">Apagar</button></span></div>' : '') +
-      (open ? '<div class="argthread">' + (cs.length ? cs.map((c) => '<div class="argc">' + avatar(c.author, 24, false) + '<div style="min-width:0"><button type="button" class="linkname" style="font-size:13px" data-go="profile:' + esc(c.author) + '">' + esc(U(c.author).name) + '</button> <span class="muted" style="font-size:12px">' + rel(c.createdAt) + '</span><p style="margin:2px 0 0;font-size:13.5px;overflow-wrap:anywhere">' + richText(c.text) + '</p></div></div>').join("") : '<p class="muted" style="margin:0;font-size:13px">Nenhum comentário ainda.</p>') +
+      (open ? '<div class="argthread">' + (cs.length ? cs.map((c) => '<div class="argc">' + avatar(c.author, 24, false) + '<div style="min-width:0"><button type="button" class="linkname" style="font-size:13px" data-go="profile:' + esc(c.author) + '">' + esc(U(c.author).name) + '</button> <span class="muted" style="font-size:12px">' + rel(c.createdAt) + '</span> ' + modDel("argComments", c.id) + '<p style="margin:2px 0 0;font-size:13.5px;overflow-wrap:anywhere">' + richText(c.text) + '</p></div></div>').join("") : '<p class="muted" style="margin:0;font-size:13px">Nenhum comentário ainda.</p>') +
         (canAct() ? '<form class="argcform" data-arg="' + esc(x.id) + '"><label class="sr" for="argc-' + esc(x.id) + '">Comentar argumento</label><input class="input" id="argc-' + esc(x.id) + '" autocomplete="off" placeholder="Comente este argumento…" value="' + esc(S.argcDraft[x.id] || "") + '"><button type="submit" class="btn small">Enviar</button></form>' : '') + '</div>' : '') + '</article>';
   }
   function viewDebate(id) {
@@ -1361,7 +1377,7 @@ button.tickrow:hover{background:var(--soft)}
     const posBtn = (sd, label) => '<button type="button" class="chip pos p' + sd + '" data-act="argside" data-id="' + sd + '" aria-pressed="' + (pos === sd) + '">' + esc(label) + '</button>';
     const voteBtn = (sd, label) => '<button type="button" class="chip pos votebtn p' + sd + '" data-act="vote" data-id="' + sd + '" aria-pressed="' + (side === sd) + '">' + (side === sd ? '✓ ' : '') + esc(label) + '</button>';
     const fil = (k, label) => '<button type="button" class="chip" data-act="argfilter" data-id="' + k + '" aria-pressed="' + (f === k) + '">' + esc(label) + ' (' + cnt[k] + ')</button>';
-    return backHead("debates", "Debates", esc(d.cat || ""), d.author === S.meId && canAct() ? '<span style="margin-left:auto">' + delBtn("debates", id) + '</span>' : '') +
+    return backHead("debates", "Debates", esc(d.cat || ""), canDel(d.author) ? '<span style="margin-left:auto">' + delBtn("debates", id) + '</span>' : '') +
       '<div style="padding:18px 20px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:12px"><h1 class="debtitle" style="font-size:27px;line-height:1.22;margin:0">' + esc(d.title) + '</h1>' +
       (d.desc ? '<p class="muted" style="margin:0;white-space:pre-wrap">' + richText(d.desc) + '</p>' : '') +
       '<span class="muted" style="font-size:12.5px">Proposto por <button type="button" class="linkname" style="font-weight:500" data-go="profile:' + esc(d.author) + '">' + esc(U(d.author).name) + '</button> · ' + rel(d.createdAt) + '</span>' +
@@ -1456,8 +1472,8 @@ button.tickrow:hover{background:var(--soft)}
   const secHead = (title, desc, right, extra) => '<div class="head"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><h1>' + title + '</h1>' + (right || '') + '</div>' + (desc ? '<p class="muted" style="margin:-8px 0 0;font-size:13.5px">' + desc + '</p>' : '') + (extra || '<div style="height:2px"></div>') + '</div>';
   const eyebrow = (t) => '<div style="padding:14px 20px 4px" class="eyebrow">' + t + '</div>';
   const delBtn = (colName, id, label) => { const armed = S.confirmDel === colName + ":" + id; return '<button type="button" class="btn ghost small' + (armed ? ' armed' : '') + '" data-act="del" data-col="' + colName + '" data-id="' + esc(id) + '">' + (armed ? "Confirmar exclusão" : (label || "Excluir")) + '</button>'; };
-  function simpleComment(c) {
-    return '<div class="comment">' + avatar(c.author, 36) + '<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px"><div class="meta row" style="font-size:13.5px"><button type="button" class="linkname" data-go="profile:' + esc(c.author) + '">' + esc(U(c.author).name) + '</button><span class="muted">' + esc(handle(c.author)) + (handle(c.author) ? ' · ' : '') + rel(c.createdAt) + '</span></div><p style="margin:0;font-size:14.5px;white-space:pre-wrap;overflow-wrap:anywhere">' + richText(c.text) + '</p></div></div>';
+  function simpleComment(c, colName) {
+    return '<div class="comment">' + avatar(c.author, 36) + '<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px"><div class="meta row" style="font-size:13.5px"><button type="button" class="linkname" data-go="profile:' + esc(c.author) + '">' + esc(U(c.author).name) + '</button><span class="muted">' + esc(handle(c.author)) + (handle(c.author) ? ' · ' : '') + rel(c.createdAt) + '</span>' + (colName ? '<span style="margin-left:auto">' + modDel(colName, c.id) + '</span>' : '') + '</div><p style="margin:0;font-size:14.5px;white-space:pre-wrap;overflow-wrap:anywhere">' + richText(c.text) + '</p></div></div>';
   }
 
   /* ---------- explorar (mobile) ---------- */
@@ -1501,7 +1517,7 @@ button.tickrow:hover{background:var(--soft)}
     const mem = commMembers(id), member = isMember(id);
     const last = (t) => Math.max(t.createdAt || 0, ...S.topicReplies.filter((r) => r.topic === t.id).map((r) => r.createdAt || 0));
     const topics = S.topics.filter((t) => t.comm === id).sort((a, b) => last(b) - last(a));
-    return backHead("communities", esc(c.name), plural(memberCount(id), "membro", "membros"), c.author === S.meId && canAct() ? '<span style="margin-left:auto">' + delBtn("communities", id, "Excluir") + '</span>' : '') +
+    return backHead("communities", esc(c.name), plural(memberCount(id), "membro", "membros"), canDel(c.author) ? '<span style="margin-left:auto">' + delBtn("communities", id, "Excluir") + '</span>' : '') +
       '<div style="padding:18px 20px;border-bottom:1px solid var(--line);display:flex;gap:14px;align-items:flex-start">' + commIcon(c, 64) + '<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px"><p style="margin:0">' + esc(c.desc || "") + '</p>' + (c.rules ? '<p class="muted" style="margin:0;font-size:13px"><b>Regras:</b> ' + esc(c.rules) + '</p>' : '') + '<div class="row">' + avStack(mem.map((m) => m.user)) + (canAct() ? joinBtn(id) : '') + '</div></div></div>' +
       (canAct() ? (member ? '<form id="topicForm" class="stack-form"><label class="sr" for="tt">Título do tópico</label><input class="input" id="tt" maxlength="120" autocomplete="off" placeholder="Abra um tópico: qual é a pergunta ou o tema?" value="' + esc(S.topicDraft.title) + '"><label class="sr" for="tx">Texto do tópico</label><textarea id="tx" rows="3" maxlength="2000" placeholder="Explique o contexto (opcional)">' + esc(S.topicDraft.text) + '</textarea><button type="submit" class="btn small" style="align-self:flex-end">Abrir tópico</button></form>' : '<div class="banner">Participe da comunidade para abrir tópicos e responder.</div>') : '') +
       eyebrow("Tópicos (" + topics.length + ")") +
@@ -1512,10 +1528,10 @@ button.tickrow:hover{background:var(--soft)}
     if (!t) return backHead("communities", "Tópico") + '<p class="empty">Este tópico não existe mais.</p>';
     const c = S.communities.find((x) => x.id === t.comm) || { name: "Comunidade" };
     const rs = S.topicReplies.filter((r) => r.topic === id).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
-    return backHead("community:" + t.comm, esc(c.name), "Fórum da comunidade", t.author === S.meId && canAct() ? '<span style="margin-left:auto">' + delBtn("topics", id) + '</span>' : '') +
+    return backHead("community:" + t.comm, esc(c.name), "Fórum da comunidade", canDel(t.author) ? '<span style="margin-left:auto">' + delBtn("topics", id) + '</span>' : '') +
       '<article style="padding:18px 20px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:10px"><div class="row">' + avatar(t.author, 36) + '<span style="display:flex;flex-direction:column;line-height:1.25"><button type="button" class="linkname" style="text-align:left" data-go="profile:' + esc(t.author) + '">' + esc(U(t.author).name) + '</button><span class="muted" style="font-size:12.5px">' + esc(handle(t.author)) + (handle(t.author) ? ' · ' : '') + rel(t.createdAt) + '</span></span></div><h2 style="margin:0;font-size:21px;font-weight:800;letter-spacing:-.015em;line-height:1.25">' + esc(t.title) + '</h2>' + (t.text ? '<p style="margin:0;white-space:pre-wrap;overflow-wrap:anywhere">' + richText(t.text) + '</p>' : '') + '</article>' +
       (canAct() ? (isMember(t.comm) ? '<form class="inline-form" id="treplyForm">' + avatar(S.meId, 36) + '<label class="sr" for="trin">Responder ao tópico</label><input class="input" id="trin" autocomplete="off" placeholder="Escreva uma resposta…" value="' + esc(S.treplyDraft) + '"><button class="btn" type="submit">Responder</button></form>' : '<div class="banner row" style="justify-content:space-between">Participe da comunidade para responder.' + joinBtn(t.comm) + '</div>') : '') +
-      eyebrow("Respostas (" + rs.length + ")") + (rs.length ? rs.map(simpleComment).join("") : '<p class="empty">Ninguém respondeu ainda.</p>');
+      eyebrow("Respostas (" + rs.length + ")") + (rs.length ? rs.map((c) => simpleComment(c, "topicReplies")).join("") : '<p class="empty">Ninguém respondeu ainda.</p>');
   }
 
   /* ---------- artigos e projetos ---------- */
@@ -1730,13 +1746,13 @@ button.tickrow:hover{background:var(--soft)}
     const likes = S.articleLikes.filter((l) => l.article === id), liked = likes.some((l) => l.user === S.meId);
     const cs = S.articleComments.filter((c) => c.article === id).sort((x, y) => (x.createdAt || 0) - (y.createdAt || 0));
     const mine = a.author === S.meId && canAct();
-    return backHead("articles", "Artigos e projetos", "", mine ? '<span class="row" style="margin-left:auto;flex-wrap:nowrap"><button type="button" class="btn ghost small" data-act="editart" data-id="' + esc(id) + '">Editar</button>' + delBtn("articles", id) + '</span>' : '') +
+    return backHead("articles", "Artigos e projetos", "", (mine || canDel(a.author)) ? '<span class="row" style="margin-left:auto;flex-wrap:nowrap">' + (mine ? '<button type="button" class="btn ghost small" data-act="editart" data-id="' + esc(id) + '">Editar</button>' : '') + delBtn("articles", id) + '</span>' : '') +
       '<article class="reader"><span class="pill acc" style="align-self:flex-start">' + esc(a.kind || "Artigo") + '</span><h1>' + esc(a.title) + '</h1>' + (a.summary ? '<p class="lede">' + esc(a.summary) + '</p>' : '') +
       '<div class="row byline">' + avatar(a.author, 36) + '<span style="display:flex;flex-direction:column;line-height:1.3;min-width:0"><button type="button" class="linkname" style="text-align:left" data-go="profile:' + esc(a.author) + '">' + esc(U(a.author).name) + '</button><span class="muted" style="font-size:12.5px">' + esc([U(a.author).headline, fmtDate(a.createdAt) + (a.editedAt ? " · editado" : ""), readMin(a.body) + " min de leitura"].filter(Boolean).join(" · ")) + '</span></span></div>' +
       '<div class="bodytext">' + articleBody(a.body, attsOf(a)) + '</div>' + attSection(attsOf(a), a.body) +
       '<div class="actions"><button type="button" class="like" data-act="alike" data-id="' + esc(id) + '" aria-pressed="' + liked + '"' + (canAct() ? '' : ' disabled') + '>' + svg(I.heart, 18, liked ? "currentColor" : "none") + likes.length + (likes.length === 1 ? " curtida" : " curtidas") + '</button>' + (canAct() ? '<button type="button" data-act="shareart" data-id="' + esc(id) + '">' + svg(I.repost, 18) + 'Compartilhar no feed</button>' : '') + '</div></article>' +
       (canAct() ? '<form class="inline-form" id="acForm" style="border-top:1px solid var(--line)">' + avatar(S.meId, 36) + '<label class="sr" for="acin">Comentar o texto</label><input class="input" id="acin" autocomplete="off" placeholder="Comente este texto…" value="' + esc(S.acDraft) + '"><button class="btn" type="submit">Comentar</button></form>' : '') +
-      eyebrow("Comentários (" + cs.length + ")") + (cs.length ? cs.map(simpleComment).join("") : '<p class="empty">Seja a primeira pessoa a comentar.</p>');
+      eyebrow("Comentários (" + cs.length + ")") + (cs.length ? cs.map((c) => simpleComment(c, "articleComments")).join("") : '<p class="empty">Seja a primeira pessoa a comentar.</p>');
   }
   const blankArt = () => ({ id: null, kind: "Artigo", title: "", summary: "", body: "", atts: [], orig: [], removed: [], loaded: false, preview: false, linkForm: false, lurl: "", ltitle: "", caret: null });
   function viewWrite() {
@@ -1792,7 +1808,7 @@ button.tickrow:hover{background:var(--soft)}
     const j = S.jobs.find((x) => x.id === id);
     if (!j) return backHead("jobs", "Vaga") + '<p class="empty">Esta vaga foi removida.</p>';
     const saved = isJobSaved(id), link = safeLink(j.link), closed = j.deadline && j.deadline < todayStr();
-    return backHead("jobs", "Vaga", esc(j.company), j.author === S.meId && canAct() ? '<span style="margin-left:auto">' + delBtn("jobs", id, "Remover vaga") + '</span>' : '') +
+    return backHead("jobs", "Vaga", esc(j.company), canDel(j.author) ? '<span style="margin-left:auto">' + delBtn("jobs", id, "Remover vaga") + '</span>' : '') +
       '<div class="reader" style="gap:12px"><div class="row" style="gap:6px"><span class="pill acc">' + esc(j.kind) + '</span><span class="pill">' + esc(j.mode) + '</span>' + (j.city ? '<span class="pill">' + esc(j.city) + '</span>' : '') + (j.area ? '<span class="pill">' + esc(j.area) + '</span>' : '') + '</div>' +
       '<h1 style="font-size:26px">' + esc(j.title) + '</h1><p style="margin:0;font-size:16px;font-weight:500">' + esc(j.company) + '</p>' +
       (j.deadline ? '<p class="muted" style="margin:0">' + deadlineTxt(j.deadline) + '</p>' : '') +
@@ -1826,7 +1842,7 @@ button.tickrow:hover{background:var(--soft)}
     if (!e) return backHead("events", "Evento") + '<p class="empty">Este evento foi removido.</p>';
     const d = evDate(e.date), rs = S.rsvps.filter((r) => r.event === id).sort(byNew), going = rs.some((r) => r.user === S.meId), past = e.date < todayStr(), link = safeLink(e.link);
     const when = WEEK[d.getDay()] + ", " + d.getDate() + " de " + d.toLocaleDateString("pt-BR", { month: "long" }) + " de " + d.getFullYear() + (e.time ? " · " + e.time : "");
-    return backHead("events", "Evento", "", e.author === S.meId && canAct() ? '<span style="margin-left:auto">' + delBtn("events", id, "Remover evento") + '</span>' : '') +
+    return backHead("events", "Evento", "", canDel(e.author) ? '<span style="margin-left:auto">' + delBtn("events", id, "Remover evento") + '</span>' : '') +
       '<div class="reader" style="gap:12px"><span class="pill acc" style="align-self:flex-start">' + esc(e.format) + '</span><h1 style="font-size:26px">' + esc(e.title) + '</h1>' +
       '<div class="evfacts"><span>' + svg(I.cal, 17) + esc(when) + '</span>' + (e.place ? '<span>' + svg(I.pin, 17) + esc(e.place) + '</span>' : '') + (e.org ? '<span>' + svg(I.group, 17) + 'Organização: ' + esc(e.org) + '</span>' : '') + '</div>' +
       '<div class="row">' + (canAct() && !past ? '<button type="button" class="btn' + (going ? ' ghost' : '') + '" data-act="rsvp" data-id="' + esc(id) + '" aria-pressed="' + going + '">' + (going ? "✓ Vou participar" : "Vou participar") + '</button>' : '') + (link ? '<a class="btn ghost" style="display:inline-flex;align-items:center;text-decoration:none" href="' + esc(link) + '" target="_blank" rel="noopener">Página do evento ↗</a>' : '') + (past ? '<span class="muted">Este evento já aconteceu.</span>' : '') + '</div>' +
@@ -1984,13 +2000,81 @@ button.tickrow:hover{background:var(--soft)}
   const notifType = (n) => n.k || classifyNotif(n.text || "");
 
   /* ---------- moderação ---------- */
+  /* ---------- painel de administração (SQL 07) ---------- */
+  const fmtDT = (v) => { if (!v) return "—"; try { const d = new Date(v); return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" }) + " às " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }); } catch (e) { return "—"; } };
+  const ADM_NEEDS_SQL = "O painel precisa do arquivo supabase/07_moderacao_admin.sql rodado no Supabase.";
+  async function loadAdmin(which) {
+    const rpc = window.EcoBackend && window.EcoBackend.rpc;
+    if (!rpc) { S.adm.err = ADM_NEEDS_SQL; render(); return; }
+    S.adm.err = ""; S.adm.loading = which; render();
+    try {
+      if (which === "accounts" || which === "log") S.adm.users = await rpc("admin_list_users");
+      if (which === "invites") S.adm.invites = await rpc("admin_list_invites");
+      if (which === "log") S.adm.log = await rpc("admin_list_log", { p_limit: 200 });
+    } catch (e) { S.adm.err = /function|does not exist|schema cache|404/i.test((e && (e.detail || e.message)) || "") ? ADM_NEEDS_SQL : "Não foi possível carregar: " + ((e && (e.detail || e.message)) || "erro desconhecido"); }
+    S.adm.loading = ""; render();
+  }
+  async function admCall(name, args, okMsg, reload) {
+    try { await window.EcoBackend.rpc(name, args); toast(okMsg); S.adm.form = null; await loadAdmin(reload); }
+    catch (e) { toast((e && (e.detail || e.message)) || "Não foi possível concluir."); }
+  }
+  const admName = (uid) => { const u = (S.adm.users || []).find((x) => x.user_id === uid); return u && u.username ? "@" + u.username : (S.users[uid] ? U(uid).name : "conta " + String(uid || "").slice(0, 8)); };
+  function admStatus(u) {
+    if (u.kind === "banimento") return '<span class="pill" style="background:color-mix(in srgb,var(--down) 16%,transparent);color:var(--down)">Banida</span>';
+    if (u.kind === "suspensao" && u.until && new Date(u.until) > new Date()) return '<span class="pill gold">Suspensa até ' + esc(fmtDT(u.until)) + '</span>';
+    return '<span class="pill acc">Ativa</span>';
+  }
+  function viewAdminAccounts() {
+    const list = S.adm.users || [], f = S.adm.form;
+    if (!list.length) return '<p class="empty">' + (S.adm.loading ? "Carregando contas…" : "Nenhuma conta encontrada.") + '</p>';
+    return list.map((u) => {
+      const me = u.user_id === S.meId, active = u.kind === "banimento" || (u.kind === "suspensao" && u.until && new Date(u.until) > new Date());
+      const open = f && f.user === u.user_id;
+      const form = !open ? '' : '<div class="banner" style="margin:0;border-radius:10px;display:flex;flex-direction:column;gap:10px">' +
+        (f.kind === "pw"
+          ? '<label class="field" for="adm-pw">Senha temporária (mín. 8 caracteres)<input id="adm-pw" type="text" autocomplete="off" minlength="8"></label><span class="muted" style="font-size:12.5px">Passe a senha para a pessoa por um canal seguro e peça para ela trocar em Configurações › Senha.</span>'
+          : (f.kind === "suspend" ? '<label class="field" for="adm-days">Suspender por quantos dias?<input id="adm-days" type="number" min="1" max="3650" value="7" inputmode="numeric"></label>' : '<span style="font-size:13.5px">O banimento vale até alguém desfazer.</span>') +
+            '<label class="field" for="adm-reason">Motivo (a pessoa vai ver)<input id="adm-reason" maxlength="300" autocomplete="off"></label>') +
+        '<span class="row" style="justify-content:flex-end;gap:6px"><button type="button" class="btn ghost small" data-act="admcancel">Cancelar</button><button type="button" class="btn ' + (f.kind === "pw" ? "" : "danger ") + 'small" data-act="admsubmit">' + (f.kind === "pw" ? "Definir senha" : f.kind === "suspend" ? "Confirmar suspensão" : "Confirmar banimento") + '</button></span></div>';
+      return '<article class="item"><div class="row" style="justify-content:space-between;gap:8px"><b style="font-size:15px">' + esc(u.username ? "@" + u.username : "(sem nome de usuário)") + '</b><span class="row" style="gap:6px">' + (u.is_admin ? '<span class="pill">Admin</span>' : '') + (me ? '<span class="pill">Você</span>' : '') + admStatus(u) + '</span></div>' +
+        '<span class="muted" style="font-size:12.5px">Cadastro: ' + esc(fmtDT(u.created_at)) + ' · último acesso: ' + esc(fmtDT(u.last_sign_in_at)) + '</span>' +
+        (active && u.reason ? '<span style="font-size:13px">Motivo: ' + esc(u.reason) + '</span>' : '') +
+        (open ? form : '<div class="row" style="justify-content:flex-end;gap:6px">' +
+          (me ? '' : active ? '<button type="button" class="btn ghost small" data-act="admlift" data-id="' + esc(u.user_id) + '">Desfazer ' + (u.kind === "banimento" ? "banimento" : "suspensão") + '</button>'
+            : '<button type="button" class="btn ghost small" data-act="admform" data-kind="suspend" data-id="' + esc(u.user_id) + '">Suspender</button><button type="button" class="btn ghost small" data-act="admform" data-kind="ban" data-id="' + esc(u.user_id) + '">Banir</button>') +
+          (me ? '' : '<button type="button" class="btn ghost small" data-act="admform" data-kind="pw" data-id="' + esc(u.user_id) + '">Senha temporária</button>') + '</div>') + '</article>';
+    }).join("");
+  }
+  function viewAdminInvites() {
+    const list = S.adm.invites || [];
+    return '<form id="invForm" class="row" style="padding:16px 20px;gap:10px;align-items:flex-end;border-bottom:1px solid var(--line)"><label class="field" for="adm-code" style="flex:2;min-width:160px">Novo código<input id="adm-code" maxlength="30" autocomplete="off" placeholder="Ex.: TURMA-UEM" style="text-transform:uppercase"></label><label class="field" for="adm-max" style="flex:1;min-width:110px">Limite de usos<input id="adm-max" type="number" min="1" max="10000" value="30" inputmode="numeric"></label><button type="submit" class="btn small">Criar convite</button></form>' +
+      (list.length ? list.map((i) => '<article class="item"><div class="row" style="justify-content:space-between"><b style="font-family:var(--mono);font-size:15px">' + esc(i.code) + '</b>' + (i.active ? '<span class="pill acc">Ativo</span>' : '<span class="pill">Desativado</span>') + '</div><span class="muted" style="font-size:13px">' + i.uses + ' de ' + i.max_uses + (i.max_uses === 1 ? ' uso' : ' usos') + ' · criado em ' + esc(fmtDT(i.created_at)) + '</span><div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost small" data-act="adminv" data-id="' + esc(i.code) + '" data-on="' + (i.active ? "0" : "1") + '">' + (i.active ? "Desativar" : "Reativar") + '</button></div></article>').join("")
+        : '<p class="empty">' + (S.adm.loading ? "Carregando convites…" : "Nenhum convite criado.") + '</p>');
+  }
+  function viewAdminLog() {
+    const list = S.adm.log || [];
+    if (!list.length) return '<p class="empty">' + (S.adm.loading ? "Carregando registro…" : "Nada registrado ainda.") + '</p>';
+    return list.map((l) => {
+      const snap = l.snapshot || {}, preview = snap.text || snap.title || snap.name || "";
+      return '<article class="item"><div class="row" style="justify-content:space-between"><b style="font-size:14px">' + esc(admName(l.admin_id)) + ' ' + esc(l.action) + '</b><span class="muted" style="font-size:12.5px">' + esc(fmtDT(l.created_at)) + '</span></div>' +
+        (l.target_user ? '<span style="font-size:13px">Conta: ' + esc(admName(l.target_user)) + '</span>' : '') +
+        (l.target_collection ? '<span class="muted" style="font-size:12.5px">Tipo: ' + esc(l.target_collection) + (l.target_id ? ' · ' + esc(l.target_id) : '') + '</span>' : (l.target_id ? '<span class="muted" style="font-size:12.5px">' + esc(l.target_id) + '</span>' : '')) +
+        (l.reason ? '<span style="font-size:13px">Motivo: ' + esc(l.reason) + '</span>' : '') +
+        (preview ? '<div class="modpost"><span class="muted" style="font-size:12.5px">Cópia do conteúdo</span><p style="margin:4px 0 0;white-space:pre-wrap;overflow-wrap:anywhere">' + esc(String(preview).slice(0, 600)) + '</p></div>' : '') + '</article>';
+    }).join("");
+  }
   function viewModeration() {
     if (!S.isAdmin) return backHead("settings", "Moderação") + '<p class="empty">Só a administração da EcoEco acessa a moderação.</p>';
     const f = S.modTab;
     const list = S.reports.filter((r) => f === "pending" ? (r.status || "pendente") === "pendente" : (r.status || "pendente") !== "pendente").sort(byNew);
     const pend = S.reports.filter((r) => (r.status || "pendente") === "pendente").length;
-    return backHead("settings", "Moderação", pend + (pend === 1 ? " denúncia pendente" : " denúncias pendentes")) +
-      '<div class="head" style="position:static;padding-top:10px"><div class="tabs" role="tablist" aria-label="Denúncias">' + [["pending", "Pendentes"], ["done", "Resolvidas"]].map(([k, l]) => '<button type="button" role="tab" data-act="modtab" data-id="' + k + '" aria-selected="' + (f === k) + '">' + l + '</button>').join("") + '</div></div>' +
+    const head = backHead("settings", "Moderação", pend + (pend === 1 ? " denúncia pendente" : " denúncias pendentes")) +
+      '<div class="head" style="position:static;padding-top:10px"><div class="tabs" role="tablist" aria-label="Moderação">' + [["pending", "Denúncias"], ["done", "Resolvidas"], ["accounts", "Contas"], ["invites", "Convites"], ["log", "Registro"]].map(([k, l]) => '<button type="button" role="tab" data-act="modtab" data-id="' + k + '" aria-selected="' + (f === k) + '">' + l + '</button>').join("") + '</div></div>';
+    if (["accounts", "invites", "log"].includes(f)) {
+      if (S.adm.err) return head + '<p class="empty">' + esc(S.adm.err) + '</p>';
+      return head + (f === "accounts" ? viewAdminAccounts() : f === "invites" ? viewAdminInvites() : viewAdminLog());
+    }
+    return head +
       (list.length ? list.map((r) => {
         const p = (S.raw.posts || S.posts).find((x) => x.id === r.post);
         return '<article class="item"><div class="row" style="justify-content:space-between"><span class="pill ' + ((r.status || "pendente") === "pendente" ? "gold" : "") + '">' + esc(r.status || "pendente") + '</span><span class="muted" style="font-size:12.5px">' + rel(r.createdAt) + ' · por ' + esc(U(r.by).name) + '</span></div>' +
@@ -2047,7 +2131,7 @@ button.tickrow:hover{background:var(--soft)}
       (loggedIn() ? '<button type="button" class="iconbtn" data-act="savelib" data-id="' + esc(m.id) + '" aria-pressed="' + saved + '" aria-label="' + (saved ? "Remover dos salvos" : "Salvar material") + '" style="color:' + (saved ? "var(--accent)" : "var(--ink2)") + '">' + bookmark(saved) + '</button>' : '') + '</div>' +
       (m.desc ? '<p class="muted" style="margin:0;font-size:14.5px">' + esc(m.desc) + '</p>' : '') +
       '<div class="row muted" style="font-size:12.5px;justify-content:space-between"><span>Indicado por ' + esc(U(m.author).name) + '</span>' + (link ? '<a href="' + esc(link) + '" target="_blank" rel="noopener" style="font-weight:700;text-decoration:none">Acessar ↗</a>' : '<span>Disponível em bibliotecas e livrarias</span>') + '</div>' +
-      (m.author === S.meId && canAct() ? '<div class="row" style="justify-content:flex-end">' + delBtn("library", m.id, "Remover") + '</div>' : '') + '</article>';
+      (canDel(m.author) ? '<div class="row" style="justify-content:flex-end">' + delBtn("library", m.id, "Remover") + '</div>' : '') + '</article>';
   }
   function viewLibrary() {
     const f = S.libF, q = f.q.trim().toLowerCase();
@@ -2251,7 +2335,7 @@ button.tickrow:hover{background:var(--soft)}
     const v = S.view.split(":")[0], arg = S.view.split(":").slice(1).join(":");
     const P2 = { follows: (a) => viewFollows(a.split(":")[0], a.split(":")[1] || "followers"), moderation: viewModeration, page: viewPage, library: viewLibrary, market: viewMarket, ticker: viewTicker, settings: viewSettings, debate: viewDebate, explore: viewExplore, communities: viewCommunities, community: viewCommunity, topic: viewTopic, articles: viewArticles, article: viewArticle, write: viewWrite, jobs: viewJobs, job: viewJob, events: viewEvents, event: viewEvent };
     const html = P2[v] ? P2[v](arg) : v === "tag" ? viewTag(arg) : v === "post" ? viewPost(arg) : v === "profile" ? viewProfile(arg || S.meId) : v === "notifications" ? viewNotifications() : v === "news" ? viewNews() : v === "debates" ? viewDebates() : v === "messages" ? viewMessages(arg) : viewFeed();
-    $("#view").innerHTML = html;
+    $("#view").innerHTML = sanctionBanner() + html;
     renderRail();
     if (!document.querySelector("#modal .dialog") || !S.onb && !S.edit && !S.report && !S.chartModal && !S.form && !S.blockAsk && !S.onb2) renderModal();
     applyTheme();
@@ -2335,9 +2419,23 @@ button.tickrow:hover{background:var(--soft)}
         S.blockAsk = null; renderModal(); if (ok) render(); return;
       }
       case "unblock": if (await write(() => col("blocks").doc(S.meId + "__" + id).delete(), U(id).name + " foi desbloqueado(a).")) render(); return;
-      case "modtab": S.modTab = id; render(); return;
+      case "modtab": S.modTab = id; S.adm.form = null; render(); if (["accounts", "invites", "log"].includes(id)) loadAdmin(id); return;
+      case "admform": S.adm.form = { user: id, kind: t.dataset.kind }; render(); { const el = $("#adm-days, #adm-reason, #adm-pw"); if (el) el.focus(); } return;
+      case "admcancel": S.adm.form = null; render(); return;
+      case "admsubmit": {
+        const fm = S.adm.form; if (!fm) return;
+        if (fm.kind === "pw") { const pw = ($("#adm-pw") || {}).value || ""; if (pw.length < 8) { toast("A senha precisa ter pelo menos 8 caracteres."); return; } await admCall("admin_set_password", { p_user: fm.user, p_password: pw }, "Senha temporária definida.", "accounts"); return; }
+        const reason = (($("#adm-reason") || {}).value || "").trim(); if (!reason) { toast("Informe o motivo."); const el = $("#adm-reason"); if (el) el.focus(); return; }
+        if (fm.user === S.meId) { toast("Você não pode suspender nem banir a si mesmo."); return; }
+        const days = parseInt(($("#adm-days") || {}).value, 10);
+        if (fm.kind === "suspend" && !(days >= 1 && days <= 3650)) { toast("Informe de 1 a 3650 dias."); return; }
+        await admCall("admin_set_sanction", { p_user: fm.user, p_kind: fm.kind === "ban" ? "banimento" : "suspensao", p_days: fm.kind === "ban" ? null : days, p_reason: reason }, fm.kind === "ban" ? "Conta banida." : "Conta suspensa por " + days + (days === 1 ? " dia." : " dias."), "accounts");
+        return;
+      }
+      case "admlift": await admCall("admin_lift_sanction", { p_user: id }, "Conta liberada.", "accounts"); return;
+      case "adminv": await admCall("admin_set_invite_active", { p_code: id, p_active: t.dataset.on === "1" }, t.dataset.on === "1" ? "Convite reativado." : "Convite desativado.", "invites"); return;
       case "modkeep": await write(() => col("reports").doc(id).update({ status: "mantida", resolvedAt: now(), resolvedBy: S.meId }), "Denúncia resolvida: publicação mantida"); return;
-      case "modremove": { const r = S.reports.find((x) => x.id === id); if (!r) return; const rp = (S.raw.posts || S.posts).find((x) => x.id === r.post); await write(async () => { try { await col("posts").doc(r.post).delete(); } catch (e) {} await col("reports").doc(id).update({ status: "removida", resolvedAt: now(), resolvedBy: S.meId, snapshot: rp ? String(rp.text || "").slice(0, 1000) : "", snapshotAuthor: rp ? rp.author : "" }); }, "Publicação removida"); if (rp && rp.media) delFile(rp.media.asset); return; }
+      case "modremove": { const r = S.reports.find((x) => x.id === id); if (!r) return; const rp = (S.raw.posts || S.posts).find((x) => x.id === r.post); await write(async () => { try { await removeDoc("posts", r.post, rp && rp.author); } catch (e) {} await col("reports").doc(id).update({ status: "removida", resolvedAt: now(), resolvedBy: S.meId, snapshot: rp ? String(rp.text || "").slice(0, 1000) : "", snapshotAuthor: rp ? rp.author : "" }); }, "Publicação removida"); if (rp && rp.media) delFile(rp.media.asset); return; }
       case "notiff": S.notifF = id; render(); return;
       case "bell": S.bell = !S.bell; renderNav(); if (S.bell) { const f = $("#bellpop button, #bellpop [data-go]"); if (f) f.focus(); } return;
       case "bellall": S.bell = false; go("notifications"); return;
@@ -2424,7 +2522,18 @@ button.tickrow:hover{background:var(--soft)}
         const back = { library: "library", debates: "debates", communities: "communities", topics: null, articles: "articles", jobs: "jobs", events: "events" }[cname];
         const tp = cname === "topics" ? S.topics.find((x) => x.id === id) : null;
         const art = cname === "articles" ? S.articles.find((x) => x.id === id) : null;
-        if (await write(() => col(cname).doc(id).delete(), "Excluído")) { if (art) delFiles(attsOf(art)); go(back || (tp ? "community:" + tp.comm : "feed")); }
+        const docx = ((S.raw && S.raw[cname]) || S[cname] || []).find((x) => x.id === id);
+        if (await write(() => removeDoc(cname, id, docx && docx.author), "Excluído")) { if (art) delFiles(attsOf(art)); go(back || (tp ? "community:" + tp.comm : "feed")); }
+        return;
+      }
+      // Excluir comentários e respostas (moderação), com confirmação, sem sair da tela
+      case "cdel": {
+        const cname = t.dataset.col, key = cname + ":" + id;
+        if (!["comments", "articleComments", "topicReplies", "debateComments", "argComments"].includes(cname)) return;
+        if (S.confirmDel !== key) { S.confirmDel = key; render(); const b = document.querySelector('[data-act="cdel"][data-col="' + cname + '"][data-id="' + CSS.escape(id) + '"]'); if (b) b.focus(); return; }
+        S.confirmDel = null;
+        const docx = ((S.raw && S.raw[cname]) || S[cname] || []).find((x) => x.id === id);
+        if (await write(() => removeDoc(cname, id, docx && docx.author), "Comentário excluído")) render();
         return;
       }
       case "signout": if (window.EcoBackend) { window.EcoBackend.signOut(); return; } S.acct = false; S.signedOut = true; store.set("eco-signed-out", true); S.onb = null; S.edit = null; render(); return;
@@ -2468,7 +2577,7 @@ button.tickrow:hover{background:var(--soft)}
         if (S.confirmDel !== "posts:" + id) { S.confirmDel = "posts:" + id; render(); const b = document.querySelector('[data-act="delete"][data-id="' + CSS.escape(id) + '"]'); if (b) b.focus(); return; }
         S.confirmDel = null; S.menu = null;
         const p = (S.raw.posts || S.posts).find((x) => x.id === id);
-        if (await write(() => col("posts").doc(id).delete(), "Publicação excluída")) { if (p && p.media) delFile(p.media.asset); if (S.view === "post:" + id) go("feed"); else render(); }
+        if (await write(() => removeDoc("posts", id, p && p.author), "Publicação excluída")) { if (p && p.media) delFile(p.media.asset); if (S.view === "post:" + id) go("feed"); else render(); }
         return;
       }
       case "edit": { const u = U(S.meId); S.edit = { name: u.name || "", username: u.username || "", headline: u.headline || "", bio: u.bio || "", role: u.role || "", school: u.school || "", city: u.city || "", link: u.link || "", education: u.education || "", experience: u.experience || "", photo: u.photo || "", cover: u.cover || "" }; renderModal(); return; }
@@ -2556,6 +2665,11 @@ if (ev.target.id === "libtheme") { S.libF.theme = ev.target.value; render(); ret
       if (!/^[A-Z]{4}\d{1,2}$/.test(t2)) { toast("Use o código da B3, como PETR4, VALE3 ou BOVA11."); return; }
       if (!watchList().includes(t2)) await saveState({ watch: watchList().concat(t2).slice(0, 30) });
       S.watchDraft = ""; render(); toast("$" + t2 + " adicionado à sua lista");
+    } else if (f === "invForm") {
+      const code = (($("#adm-code") || {}).value || "").trim().toUpperCase(), max = parseInt(($("#adm-max") || {}).value, 10);
+      if (!/^[A-Z0-9-]{4,30}$/.test(code)) { toast("O código deve ter de 4 a 30 letras, números ou hífen (sem espaço nem acento)."); const el = $("#adm-code"); if (el) el.focus(); return; }
+      if (!(max >= 1 && max <= 10000)) { toast("O limite de usos deve ser de 1 a 10000."); return; }
+      await admCall("admin_create_invite", { p_code: code, p_max_uses: max }, "Convite " + code + " criado.", "invites");
     } else if (f === "genForm") {
       await submitForm();
     } else if (f === "topicForm") {
@@ -2649,6 +2763,8 @@ if (ev.target.id === "libtheme") { S.libF.theme = ev.target.value; render(); ret
       S.meId = me.id; S.meName = me.name || "";
       const cw = await user.can("data.write");
       if (cw === false) S.canWrite = false;
+      S.sanction = window.EcoBackend && window.EcoBackend.mySanction ? window.EcoBackend.mySanction() : null;
+      if (S.sanction) S.canWrite = false;
       try { S.isAdmin = !!(await user.canEdit()); } catch (e) {}
     }
     S.db = db;
