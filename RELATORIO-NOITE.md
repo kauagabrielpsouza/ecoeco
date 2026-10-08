@@ -2,7 +2,7 @@
 
 Nada foi publicado, nada foi enviado ao GitHub (sem push) e nada foi rodado no Supabase. A branch principal (`main`) não foi alterada. Os commits não têm linha de coautoria.
 
-**O trabalho parou antes do fim porque o limite de uso do Claude foi atingido.** Abaixo está o que ficou pronto e o que falta.
+O trabalho foi feito em duas sessões: a primeira parou no limite de uso do Claude, e a segunda terminou o que faltava (inglês completo, revisão final e documentação).
 
 ## 1. Arquivos SQL para rodar no Supabase (nesta ordem)
 
@@ -39,26 +39,26 @@ Esses arquivos **não foram testados num banco de verdade**, porque não tenho a
   - Suspender por X dias ou banir, com motivo, e desfazer. Um admin não pode punir a si mesmo.
   - A conta punida vê um aviso, e o banco recusa as ações dela (SQL 07).
   - Moderação: abas Contas (incluindo senha temporária), Convites (criar e desativar) e Registro.
-- **D. Inglês: parcial.**
-  - **Pronto:**
-    - o dicionário único `site/js/i18n.js`;
-    - a seção Idioma, com a escolha salva para a pessoa;
-    - datas e números no formato en-US;
-    - menus, Configurações, notificações, entrada e cadastro (com troca de idioma ali), páginas institucionais;
-    - feed, busca, perfil e janelas, debates, Explorar, comunidades, artigos e anexos, vagas, eventos e formulários de criação.
-  - As categorias continuam gravadas em português no banco e são traduzidas só na tela.
+- **D. Inglês: completo.**
+  - Dicionário único `site/js/i18n.js`, com mais de mil textos em português e inglês lado a lado. Nenhum texto de interface ficou fixo no código.
+  - Seção Idioma em Configurações, com a escolha salva no navegador e na conta. A tela de entrada tem o botão "English / Português".
+  - Datas e números no formato en-US.
+  - Todas as telas, janelas, formulários, avisos e mensagens de erro: menus, entrada e cadastro, feed, busca, perfil, debates, comunidades, artigos e anexos, vagas, eventos, biblioteca, mercado, notícias, mensagens, notificações, Moderação e painel de admin, aviso de suspensão e páginas institucionais.
+  - As categorias, tipos e status continuam gravados em português no banco e são traduzidos só na tela.
+  - **Fica em português de propósito:** o que as pessoas escrevem, as notícias e as frases que o robô de indicadores grava (ex.: "0,55% no dia"). Nessas frases, os números já aparecem no formato en-US. As mensagens de erro que vêm das funções do banco (SQL 07) também estão em português.
+- **I. Revisão final:**
+  - Testei todas as telas em inglês e em português, no computador e no celular (375 px). Nenhuma passa da largura da tela, e nenhuma chave do dicionário aparece crua.
+  - No celular, o perfil agora tem 7 abas. Abas que não cabem ganharam um esmaecido na borda, para mostrar que dá para rolar.
+  - O aviso de arquivo grande no feed dizia "20 MB", e o limite real é 10 MB. Corrigido.
+  - Revisei de novo os SQL 05, 06 e 07 (tipos, nomes, permissões).
+  - Rodei um teste de regressão de todas as letras depois da tradução: tudo passou, sem erros no console.
+  - A pasta `docs/` foi atualizada (funcionalidades, banco de dados, segurança e privacidade, design system, dados), além de README, ROTEIRO e CLAUDE.md. O CLAUDE.md ganhou a regra do dicionário de textos e a de commits sem coautoria.
 
 ## 3. O que ficou pendente
 
-- **D. Telas ainda em português:**
-  - Biblioteca, Mercado e indicadores, Notícias, Mensagens, quadro lateral ("Quem seguir").
-  - Segundo passo do primeiro acesso, Moderação e painel de admin, aviso de suspensão.
-  - Vários avisos curtos ao clicar (por exemplo "Republicado", "Voto registrado") e as datas das notícias.
-  - O mesmo método vale para essas telas: dicionário + `tr()`.
-- **I. Revisão final e atualização da pasta `docs/`:** não deu tempo.
-  - Só `docs/banco-de-dados.md` foi atualizado: anexos e limpeza em cascata.
-  - Falta documentar SQL 06 e 07, notificações, hashtags, idioma e administração.
-- **Testes automáticos:** não rodaram. O `npm run teste` precisa do Node, que não está instalado neste computador.
+- **Testes automáticos dos robôs:** não rodaram. O `npm run teste` precisa do Node, que não está instalado neste computador, e não instalei programas sem você pedir. Se quiser, instale o Node 20 (https://nodejs.org) e rode `cd scripts` e depois `npm run teste`.
+- **SQL 05, 06 e 07:** revisados, mas ainda sem teste num banco de verdade.
+- **Frases do robô de indicadores em inglês:** para traduzir também "no dia", "mantida desde" etc., o robô teria que gravar os valores separados em vez de frases prontas. É uma mudança nos `scripts/`. Me peça se quiser.
 - **Decisão sua:** na G, os debates que a pessoa propõe e os argumentos dela continuam aparecendo com o nome nas páginas dos debates, mesmo com "Mostrar meus debates" desligado. É conteúdo público por natureza. Se quiser anonimato, me avise.
 
 ## 4. Como conferir no site (localhost:8080)
