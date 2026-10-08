@@ -833,6 +833,12 @@ button.tickrow:hover{background:var(--soft)}
     }
   }
   const col = (c) => S.db.collection(c);
+  // Apaga um documento. Quando um administrador apaga conteúdo de outra pessoa,
+  // passa pela função do banco que guarda uma cópia no registro de moderação.
+  async function removeDoc(colName, id, ownerId) {
+    if (ownerId && ownerId !== S.meId && S.isAdmin && window.EcoBackend && window.EcoBackend.adminDelete) return window.EcoBackend.adminDelete(colName, id);
+    return col(colName).doc(id).delete();
+  }
   const toggleDoc = (c, id, exists, body) => write(() => exists ? col(c).doc(id).delete() : col(c).doc(id).set(body));
 
   /* ---------- images ---------- */
@@ -1234,7 +1240,9 @@ button.tickrow:hover{background:var(--soft)}
     return '<article class="arg argrow b' + sd + '"><div class="row" style="font-size:13.5px;gap:6px;flex-wrap:nowrap">' + avatar(x.author, 36) + '<span style="display:flex;flex-direction:column;line-height:1.25;min-width:0"><button type="button" class="linkname" style="text-align:left" data-go="profile:' + esc(x.author) + '">' + esc(U(x.author).name) + '</button><span class="muted" style="font-size:12.5px">' + esc(handle(x.author)) + (handle(x.author) ? ' · ' : '') + rel(x.createdAt) + '</span></span><span class="sidetag s' + sd + '">' + esc(sideLabel(d, sd)) + '</span></div>' +
       '<p style="margin:0;font-size:14.5px;overflow-wrap:anywhere;white-space:pre-wrap">' + richText(x.text) + '</p>' +
       '<div class="row" style="gap:8px"><button type="button" class="up" data-act="up" data-id="' + esc(x.id) + '" aria-pressed="' + o.mine + '"' + (canAct() ? '' : ' disabled') + '>▲ Apoiar · ' + o.n + '</button>' +
-      '<button type="button" class="up" data-act="argc" data-id="' + esc(x.id) + '" aria-expanded="' + open + '">' + svg(I.comment, 14) + ' ' + cs.length + (cs.length === 1 ? " comentário" : " comentários") + '</button></div>' +
+      '<button type="button" class="up" data-act="argc" data-id="' + esc(x.id) + '" aria-expanded="' + open + '">' + svg(I.comment, 14) + ' ' + cs.length + (cs.length === 1 ? " comentário" : " comentários") + '</button>' +
+      ((x.author === S.meId && canAct()) || S.isAdmin ? '<button type="button" class="up" style="margin-left:auto" data-act="argdel" data-id="' + esc(x.id) + '" aria-expanded="' + (S.confirmDel === "args:" + x.id) + '">Apagar</button>' : '') + '</div>' +
+      (S.confirmDel === "args:" + x.id ? '<div class="banner row" role="alertdialog" aria-label="Confirmar exclusão do argumento" style="justify-content:space-between;margin:0;border-radius:10px"><span style="font-size:13.5px">Apagar este argumento? Os apoios e comentários dele também serão apagados.</span><span class="row" style="gap:6px"><button type="button" class="btn ghost small" data-act="argdelno">Cancelar</button><button type="button" class="btn danger small" data-act="argdelok" data-id="' + esc(x.id) + '">Apagar</button></span></div>' : '') +
       (open ? '<div class="argthread">' + (cs.length ? cs.map((c) => '<div class="argc">' + avatar(c.author, 24, false) + '<div style="min-width:0"><button type="button" class="linkname" style="font-size:13px" data-go="profile:' + esc(c.author) + '">' + esc(U(c.author).name) + '</button> <span class="muted" style="font-size:12px">' + rel(c.createdAt) + '</span><p style="margin:2px 0 0;font-size:13.5px;overflow-wrap:anywhere">' + richText(c.text) + '</p></div></div>').join("") : '<p class="muted" style="margin:0;font-size:13px">Nenhum comentário ainda.</p>') +
         (canAct() ? '<form class="argcform" data-arg="' + esc(x.id) + '"><label class="sr" for="argc-' + esc(x.id) + '">Comentar argumento</label><input class="input" id="argc-' + esc(x.id) + '" autocomplete="off" placeholder="Comente este argumento…" value="' + esc(S.argcDraft[x.id] || "") + '"><button type="submit" class="btn small">Enviar</button></form>' : '') + '</div>' : '') + '</article>';
   }
@@ -2317,6 +2325,16 @@ button.tickrow:hover{background:var(--soft)}
       case "follow": { const ex = following().has(id); await toggleDoc("follows", S.meId + "__" + id, ex, { from: S.meId, to: id, createdAt: now() }); return; }
       case "up": { const ex = S.ups.some((u) => u.arg === id && u.user === S.meId); await toggleDoc("ups", id + "__" + S.meId, ex, { arg: id, user: S.meId, createdAt: now() }); return; }
       case "vote": { const did = S.view.split(":")[1]; if (!did) return; if (id !== "A" && id !== "B") return; const my = myVote(did); if (my && my.side === id) return; const key = my ? my.id : did + "__" + S.meId; await write(() => col("votes").doc(key).set({ debate: did, side: id, user: S.meId, createdAt: now() }), my ? "Voto alterado" : "Voto registrado"); return; }
+      case "argdel": S.confirmDel = S.confirmDel === "args:" + id ? null : "args:" + id; render(); { const b = document.querySelector('[data-act="argdelok"]'); if (b) b.focus(); } return;
+      case "argdelno": { const k = S.confirmDel; S.confirmDel = null; render(); const b = k && document.querySelector('[data-act="argdel"][data-id="' + CSS.escape(k.slice(5)) + '"]'); if (b) b.focus(); return; }
+      case "argdelok": {
+        const a = S.args.find((x) => x.id === id); if (!a) return;
+        if (a.author !== S.meId && !S.isAdmin) return;
+        S.confirmDel = null;
+        // O voto no debate não muda. Apoios e comentários do argumento são apagados pelo banco (SQL 05).
+        if (await write(() => removeDoc("args", id, a.author), "Argumento apagado")) render();
+        return;
+      }
       case "argc": S.openArgs[id] = !S.openArgs[id]; render(); if (S.openArgs[id]) { const el = document.getElementById("argc-" + id); if (el) el.focus(); } return;
       case "mute": S.menu = null; S.muted = [...S.muted, id]; store.set("eco-muted", S.muted); toast(U(id).name + " foi silenciado(a) no seu feed."); render(); return;
       case "report": S.report = id; render(); return;
