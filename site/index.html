@@ -619,6 +619,7 @@ button.tickrow:hover{background:var(--soft)}
 <div id="modal"></div>
 <div class="toast" id="toast" role="status" hidden></div>
 
+<script src="js/i18n.js"></script>
 <script>
   // Ponte com o Supabase: o código do site pede window.claude.use(...) e recebe
   // as funções equivalentes depois que a pessoa entra na conta.
@@ -636,18 +637,30 @@ button.tickrow:hover{background:var(--soft)}
   window.__ECO_LOGO = LOGO;
   document.getElementById("mgear").innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/></svg>';
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  // Textos da interface: dicionário em js/i18n.js (tr = traduz; tr.n = com plural)
+  const L = window.I18N, tr = L.t;
+  // Textos fixos do HTML da página (rótulos de acessibilidade)
+  function applyStaticI18n() {
+    const set = (sel, attr, key) => document.querySelectorAll(sel).forEach((el) => el.setAttribute(attr, tr(key)));
+    set(".side", "aria-label", "static.mainMenu");
+    set(".brand, .mbrand", "aria-label", "static.goHome");
+    set(".pubbtn", "aria-label", "static.publish"); set(".pubbtn", "title", "static.publish");
+    set("#acctmenu", "aria-label", "static.account");
+    set("#rail", "aria-label", "static.highlights");
+    set("#bottom", "aria-label", "static.menu");
+  }
   const now = () => Date.now();
   const rel = (t) => {
     if (!t) return "";
     const s = Math.max(0, Math.round((now() - t) / 1000));
-    if (s < 60) return "agora";
-    const m = Math.round(s / 60); if (m < 60) return m + " min";
-    const h = Math.round(m / 60); if (h < 24) return h + " h";
-    const d = Math.round(h / 24); if (d < 7) return d + " d";
-    return new Date(t).toLocaleDateString("pt-BR", { day: "numeric", month: "short" });
+    if (s < 60) return tr("time.now");
+    const m = Math.round(s / 60); if (m < 60) return tr("time.min", { n: m });
+    const h = Math.round(m / 60); if (h < 24) return tr("time.h", { n: h });
+    const d = Math.round(h / 24); if (d < 7) return tr("time.d", { n: d });
+    return L.date(t, { day: "numeric", month: "short" });
   };
-  const fmtNum = (v) => Number(v).toLocaleString("pt-BR", { maximumFractionDigits: 2 });
-  const fmtSize = (b) => b > 1048576 ? (b / 1048576).toFixed(1).replace(".", ",") + " MB" : Math.max(1, Math.round(b / 1024)) + " KB";
+  const fmtNum = (v) => L.num(v);
+  const fmtSize = (b) => b > 1048576 ? L.num(b / 1048576, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " MB" : Math.max(1, Math.round(b / 1024)) + " KB";
   const store = { get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
   const I = {
     home: "M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z",
@@ -795,20 +808,12 @@ button.tickrow:hover{background:var(--soft)}
   const canAct = () => loggedIn() && S.canWrite && !!S.db;
 
   // Tipos de notificação (a ordem é a dos filtros e das opções em Configurações)
-  const NOTIF_KINDS = [["likes", "Curtidas e apoios"], ["comments", "Comentários e respostas"], ["mentions", "Menções"], ["follows", "Novos seguidores"], ["messages", "Mensagens"], ["tags", "Hashtags que sigo"], ["topics", "Tópicos nas minhas comunidades"], ["args", "Argumentos nos meus debates"], ["events", "Presenças nos meus eventos"], ["other", "Outras"]];
+  // Tipos de notificação (rótulos no dicionário: notif.k.<tipo>)
+  const NOTIF_KINDS = ["likes", "comments", "mentions", "follows", "messages", "tags", "topics", "args", "events", "other"].map((k) => [k]);
   const notifOff = () => (S.pstate && Array.isArray(S.pstate.notifOff)) ? S.pstate.notifOff : [];
-  function classifyNotif(t) {
-    if (/^mencionou/.test(t)) return "mentions";
-    if (/^(curtiu|apoiou)/.test(t)) return "likes";
-    if (/^(comentou|respondeu)/.test(t)) return "comments";
-    if (/^(começou a seguir|seguiu você)/.test(t)) return "follows";
-    if (/^mandou uma mensagem/.test(t)) return "messages";
-    if (/^vai participar/.test(t)) return "events";
-    return "other";
-  }
   function notifications() {
     if (!loggedIn()) return [];
-    const out = notifBase().map((n) => Object.assign({ k: classifyNotif(n.text || "") }, n));
+    const out = notifBase();
     // Novas publicações com hashtags que sigo, agrupadas por hashtag e por dia
     const seen = (S.pstate && S.pstate.tagSeen) || {}, groups = {};
     followedTags().forEach((tag) => S.posts.forEach((p) => {
@@ -817,13 +822,13 @@ button.tickrow:hover{background:var(--soft)}
       const g = groups[key] || (groups[key] = { k: "tags", sys: true, tag, n: 0, t: 0, who: p.author, go: "tag:" + tag });
       g.n++; if ((p.createdAt || 0) > g.t) { g.t = p.createdAt; g.who = p.author; }
     }));
-    Object.values(groups).forEach((g) => { g.text = g.n === 1 ? "1 nova publicação em #" + g.tag : g.n + " novas publicações em #" + g.tag; out.push(g); });
+    Object.values(groups).forEach((g) => { g.text = tr.n("notif.tagPosts", g.n, { tag: g.tag }); out.push(g); });
     // Novo tópico nas comunidades de que participo
     const joined = {}; S.members.forEach((m) => { if (m.user === S.meId) joined[m.comm] = m.createdAt || 0; });
     S.topics.forEach((tp) => {
       if (tp.author === S.meId || !(tp.comm in joined) || (tp.createdAt || 0) <= joined[tp.comm]) return;
       const c = S.communities.find((x) => x.id === tp.comm);
-      out.push({ k: "topics", who: tp.author, t: tp.createdAt, text: "criou o tópico “" + tp.title + "” em " + (c ? c.name : "uma comunidade") + ".", go: "topic:" + tp.id });
+      out.push({ k: "topics", who: tp.author, t: tp.createdAt, text: tr("notif.newTopic", { title: tp.title, name: c ? c.name : tr("notif.aCommunity") }), go: "topic:" + tp.id });
     });
     // Novo argumento nos debates em que votei ou argumentei (a partir da minha participação)
     const since = {};
@@ -833,7 +838,7 @@ button.tickrow:hover{background:var(--soft)}
       const d = debOf(a);
       if (a.author === S.meId || !(d in since) || (a.createdAt || 0) <= since[d]) return;
       const deb = S.debates.find((x) => x.id === d); if (!deb) return;
-      out.push({ k: "args", who: a.author, t: a.createdAt, text: "argumentou no debate “" + deb.title + "”.", go: "debate:" + d });
+      out.push({ k: "args", who: a.author, t: a.createdAt, text: tr("notif.newArg", { title: deb.title }), go: "debate:" + d });
     });
     const off = new Set(notifOff());
     return out.filter((n) => !off.has(n.k) && !isHidden(n.who)).sort((a, b) => (b.t || 0) - (a.t || 0));
@@ -841,36 +846,37 @@ button.tickrow:hover{background:var(--soft)}
   function notifBase() {
     const mine = new Set(S.posts.filter((p) => p.author === S.meId).map((p) => p.id));
     const out = [];
-    S.likes.forEach((l) => { if (mine.has(l.post) && l.user !== S.meId) out.push({ who: l.user, t: l.createdAt, text: "curtiu sua publicação.", go: "post:" + l.post }); });
-    S.reposts.forEach((r) => { if (mine.has(r.post) && r.user !== S.meId) out.push({ who: r.user, t: r.createdAt, text: "republicou sua publicação.", go: "post:" + r.post }); });
-    S.comments.forEach((c) => { if (mine.has(c.post) && c.author !== S.meId) out.push({ who: c.author, t: c.createdAt, text: "comentou: " + c.text, go: "post:" + c.post }); });
-    S.pollVotes.forEach((v) => { if (mine.has(v.post) && v.user !== S.meId) out.push({ who: v.user, t: v.createdAt, text: "votou na sua votação.", go: "post:" + v.post }); });
+    const push = (k, who, t, text, go) => out.push({ k, who, t, text, go });
+    S.likes.forEach((l) => { if (mine.has(l.post) && l.user !== S.meId) push("likes", l.user, l.createdAt, tr("notif.likedPost"), "post:" + l.post); });
+    S.reposts.forEach((r) => { if (mine.has(r.post) && r.user !== S.meId) push("other", r.user, r.createdAt, tr("notif.repostedPost"), "post:" + r.post); });
+    S.comments.forEach((c) => { if (mine.has(c.post) && c.author !== S.meId) push("comments", c.author, c.createdAt, tr("notif.commented", { text: c.text }), "post:" + c.post); });
+    S.pollVotes.forEach((v) => { if (mine.has(v.post) && v.user !== S.meId) push("other", v.user, v.createdAt, tr("notif.votedPoll"), "post:" + v.post); });
     const myComments = new Set(S.comments.filter((c) => c.author === S.meId).map((c) => c.id));
-    S.comments.forEach((c) => { if (c.parent && myComments.has(c.parent) && c.author !== S.meId) out.push({ who: c.author, t: c.createdAt, text: "respondeu seu comentário: " + c.text, go: "post:" + c.post }); });
-    S.commentLikes.forEach((l) => { if (myComments.has(l.comment) && l.user !== S.meId) { const c = S.comments.find((x) => x.id === l.comment); out.push({ who: l.user, t: l.createdAt, text: "curtiu seu comentário.", go: c ? "post:" + c.post : "notifications" }); } });
-    S.posts.forEach((p) => { if (p.author !== S.meId && mentionsMe(p.text)) out.push({ who: p.author, t: p.createdAt, text: "mencionou você numa publicação.", go: "post:" + p.id }); });
-    S.comments.forEach((c) => { if (c.author !== S.meId && mentionsMe(c.text)) out.push({ who: c.author, t: c.createdAt, text: "mencionou você num comentário.", go: "post:" + c.post }); });
+    S.comments.forEach((c) => { if (c.parent && myComments.has(c.parent) && c.author !== S.meId) push("comments", c.author, c.createdAt, tr("notif.repliedComment", { text: c.text }), "post:" + c.post); });
+    S.commentLikes.forEach((l) => { if (myComments.has(l.comment) && l.user !== S.meId) { const c = S.comments.find((x) => x.id === l.comment); push("likes", l.user, l.createdAt, tr("notif.likedComment"), c ? "post:" + c.post : "notifications"); } });
+    S.posts.forEach((p) => { if (p.author !== S.meId && mentionsMe(p.text)) push("mentions", p.author, p.createdAt, tr("notif.mentionPost"), "post:" + p.id); });
+    S.comments.forEach((c) => { if (c.author !== S.meId && mentionsMe(c.text)) push("mentions", c.author, c.createdAt, tr("notif.mentionComment"), "post:" + c.post); });
     const myArgs = {}; S.args.forEach((a) => { if (a.author === S.meId) myArgs[a.id] = a; });
-    S.ups.forEach((u) => { if (myArgs[u.arg] && u.user !== S.meId) out.push({ who: u.user, t: u.createdAt, text: "apoiou seu argumento.", go: "debate:" + debOf(myArgs[u.arg]) }); });
-    S.argComments.forEach((c) => { if (c.author === S.meId) return; const a = S.args.find((x) => x.id === c.arg); if (!a) return; if (myArgs[c.arg]) out.push({ who: c.author, t: c.createdAt, text: "comentou seu argumento: " + c.text, go: "debate:" + debOf(a) }); else if (mentionsMe(c.text)) out.push({ who: c.author, t: c.createdAt, text: "mencionou você num debate.", go: "debate:" + debOf(a) }); });
+    S.ups.forEach((u) => { if (myArgs[u.arg] && u.user !== S.meId) push("likes", u.user, u.createdAt, tr("notif.supportedArg"), "debate:" + debOf(myArgs[u.arg])); });
+    S.argComments.forEach((c) => { if (c.author === S.meId) return; const a = S.args.find((x) => x.id === c.arg); if (!a) return; if (myArgs[c.arg]) push("comments", c.author, c.createdAt, tr("notif.commentedArg", { text: c.text }), "debate:" + debOf(a)); else if (mentionsMe(c.text)) push("mentions", c.author, c.createdAt, tr("notif.mentionDebate"), "debate:" + debOf(a)); });
     const myDebs = new Set(S.debates.filter((d) => d.author === S.meId).map((d) => d.id));
-    S.posts.forEach((p) => { if (p.debate && p.author !== S.meId && myDebs.has(p.debate)) out.push({ who: p.author, t: p.createdAt, text: "comentou seu debate no feed.", go: "post:" + p.id }); });
-    S.debateComments.forEach((c) => { if (c.author !== S.meId && myDebs.has(c.debate)) out.push({ who: c.author, t: c.createdAt, text: "respondeu ao seu debate: " + c.text, go: "debate:" + c.debate }); });
+    S.posts.forEach((p) => { if (p.debate && p.author !== S.meId && myDebs.has(p.debate)) push("comments", p.author, p.createdAt, tr("notif.debateFeed"), "post:" + p.id); });
+    S.debateComments.forEach((c) => { if (c.author !== S.meId && myDebs.has(c.debate)) push("comments", c.author, c.createdAt, tr("notif.debateReply", { text: c.text }), "debate:" + c.debate); });
     const myTopics = new Set(S.topics.filter((t) => t.author === S.meId).map((t) => t.id));
-    S.topicReplies.forEach((r) => { if (r.author === S.meId) return; if (myTopics.has(r.topic)) out.push({ who: r.author, t: r.createdAt, text: "respondeu seu tópico: " + r.text, go: "topic:" + r.topic }); else if (mentionsMe(r.text)) out.push({ who: r.author, t: r.createdAt, text: "mencionou você num fórum.", go: "topic:" + r.topic }); });
+    S.topicReplies.forEach((r) => { if (r.author === S.meId) return; if (myTopics.has(r.topic)) push("comments", r.author, r.createdAt, tr("notif.topicReply", { text: r.text }), "topic:" + r.topic); else if (mentionsMe(r.text)) push("mentions", r.author, r.createdAt, tr("notif.mentionForum"), "topic:" + r.topic); });
     const myComms = new Set(S.communities.filter((c) => c.author === S.meId).map((c) => c.id));
-    S.members.forEach((m) => { if (myComms.has(m.comm) && m.user !== S.meId) { const c = S.communities.find((x) => x.id === m.comm); out.push({ who: m.user, t: m.createdAt, text: "entrou na sua comunidade " + (c ? c.name : "") + ".", go: "community:" + m.comm }); } });
+    S.members.forEach((m) => { if (myComms.has(m.comm) && m.user !== S.meId) { const c = S.communities.find((x) => x.id === m.comm); push("other", m.user, m.createdAt, tr("notif.joinedComm", { name: c ? c.name : "" }), "community:" + m.comm); } });
     const myArts = {}; S.articles.forEach((a) => { if (a.author === S.meId) myArts[a.id] = a; });
-    S.articleLikes.forEach((l) => { if (myArts[l.article] && l.user !== S.meId) out.push({ who: l.user, t: l.createdAt, text: "curtiu seu texto “" + myArts[l.article].title + "”.", go: "article:" + l.article }); });
-    S.articleComments.forEach((c) => { if (c.author === S.meId) return; if (myArts[c.article]) out.push({ who: c.author, t: c.createdAt, text: "comentou seu texto: " + c.text, go: "article:" + c.article }); else if (mentionsMe(c.text)) out.push({ who: c.author, t: c.createdAt, text: "mencionou você num comentário.", go: "article:" + c.article }); });
+    S.articleLikes.forEach((l) => { if (myArts[l.article] && l.user !== S.meId) push("likes", l.user, l.createdAt, tr("notif.likedArticle", { title: myArts[l.article].title }), "article:" + l.article); });
+    S.articleComments.forEach((c) => { if (c.author === S.meId) return; if (myArts[c.article]) push("comments", c.author, c.createdAt, tr("notif.commentedArticle", { text: c.text }), "article:" + c.article); else if (mentionsMe(c.text)) push("mentions", c.author, c.createdAt, tr("notif.mentionComment"), "article:" + c.article); });
     const myEvents = {}; S.events.forEach((e) => { if (e.author === S.meId) myEvents[e.id] = e; });
-    S.rsvps.forEach((r) => { if (myEvents[r.event] && r.user !== S.meId) out.push({ who: r.user, t: r.createdAt, text: "vai participar do seu evento “" + myEvents[r.event].title + "”.", go: "event:" + r.event }); });
+    S.rsvps.forEach((r) => { if (myEvents[r.event] && r.user !== S.meId) push("events", r.user, r.createdAt, tr("notif.rsvp", { title: myEvents[r.event].title }), "event:" + r.event); });
     S.follows.forEach((f) => {
       if (f.to !== S.meId) return;
       const mineF = S.follows.find((x) => x.from === S.meId && x.to === f.from && (x.createdAt || 0) < (f.createdAt || 0));
-      out.push({ who: f.from, t: f.createdAt, text: mineF ? "seguiu você de volta." : "começou a seguir você.", go: "profile:" + f.from });
+      push("follows", f.from, f.createdAt, tr(mineF ? "notif.followedBack" : "notif.followed"), "profile:" + f.from);
     });
-    S.messages.forEach((m) => { if (m.to === S.meId) out.push({ who: m.from, t: m.createdAt, text: "mandou uma mensagem: " + m.text, go: "messages:" + m.from }); });
+    S.messages.forEach((m) => { if (m.to === S.meId) push("messages", m.from, m.createdAt, tr("notif.message", { text: m.text }), "messages:" + m.from); });
     return out.sort((a, b) => (b.t || 0) - (a.t || 0));
   }
 
@@ -967,28 +973,28 @@ button.tickrow:hover{background:var(--soft)}
   }
 
   /* ---------- nav ---------- */
-  const themeSeg = (short) => '<div class="theme-toggle" role="group" aria-label="Tema do site">' + [["light", "Claro"], ["dark", "Escuro"], ["auto", short ? "Auto" : "Automático"]].map(([k, l]) => '<button type="button" data-theme-set="' + k + '">' + l + '</button>').join("") + '</div>';
+  const themeSeg = (short) => '<div class="theme-toggle" role="group" aria-label="' + tr("acct.theme") + '">' + [["light", tr("theme.light")], ["dark", tr("theme.dark")], ["auto", short ? "Auto" : tr("theme.auto")]].map(([k, l]) => '<button type="button" data-theme-set="' + k + '">' + l + '</button>').join("") + '</div>';
   function renderNav() {
     const n = notifications().filter((x) => (x.t || 0) > S.seenNotif).length;
     const raw = S.view.split(":")[0];
     const base = { ticker: "market", follows: "profile", debate: "debates", community: "communities", topic: "communities", article: "articles", write: "articles", job: "jobs", event: "events", tag: "feed", post: "feed" }[raw] || raw;
     const EXPL = ["explore", "news", "debates", "communities", "articles", "jobs", "events", "library", "market"];
     const cur = (id) => (id === base && (id !== "profile" || S.view === "profile:" + S.meId)) ? ' aria-current="page"' : "";
-    const items = [["feed", "Início", I.home], ["notifications", "Notificações", I.bell, n], ["news", "Notícias", I.news], ["communities", "Comunidades", I.group], ["debates", "Debates", I.debate], ["articles", "Artigos", I.doc], ["jobs", "Vagas", I.work], ["events", "Eventos", I.cal], ["library", "Biblioteca", I.book], ["market", "Mercado", I.trend], ["messages", "Mensagens", I.mail, unreadConvs()], ["profile", "Perfil", I.user]];
+    const items = [["feed", tr("nav.home"), I.home], ["notifications", tr("nav.notifications"), I.bell, n], ["news", tr("nav.news"), I.news], ["communities", tr("nav.communities"), I.group], ["debates", tr("nav.debates"), I.debate], ["articles", tr("nav.articles"), I.doc], ["jobs", tr("nav.jobs"), I.work], ["events", tr("nav.events"), I.cal], ["library", tr("nav.library"), I.book], ["market", tr("nav.market"), I.trend], ["messages", tr("nav.messages"), I.mail, unreadConvs()], ["profile", tr("nav.profile"), I.user]];
     // O sininho abre a janelinha de notificações; os outros itens trocam de tela
     const navTarget = (id) => id === "notifications" ? 'data-act="bell" aria-haspopup="dialog" aria-expanded="' + !!S.bell + '"' : 'data-go="' + (id === "profile" ? "me" : id) + '"';
-    $("#nav").innerHTML = items.map(([id, label, ic, c]) => '<button type="button" ' + navTarget(id) + cur(id) + (S.compact ? ' title="' + label + '" aria-label="' + label + (c ? ", " + (c === 1 ? "1 nova" : c + " novas") : "") + '"' : '') + '>' + svg(ic, 22) + '<span class="lbl">' + label + '</span>' + (c ? '<span class="count" aria-label="' + (c === 1 ? "1 nova" : c + " novas") + '">' + c + '</span>' : '') + '</button>').join("");
-    $("#bottom").innerHTML = [["feed", "Início", I.home], ["notifications", "Avisos", I.bell, n], ["compose", "Publicar", I.plus], ["explore", "Explorar", I.grid], ["messages", "Mensagens", I.mail, unreadConvs()], ["profile", "Perfil", I.user]].map(([id, label, ic, c]) => '<button type="button" ' + navTarget(id) + (id === "explore" ? (EXPL.includes(base) ? ' aria-current="page"' : '') : cur(id)) + (c ? ' aria-label="' + label + ', ' + (c === 1 ? "1 nova" : c + " novas") + '"' : '') + '><span class="bicon">' + svg(ic, 22) + (c ? (id === "notifications" ? '<span class="bnum" aria-hidden="true">' + (c > 99 ? "99+" : c) + '</span>' : '<span class="bdot" aria-hidden="true"></span>') : '') + '</span>' + label + '</button>').join("");
+    $("#nav").innerHTML = items.map(([id, label, ic, c]) => '<button type="button" ' + navTarget(id) + cur(id) + (S.compact ? ' title="' + label + '" aria-label="' + label + (c ? ", " + tr.n("nav.new", c) : "") + '"' : '') + '>' + svg(ic, 22) + '<span class="lbl">' + label + '</span>' + (c ? '<span class="count" aria-label="' + tr.n("nav.new", c) + '">' + c + '</span>' : '') + '</button>').join("");
+    $("#bottom").innerHTML = [["feed", tr("nav.home"), I.home], ["notifications", tr("nav.alerts"), I.bell, n], ["compose", tr("nav.publish"), I.plus], ["explore", tr("nav.explore"), I.grid], ["messages", tr("nav.messages"), I.mail, unreadConvs()], ["profile", tr("nav.profile"), I.user]].map(([id, label, ic, c]) => '<button type="button" ' + navTarget(id) + (id === "explore" ? (EXPL.includes(base) ? ' aria-current="page"' : '') : cur(id)) + (c ? ' aria-label="' + label + ', ' + tr.n("nav.new", c) + '"' : '') + '><span class="bicon">' + svg(ic, 22) + (c ? (id === "notifications" ? '<span class="bnum" aria-hidden="true">' + (c > 99 ? "99+" : c) + '</span>' : '<span class="bdot" aria-hidden="true"></span>') : '') + '</span>' + label + '</button>').join("");
     const me = U(S.meId);
     const [bg, fg] = hueOf(S.meId || "x");
-    $("#mecard").innerHTML = '<span class="av s36" style="background:' + bg + ';color:' + fg + '">' + (S.meId ? avInner(S.meId) : "?") + '</span><span><b>' + esc(S.meId ? me.name : "Visitante") + '</b><small>' + esc(S.meId ? (handle(S.meId) || "Complete seu perfil") : "Modo leitura") + '</small></span>';
+    $("#mecard").innerHTML = '<span class="av s36" style="background:' + bg + ';color:' + fg + '">' + (S.meId ? avInner(S.meId) : "?") + '</span><span><b>' + esc(S.meId ? me.name : tr("common.visitor")) + '</b><small>' + esc(S.meId ? (handle(S.meId) || tr("acct.completeProfile")) : tr("common.readOnly")) + '</small></span>';
     const mc = $("#mecard"); mc.setAttribute("aria-expanded", String(S.acct));
     mc.insertAdjacentHTML("beforeend", '<span class="chev" aria-hidden="true">' + svg(I.chevup, 16) + '</span>');
     const am = $("#acctmenu"); am.hidden = !S.acct;
-    am.innerHTML = S.acct ? '<button type="button" role="menuitem" class="am-head" data-go="me">' + '<span class="av s36" style="background:' + bg + ';color:' + fg + '">' + (S.meId ? avInner(S.meId) : "?") + '</span><span style="display:flex;flex-direction:column;min-width:0;line-height:1.25"><b>' + esc(S.meId ? me.name : "Visitante") + '</b><small class="muted">Ver meu perfil</small></span></button>' +
-      '<div class="am-sec"><span class="am-label">' + svg(I.moon, 17) + 'Tema do site</span>' + themeSeg(true) + '</div>' +
-      '<button type="button" role="menuitem" data-go="settings">' + svg(I.gear, 17) + 'Configurações</button>' +
-      (S.meId ? '<button type="button" role="menuitem" class="red" data-act="signout">' + svg(I.logout, 17) + 'Sair da conta</button>' : '') : '';
+    am.innerHTML = S.acct ? '<button type="button" role="menuitem" class="am-head" data-go="me">' + '<span class="av s36" style="background:' + bg + ';color:' + fg + '">' + (S.meId ? avInner(S.meId) : "?") + '</span><span style="display:flex;flex-direction:column;min-width:0;line-height:1.25"><b>' + esc(S.meId ? me.name : tr("common.visitor")) + '</b><small class="muted">' + tr("acct.viewProfile") + '</small></span></button>' +
+      '<div class="am-sec"><span class="am-label">' + svg(I.moon, 17) + tr("acct.theme") + '</span>' + themeSeg(true) + '</div>' +
+      '<button type="button" role="menuitem" data-go="settings">' + svg(I.gear, 17) + tr("acct.settings") + '</button>' +
+      (S.meId ? '<button type="button" role="menuitem" class="red" data-act="signout">' + svg(I.logout, 17) + tr("acct.signOut") + '</button>' : '') : '';
     renderBell();
     applyTheme();
   }
@@ -1259,13 +1265,13 @@ button.tickrow:hover{background:var(--soft)}
     if (!S.bell || !loggedIn()) { if (box) box.remove(); return; }
     if (!box) {
       box = document.createElement("div"); box.id = "bellpop"; box.className = "bellpop";
-      box.setAttribute("role", "dialog"); box.setAttribute("aria-label", "Notificações");
+      box.setAttribute("role", "dialog"); box.setAttribute("aria-label", tr("notif.title"));
       document.body.appendChild(box);
     }
     const all = notifications(), unread = all.filter((n) => (n.t || 0) > S.seenNotif).length;
-    box.innerHTML = '<div class="row bp-head"><b style="font-size:15px">Notificações' + (unread ? ' <span class="muted" style="font-weight:500;font-size:13px">· ' + (unread === 1 ? "1 nova" : unread + " novas") + '</span>' : '') + '</b>' + (unread ? '<button type="button" class="linkname" style="color:var(--accent);font-size:13px" data-act="markall">Marcar todas como lidas</button>' : '') + '</div>' +
-      (all.length ? all.slice(0, 8).map((n) => notifItem(n, (n.t || 0) > S.seenNotif)).join("") : '<p class="muted" style="margin:0;padding:18px 14px;font-size:14px">Nenhuma notificação ainda.</p>') +
-      '<button type="button" class="bp-all" data-act="bellall">Ver todas</button>';
+    box.innerHTML = '<div class="row bp-head"><b style="font-size:15px">' + tr("notif.title") + (unread ? ' <span class="muted" style="font-weight:500;font-size:13px">· ' + tr.n("notif.newCount", unread) + '</span>' : '') + '</b>' + (unread ? '<button type="button" class="linkname" style="color:var(--accent);font-size:13px" data-act="markall">' + tr("notif.markAll") + '</button>' : '') + '</div>' +
+      (all.length ? all.slice(0, 8).map((n) => notifItem(n, (n.t || 0) > S.seenNotif)).join("") : '<p class="muted" style="margin:0;padding:18px 14px;font-size:14px">' + tr("notif.none") + '</p>') +
+      '<button type="button" class="bp-all" data-act="bellall">' + tr("notif.seeAll") + '</button>';
     const a = [...document.querySelectorAll('[data-act="bell"]')].find((b) => b.offsetParent);
     if (innerWidth < 700 || !a) box.style.cssText = "left:12px;right:12px;width:auto;bottom:calc(76px + env(safe-area-inset-bottom));top:auto";
     else { const r = a.getBoundingClientRect(); box.style.cssText = "left:" + Math.round(r.right + 8) + "px;top:" + Math.round(Math.max(12, Math.min(r.top, innerHeight - 560))) + "px"; }
@@ -1277,17 +1283,17 @@ button.tickrow:hover{background:var(--soft)}
   }
   function notifItem(n, un) {
     const who = n.sys ? '' : '<button type="button" class="linkname" data-go="profile:' + esc(n.who) + '">' + esc(U(n.who).name) + '</button> ';
-    return '<div class="notif' + (un ? ' unread' : '') + '">' + (n.sys ? '<span class="av s36" aria-hidden="true" style="background:var(--accent-soft);color:var(--accent);font-weight:700">#</span>' : avatar(n.who, 36)) + '<div style="flex:1;min-width:0"><p style="margin:0;font-size:14.5px;overflow-wrap:anywhere">' + (un ? '<span class="sr">Nova: </span>' : '') + who + esc(n.text) + '</p><button type="button" class="linkname muted" style="font-weight:400;font-size:13px" data-go="' + esc(n.go) + '">' + rel(n.t) + ' · abrir</button></div></div>';
+    return '<div class="notif' + (un ? ' unread' : '') + '">' + (n.sys ? '<span class="av s36" aria-hidden="true" style="background:var(--accent-soft);color:var(--accent);font-weight:700">#</span>' : avatar(n.who, 36)) + '<div style="flex:1;min-width:0"><p style="margin:0;font-size:14.5px;overflow-wrap:anywhere">' + (un ? '<span class="sr">' + tr("notif.newPrefix") + '</span>' : '') + who + esc(n.text) + '</p><button type="button" class="linkname muted" style="font-weight:400;font-size:13px" data-go="' + esc(n.go) + '">' + rel(n.t) + ' · ' + tr("common.open") + '</button></div></div>';
   }
   function viewNotifications() {
     const all = notifications();
     const list = S.notifF === "all" ? all : all.filter((n) => notifType(n) === S.notifF);
     const unread = all.filter((n) => (n.t || 0) > (S.prevSeen || 0)).length;
-    return '<div class="head"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><h1>Notificações</h1>' + (loggedIn() && unread ? '<button type="button" class="btn ghost small" data-act="markall">Marcar todas como lidas</button>' : '') + '</div>' +
-      (loggedIn() ? '<div class="filters">' + NOTIF_TYPES.map(([k, l]) => [k, l, k === "all" ? all.length : all.filter((x) => notifType(x) === k).length]).filter(([k, , n]) => k === "all" || n || S.notifF === k).map(([k, l, n]) => '<button type="button" class="chip" data-act="notiff" data-id="' + k + '" aria-pressed="' + (S.notifF === k) + '">' + l + (n ? ' (' + n + ')' : '') + '</button>').join("") + '</div>' : '<div style="height:2px"></div>') + '</div>' +
-      (!loggedIn() ? '<p class="empty">Entre na sua conta para ver suas notificações.</p>' :
+    return '<div class="head"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><h1>' + tr("notif.title") + '</h1>' + (loggedIn() && unread ? '<button type="button" class="btn ghost small" data-act="markall">' + tr("notif.markAll") + '</button>' : '') + '</div>' +
+      (loggedIn() ? '<div class="filters">' + NOTIF_TYPES.map(([k]) => [k, tr("notif.k." + k), k === "all" ? all.length : all.filter((x) => notifType(x) === k).length]).filter(([k, , n]) => k === "all" || n || S.notifF === k).map(([k, l, n]) => '<button type="button" class="chip" data-act="notiff" data-id="' + k + '" aria-pressed="' + (S.notifF === k) + '">' + l + (n ? ' (' + n + ')' : '') + '</button>').join("") + '</div>' : '<div style="height:2px"></div>') + '</div>' +
+      (!loggedIn() ? '<p class="empty">' + tr("notif.signIn") + '</p>' :
         list.length ? list.map((n) => notifItem(n, (n.t || 0) > (S.prevSeen || 0))).join("") :
-        '<p class="empty">' + (S.notifF === "all" ? "Ainda não há notificações. Quando alguém curtir, comentar, votar, republicar, seguir você ou mandar mensagem, aparece aqui." : "Nenhuma notificação deste tipo.") + '</p>');
+        '<p class="empty">' + tr(S.notifF === "all" ? "notif.emptyAll" : "notif.emptyType") + '</p>');
   }
 
   const newsKey = (i) => "news__" + NEWS[i].href.replace(/[^a-z0-9]/gi, "").slice(-60);
@@ -1436,7 +1442,7 @@ button.tickrow:hover{background:var(--soft)}
   const byNew = (a, b) => (b.createdAt || 0) - (a.createdAt || 0);
   const todayStr = () => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
   const evDate = (s) => { const [y, m, d] = String(s || "").split("-").map(Number); return new Date(y || 2026, (m || 1) - 1, d || 1); };
-  const fmtDate = (t) => { try { return new Date(t).toLocaleDateString("pt-BR", { day: "numeric", month: "short", year: "numeric" }); } catch (e) { return ""; } };
+  const fmtDate = (t) => L.date(t, { day: "numeric", month: "short", year: "numeric" });
   const fmtDay = (s) => { const d = evDate(s); return d.getDate() + "/" + MONTHS[d.getMonth()]; };
   const wc = (t) => (String(t || "").trim().match(/\S+/g) || []).length;
   const readMin = (t) => Math.max(1, Math.round(wc(t) / 200));
@@ -1906,26 +1912,29 @@ button.tickrow:hover{background:var(--soft)}
   function viewSettings() {
     const u = U(S.meId);
     const sec = (title, desc, body) => '<section class="setsec"><h2>' + title + '</h2>' + (desc ? '<p class="muted">' + desc + '</p>' : '') + body + '</section>';
+    const sw = (attrs, on, label) => '<label class="switch"><input type="checkbox" ' + attrs + (on ? ' checked' : '') + '><span class="track" aria-hidden="true"></span><span>' + label + '</span></label>';
     const muted = S.muted.filter((id) => S.users[id]);
-    return backHead("feed", "Configurações") +
-      (loggedIn() ? sec("Conta", "", '<div class="row" style="flex-wrap:nowrap">' + avatar(S.meId, 42) + '<span style="display:flex;flex-direction:column;min-width:0;flex:1"><b>' + esc(u.name) + '</b><span class="muted" style="font-size:13px">' + esc(handle(S.meId) || "Sem nome de usuário") + '</span></span><button type="button" class="btn ghost small" data-act="edit">Editar perfil</button></div>') : '') +
-      sec("Tema do site", "Automático segue o tema do seu computador ou celular.", themeSeg()) +
-      sec("Barra lateral", "No modo compacto, a barra lateral mostra só os ícones e o conteúdo ganha mais espaço.", '<label class="switch"><input type="checkbox" data-act="compact"' + (S.compact ? ' checked' : '') + '><span class="track" aria-hidden="true"></span><span>Abas compactas (só ícones)</span></label>') +
-      (loggedIn() ? sec("Pessoas bloqueadas", "Vocês não veem o conteúdo um do outro e não podem trocar mensagens.", (() => { const bl = [...blockedByMe()]; return bl.length ? bl.map((id) => '<div class="row" style="flex-wrap:nowrap">' + avatar(id, 36, false) + '<span style="flex:1;min-width:0;display:flex;flex-direction:column"><b>' + esc(U(id).name) + '</b><span class="muted" style="font-size:12.5px">' + esc(handle(id)) + '</span></span><button type="button" class="btn ghost small" data-act="unblock" data-id="' + esc(id) + '">Desbloquear</button></div>').join("") : '<p class="muted" style="margin:0;font-size:14px">Ninguém bloqueado.</p>'; })()) : '') +
-      sec("Pessoas silenciadas", "As publicações delas não aparecem no seu feed. Elas não são avisadas.", muted.length ? muted.map((id) => '<div class="row" style="flex-wrap:nowrap">' + avatar(id, 36) + '<span style="flex:1;min-width:0"><b>' + esc(U(id).name) + '</b></span><button type="button" class="btn ghost small" data-act="unmute" data-id="' + esc(id) + '">Reativar</button></div>').join("") : '<p class="muted" style="margin:0;font-size:14px">Ninguém silenciado.</p>') +
-      (loggedIn() ? sec("Notificações", "Escolha o que aparece no sininho e na aba Notificações.", '<div style="display:flex;flex-direction:column;gap:10px">' + NOTIF_KINDS.map(([k, l]) => '<label class="switch"><input type="checkbox" data-act="notiftoggle" data-id="' + k + '"' + (notifOff().includes(k) ? '' : ' checked') + '><span class="track" aria-hidden="true"></span><span>' + l + '</span></label>').join("") + '</div>') : '') +
-      (loggedIn() ? sec("Hashtags que sigo", "As publicações com essas hashtags aparecem na aba Seguindo do feed. Só você vê esta lista.", followedTags().length ? followedTags().map((t) => '<div class="row" style="flex-wrap:nowrap"><button type="button" class="linkname" style="flex:1;min-width:0;text-align:left" data-go="tag:' + esc(t) + '">#' + esc(t) + '</button><button type="button" class="btn ghost small" data-act="tagfollow" data-id="' + esc(t) + '">Deixar de seguir</button></div>').join("") : '<p class="muted" style="margin:0;font-size:13.5px">Você ainda não segue nenhuma hashtag. Abra uma # e toque em “Seguir”.</p>') : '') +
-      sec("Privacidade", "", (loggedIn() ? '<div style="display:flex;flex-direction:column;gap:10px">' +
-        '<label class="switch"><input type="checkbox" data-act="privtoggle" data-id="showDebates"' + (u.showDebates === false ? '' : ' checked') + '><span class="track" aria-hidden="true"></span><span>Mostrar meus debates no perfil</span></label>' +
-        '<label class="switch"><input type="checkbox" data-act="privtoggle" data-id="showCommunities"' + (u.showCommunities === false ? '' : ' checked') + '><span class="track" aria-hidden="true"></span><span>Mostrar minhas comunidades no perfil</span></label>' +
-        '<p class="muted" style="margin:0;font-size:12.5px;line-height:1.5">O lado em que você vota nos debates nunca aparece para outras pessoas. Debates que você propõe e argumentos que você publica continuam visíveis nas páginas dos debates.</p></div>' : '') +
-        '<p style="margin:0;font-size:14px;line-height:1.55">Seu perfil, publicações, argumentos e comentários ficam visíveis para quem tem conta na EcoEco. Mensagens aparecem só para você e a outra pessoa na tela, e publicações salvas e vagas salvas são privadas.</p>') +
-      (S.isAdmin ? sec("Moderação", "Você administra a EcoEco beta.", '<button type="button" class="btn ghost small" data-go="moderation" style="align-self:flex-start">Abrir painel de denúncias' + (S.reports.filter((r) => (r.status || "pendente") === "pendente").length ? ' · ' + S.reports.filter((r) => (r.status || "pendente") === "pendente").length : '') + '</button>') : '') +
-      sec("Sobre a EcoEco", "", '<div class="row" style="gap:8px">' + Object.keys(PAGES).map((k) => '<button type="button" class="btn ghost small" data-go="page:' + k + '">' + PAGES[k].title + '</button>').join("") + '</div>') +
-      (loggedIn() ? sec("Senha", "Escolha uma senha com pelo menos 8 caracteres.", '<form id="pwForm" class="row" style="align-items:flex-end"><label class="field" for="pw1" style="flex:1;min-width:180px">Nova senha<input id="pw1" type="password" autocomplete="new-password" minlength="8"></label><label class="field" for="pw2" style="flex:1;min-width:180px">Repita a senha<input id="pw2" type="password" autocomplete="new-password" minlength="8"></label><button type="submit" class="btn small" style="height:42px">Trocar senha</button></form>') : '') +
-      (loggedIn() ? sec("Sessão", "", '<button type="button" class="btn danger" data-act="signout" style="align-self:flex-start">Sair da conta</button>') : '') +
-      '<p class="muted" style="margin:0;padding:8px 20px 0;font-size:12.5px">EcoEco · The Economy Ecosystem · versão beta</p>' +
-      '<p class="credits" style="margin:0;padding:2px 20px 28px;font-family:var(--sans);font-size:12px;color:var(--ink2)">Criado por Kauã</p>';
+    const pendRep = S.reports.filter((r) => (r.status || "pendente") === "pendente").length;
+    return backHead("feed", tr("set.title")) +
+      (loggedIn() ? sec(tr("set.account"), "", '<div class="row" style="flex-wrap:nowrap">' + avatar(S.meId, 42) + '<span style="display:flex;flex-direction:column;min-width:0;flex:1"><b>' + esc(u.name) + '</b><span class="muted" style="font-size:13px">' + esc(handle(S.meId) || tr("set.noUsername")) + '</span></span><button type="button" class="btn ghost small" data-act="edit">' + tr("set.editProfile") + '</button></div>') : '') +
+      sec(tr("lang.title"), tr("lang.desc"), '<div class="theme-toggle" role="group" aria-label="' + tr("lang.title") + '">' + [["pt", tr("lang.pt")], ["en", tr("lang.en")]].map(([k, l]) => '<button type="button" data-act="setlang" data-id="' + k + '" aria-pressed="' + (L.lang === k) + '" lang="' + (k === "en" ? "en" : "pt-BR") + '">' + l + '</button>').join("") + '</div>') +
+      sec(tr("set.theme"), tr("set.themeDesc"), themeSeg()) +
+      sec(tr("set.sidebar"), tr("set.sidebarDesc"), sw('data-act="compact"', S.compact, tr("set.compact"))) +
+      (loggedIn() ? sec(tr("set.blocked"), tr("set.blockedDesc"), (() => { const bl = [...blockedByMe()]; return bl.length ? bl.map((id) => '<div class="row" style="flex-wrap:nowrap">' + avatar(id, 36, false) + '<span style="flex:1;min-width:0;display:flex;flex-direction:column"><b>' + esc(U(id).name) + '</b><span class="muted" style="font-size:12.5px">' + esc(handle(id)) + '</span></span><button type="button" class="btn ghost small" data-act="unblock" data-id="' + esc(id) + '">' + tr("set.unblock") + '</button></div>').join("") : '<p class="muted" style="margin:0;font-size:14px">' + tr("set.blockedEmpty") + '</p>'; })()) : '') +
+      sec(tr("set.muted"), tr("set.mutedDesc"), muted.length ? muted.map((id) => '<div class="row" style="flex-wrap:nowrap">' + avatar(id, 36) + '<span style="flex:1;min-width:0"><b>' + esc(U(id).name) + '</b></span><button type="button" class="btn ghost small" data-act="unmute" data-id="' + esc(id) + '">' + tr("set.unmute") + '</button></div>').join("") : '<p class="muted" style="margin:0;font-size:14px">' + tr("set.mutedEmpty") + '</p>') +
+      (loggedIn() ? sec(tr("set.notifs"), tr("set.notifsDesc"), '<div style="display:flex;flex-direction:column;gap:10px">' + NOTIF_KINDS.map(([k]) => sw('data-act="notiftoggle" data-id="' + k + '"', !notifOff().includes(k), tr("notif.k." + k))).join("") + '</div>') : '') +
+      (loggedIn() ? sec(tr("set.tags"), tr("set.tagsDesc"), followedTags().length ? followedTags().map((t) => '<div class="row" style="flex-wrap:nowrap"><button type="button" class="linkname" style="flex:1;min-width:0;text-align:left" data-go="tag:' + esc(t) + '">#' + esc(t) + '</button><button type="button" class="btn ghost small" data-act="tagfollow" data-id="' + esc(t) + '">' + tr("set.unfollow") + '</button></div>').join("") : '<p class="muted" style="margin:0;font-size:13.5px">' + tr("set.tagsEmpty") + '</p>') : '') +
+      sec(tr("set.privacy"), "", (loggedIn() ? '<div style="display:flex;flex-direction:column;gap:10px">' +
+        sw('data-act="privtoggle" data-id="showDebates"', u.showDebates !== false, tr("set.showDebates")) +
+        sw('data-act="privtoggle" data-id="showCommunities"', u.showCommunities !== false, tr("set.showCommunities")) +
+        '<p class="muted" style="margin:0;font-size:12.5px;line-height:1.5">' + tr("set.privNote") + '</p></div>' : '') +
+        '<p style="margin:0;font-size:14px;line-height:1.55">' + tr("set.privText") + '</p>') +
+      (S.isAdmin ? sec(tr("set.moderation"), tr("set.moderationDesc"), '<button type="button" class="btn ghost small" data-go="moderation" style="align-self:flex-start">' + tr("set.openModeration") + (pendRep ? ' · ' + pendRep : '') + '</button>') : '') +
+      sec(tr("set.about"), "", '<div class="row" style="gap:8px">' + Object.keys(PAGES).map((k) => '<button type="button" class="btn ghost small" data-go="page:' + k + '">' + tr("page." + k + ".title") + '</button>').join("") + '</div>') +
+      (loggedIn() ? sec(tr("set.password"), tr("set.passwordDesc"), '<form id="pwForm" class="row" style="align-items:flex-end"><label class="field" for="pw1" style="flex:1;min-width:180px">' + tr("set.newPassword") + '<input id="pw1" type="password" autocomplete="new-password" minlength="8"></label><label class="field" for="pw2" style="flex:1;min-width:180px">' + tr("set.repeatPassword") + '<input id="pw2" type="password" autocomplete="new-password" minlength="8"></label><button type="submit" class="btn small" style="height:42px">' + tr("set.changePassword") + '</button></form>') : '') +
+      (loggedIn() ? sec(tr("set.session"), "", '<button type="button" class="btn danger" data-act="signout" style="align-self:flex-start">' + tr("acct.signOut") + '</button>') : '') +
+      '<p class="muted" style="margin:0;padding:8px 20px 0;font-size:12.5px">' + tr("set.footer") + '</p>' +
+      '<p class="credits" style="margin:0;padding:2px 20px 28px;font-family:var(--sans);font-size:12px;color:var(--ink2)">' + tr("set.credits") + '</p>';
   }
 
   function sparkBars(vals, labels) {
@@ -1996,12 +2005,12 @@ button.tickrow:hover{background:var(--soft)}
   }
 
   /* ---------- notificações: tipos ---------- */
-  const NOTIF_TYPES = [["all", "Todas"]].concat(NOTIF_KINDS);
-  const notifType = (n) => n.k || classifyNotif(n.text || "");
+  const NOTIF_TYPES = [["all"]].concat(NOTIF_KINDS);
+  const notifType = (n) => n.k || "other";
 
   /* ---------- moderação ---------- */
   /* ---------- painel de administração (SQL 07) ---------- */
-  const fmtDT = (v) => { if (!v) return "—"; try { const d = new Date(v); return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" }) + " às " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }); } catch (e) { return "—"; } };
+  const fmtDT = (v) => L.dateTime(v);
   const ADM_NEEDS_SQL = "O painel precisa do arquivo supabase/07_moderacao_admin.sql rodado no Supabase.";
   async function loadAdmin(which) {
     const rpc = window.EcoBackend && window.EcoBackend.rpc;
@@ -2085,42 +2094,18 @@ button.tickrow:hover{background:var(--soft)}
   }
 
   /* ---------- páginas institucionais ---------- */
-  const PAGES = {
-    about: { title: "Sobre a EcoEco", body: [
-      ["A EcoEco", "A EcoEco (The Economy Ecosystem) é uma rede social feita para quem vive, estuda ou gosta de economia. Aqui estudantes, professores, pesquisadores e profissionais publicam análises, debatem ideias, dividem materiais de estudo e encontram oportunidades."],
-      ["O que você encontra", "Um feed com publicações, gráficos e votações; debates com votos e argumentos; comunidades por tema com fórum; artigos e projetos; vagas de estágio, emprego e pesquisa; eventos; uma biblioteca de materiais e um painel de mercado."],
-      ["Nossa ideia", "Pessoas geram conhecimento, o conhecimento cria conexões e as conexões fazem todo mundo crescer. É isso que a árvore da nossa marca representa."],
-      ["Status", "A EcoEco está em teste fechado (versão beta). Conteúdos de demonstração, quando houver, estão marcados como tal."]] },
-    rules: { title: "Regras da comunidade", body: [
-      ["1. Critique ideias, não pessoas", "Discordar faz parte da economia. Ataques pessoais, xingamentos e discurso de ódio não são aceitos."],
-      ["2. Traga dados e fontes", "Sempre que citar números, diga de onde vêm (IBGE, Banco Central, IPEA, artigos). Separe fato de opinião."],
-      ["3. Nada de recomendação de investimento", "Discutir mercado é livre, mas não publique indicações de compra ou venda de ativos como se fossem orientação profissional."],
-      ["4. Sem informação falsa", "Não publique dados inventados ou notícias falsas apresentadas como fato."],
-      ["5. Sem spam nem golpes", "Não divulgue promessas de ganho fácil, pirâmides ou links suspeitos. Vagas precisam ser reais e nunca podem cobrar do candidato."],
-      ["6. Respeite a privacidade", "Não publique dados pessoais de outras pessoas sem autorização."],
-      ["Denúncias", "Use o menu “⋯” de uma publicação e escolha “Denunciar”. A moderação analisa e pode remover o conteúdo."]] },
-    terms: { title: "Termos de uso", draft: true, body: [
-      ["1. Aceitação", "Ao usar a EcoEco você concorda com estes termos e com as Regras da comunidade."],
-      ["2. Sua conta", "Você é responsável pelas informações do seu perfil e por tudo o que publica. Mantenha seus dados de acesso em segurança."],
-      ["3. Conteúdo", "O conteúdo que você publica continua sendo seu. Ao publicar, você autoriza a EcoEco a exibi-lo na plataforma. Não publique material de terceiros sem permissão."],
-      ["4. Moderação", "A EcoEco pode remover conteúdo que viole as regras e suspender contas em caso de violações graves ou repetidas."],
-      ["5. Conteúdo educativo", "Análises e discussões na EcoEco têm caráter educativo e de opinião. Não constituem recomendação de investimento."],
-      ["6. Alterações", "Estes termos podem mudar. Avisaremos sobre mudanças importantes."]] },
-    privacy: { title: "Política de privacidade", draft: true, body: [
-      ["Quais dados coletamos", "Os dados do seu perfil (nome, nome de usuário, foto, bio e informações profissionais que você escolher preencher), o que você publica e suas interações (curtidas, votos, comentários, mensagens)."],
-      ["Para que usamos", "Para exibir seu perfil e suas publicações, montar seu feed, enviar notificações e manter a segurança da comunidade."],
-      ["O que é público e o que é privado", "Perfil, publicações, argumentos e comentários são visíveis para quem usa a plataforma. Publicações salvas, vagas salvas, notícias salvas, sua lista de ativos e suas marcações de leitura são privadas."],
-      ["Seus direitos (LGPD)", "Você pode pedir acesso, correção ou exclusão dos seus dados a qualquer momento, conforme a Lei Geral de Proteção de Dados (Lei nº 13.709/2018)."],
-      ["Fase de teste", "A EcoEco está em teste fechado. Não pedimos e-mail nem documentos: a conta usa só nome de usuário e senha, guardada de forma criptografada. Mensagens só ficam visíveis para quem participa da conversa."]] }
-  };
+  // Textos das páginas no dicionário (js/i18n.js): page.<nome>.title e page.<nome>.<n>.h / .t
+  const PAGES = { about: { n: 4 }, rules: { n: 7 }, terms: { n: 6, draft: true }, privacy: { n: 5, draft: true } };
+  const pageTitle = (k) => tr("page." + k + ".title");
+  const pageBody = (k) => Array.from({ length: PAGES[k].n }, (_, i) => [tr("page." + k + "." + (i + 1) + ".h"), tr("page." + k + "." + (i + 1) + ".t")]);
   function viewPage(k) {
-    const pg = PAGES[k]; if (!pg) return backHead("feed", "Página") + '<p class="empty">Página não encontrada.</p>';
-    return backHead(loggedIn() ? "settings" : "feed", pg.title, "EcoEco") +
-      '<article class="reader" style="gap:18px">' + (pg.draft ? '<span class="demo" style="align-self:flex-start">Rascunho: revisar com advogado antes de abrir ao público.</span>' : '') +
-      pg.body.map(([h, t]) => '<section style="display:flex;flex-direction:column;gap:6px"><h2 style="margin:0;font-size:18px;font-weight:700">' + esc(h) + '</h2><p style="margin:0;line-height:1.65">' + esc(t) + '</p></section>').join("") +
-      '<div class="row" style="gap:14px;font-size:13.5px;border-top:1px solid var(--line);padding-top:14px">' + Object.keys(PAGES).filter((x) => x !== k).map((x) => '<button type="button" class="linkname" style="color:var(--accent)" data-go="page:' + x + '">' + PAGES[x].title + '</button>').join("") + '</div></article>';
+    const pg = PAGES[k]; if (!pg) return backHead("feed", tr("page.page")) + '<p class="empty">' + tr("page.notFound") + '</p>';
+    return backHead(loggedIn() ? "settings" : "feed", pageTitle(k), "EcoEco") +
+      '<article class="reader" style="gap:18px">' + (pg.draft ? '<span class="demo" style="align-self:flex-start">' + tr("page.draft") + '</span>' : '') +
+      pageBody(k).map(([h, t]) => '<section style="display:flex;flex-direction:column;gap:6px"><h2 style="margin:0;font-size:18px;font-weight:700">' + esc(h) + '</h2><p style="margin:0;line-height:1.65">' + esc(t) + '</p></section>').join("") +
+      '<div class="row" style="gap:14px;font-size:13.5px;border-top:1px solid var(--line);padding-top:14px">' + Object.keys(PAGES).filter((x) => x !== k).map((x) => '<button type="button" class="linkname" style="color:var(--accent)" data-go="page:' + x + '">' + pageTitle(x) + '</button>').join("") + '</div></article>';
   }
-  const footLinks = () => '<p class="muted footlinks">' + Object.keys(PAGES).map((x) => '<button type="button" class="linkname" data-go="page:' + x + '">' + PAGES[x].title.replace("Política de privacidade", "Privacidade") + '</button>').join(" · ") + '<br>EcoEco · The Economy Ecosystem · beta</p>';
+  const footLinks = () => '<p class="muted footlinks">' + Object.keys(PAGES).map((x) => '<button type="button" class="linkname" data-go="page:' + x + '">' + (x === "privacy" ? tr("set.privacy") : pageTitle(x)) + '</button>').join(" · ") + '<br>EcoEco · The Economy Ecosystem · beta</p>';
 
   /* ---------- biblioteca ---------- */
   const isLibSaved = (id) => S.savedAll.some((x) => x.lib === id);
@@ -2439,7 +2424,7 @@ button.tickrow:hover{background:var(--soft)}
       case "notiff": S.notifF = id; render(); return;
       case "bell": S.bell = !S.bell; renderNav(); if (S.bell) { const f = $("#bellpop button, #bellpop [data-go]"); if (f) f.focus(); } return;
       case "bellall": S.bell = false; go("notifications"); return;
-      case "markall": S.prevSeen = now(); S.seenNotif = now(); store.set("eco-seen", S.seenNotif); render(); toast("Todas as notificações foram marcadas como lidas."); return;
+      case "markall": S.prevSeen = now(); S.seenNotif = now(); store.set("eco-seen", S.seenNotif); render(); toast(tr("notif.markedAll")); return;
       case "newsf": S.newsF = id; render(); return;
       case "savenews": { if (!S.db || !loggedIn()) return; const i = +id; const key = newsKey(i); const ex = S.savedAll.some((x) => x.id === key); try { const ref = privRef(key); if (ex) await ref.delete(); else await ref.set({ news: NEWS[i].href, createdAt: now() }); toast(ex ? "Notícia removida dos salvos" : "Notícia salva"); } catch (e) { toast("Não deu para salvar agora."); } return; }
       case "libk": S.libF.kind = id; render(); return;
@@ -2469,6 +2454,7 @@ button.tickrow:hover{background:var(--soft)}
       case "reply-cancel": S.replyTo = null; render(); return;
       case "stab": S.stab = id; render(); return;
       case "clearq": S.q = ""; render(); return;
+      case "setlang": { if (id !== "pt" && id !== "en") return; L.setLang(id); applyStaticI18n(); if (loggedIn()) saveState({ lang: id }); render(); renderModal(); toast(tr("lang.changed")); const b = document.querySelector('[data-act="setlang"][data-id="' + id + '"]'); if (b) b.focus(); return; }
       case "tagfollow": await toggleTagFollow(id); return;
       case "posttag":S.draft = (S.draft ? S.draft.trim() + " " : "") + "#" + id + " "; go("compose"); { const el = $("#comp"); if (el) el.setSelectionRange(0, 0); } return;
       case "close": S.edit = null; S.report = null; S.chartModal = null; S.form = null; S.blockAsk = null; renderModal(); return;
@@ -2596,7 +2582,7 @@ button.tickrow:hover{background:var(--soft)}
       const k = ev.target.dataset.id, off = new Set(notifOff());
       if (ev.target.checked) off.delete(k); else off.add(k);
       saveState({ notifOff: [...off] }).then(() => renderNav());
-      toast((ev.target.checked ? "Ligado: " : "Desligado: ") + (NOTIF_KINDS.find((x) => x[0] === k) || ["", ""])[1]);
+      toast(tr(ev.target.checked ? "set.notifOn" : "set.notifOff", { name: tr("notif.k." + k) }));
       return;
     }
 if (ev.target.id === "libtheme") { S.libF.theme = ev.target.value; render(); return; } if (ev.target.dataset && ev.target.dataset.act === "compact") { S.compact = ev.target.checked; store.set("eco-compact", S.compact); applyCompact(); renderNav(); toast(S.compact ? "Abas compactas ativadas" : "Abas completas ativadas"); } });
@@ -2749,6 +2735,7 @@ if (ev.target.id === "libtheme") { S.libF.theme = ev.target.value; render(); ret
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme);
 
   /* ---------- boot ---------- */
+  applyStaticI18n();
   applyCompact();
   render();
   setInterval(() => { if (!S.signedOut && (!document.activeElement || !["comp", "cin", "min", "ain", "q"].includes(document.activeElement.id))) renderNav(); }, 60000);
@@ -2770,7 +2757,7 @@ if (ev.target.id === "libtheme") { S.libF.theme = ev.target.value; render(); ret
     S.db = db;
     if (!db) { render(); return; }
     if (S.meId) {
-      db.collection("data/users/" + S.meId).onSnapshot((snap) => { const all = snap.docs.map((d) => Object.assign({ id: d.id }, d.data())); S.savedAll = all; S.pstate = all.find((x) => x.id === "state") || {}; S.saved = all.filter((x) => x.post); S.savedJobs = all.filter((x) => x.job); render(); }, () => {});
+      db.collection("data/users/" + S.meId).onSnapshot((snap) => { const all = snap.docs.map((d) => Object.assign({ id: d.id }, d.data())); S.savedAll = all; S.pstate = all.find((x) => x.id === "state") || {}; if (S.pstate.lang && S.pstate.lang !== L.lang) { L.setLang(S.pstate.lang); applyStaticI18n(); renderModal(); } S.saved = all.filter((x) => x.post); S.savedJobs = all.filter((x) => x.job); render(); }, () => {});
     }
     ["users", "posts", "likes", "reposts", "comments", "follows", "votes", "args", "ups", "messages", "pollVotes", "commentLikes", "communities", "members", "topics", "topicReplies", "articles", "articleLikes", "articleComments", "jobs", "events", "rsvps", "debates", "debateComments", "argComments", "blocks", "library", "reports"].forEach((c) => {
       db.collection(c).onSnapshot((snap) => {
