@@ -1037,7 +1037,8 @@ button.tickrow:hover{background:var(--soft)}
   function viewFeed() {
     const fol = following();
     let list = S.posts.filter((p) => !S.muted.includes(p.author));
-    if (S.tab === "following") list = list.filter((p) => p.author === S.meId || fol.has(p.author) || repostsOf(p.id).some((r) => fol.has(r.user)));
+    const ftags = new Set(followedTags());
+    if (S.tab === "following") list = list.filter((p) => p.author === S.meId || fol.has(p.author) || repostsOf(p.id).some((r) => fol.has(r.user)) || (ftags.size && tagsIn(p.text).some((t) => ftags.has(t))));
     list = list.slice().sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     const searching = !!S.q.trim();
     const searchBar = '<label class="search">' + svg(I.search, 18) + '<span class="sr">Buscar</span><input id="q" type="search" placeholder="Buscar pessoas, publicações, artigos, debates, vagas…" value="' + esc(S.q) + '"></label>';
@@ -1100,7 +1101,7 @@ button.tickrow:hover{background:var(--soft)}
   function viewTag(tag) {
     const posts = S.posts.filter((p) => tagsIn(p.text).includes(tag) && !S.muted.includes(p.author)).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     return '<div class="head" style="flex-direction:row;align-items:center;padding-bottom:14px"><button type="button" class="iconbtn" data-go="feed" aria-label="Voltar ao feed">' + svg(I.back, 20) + '</button><span style="display:flex;flex-direction:column;line-height:1.25"><h1 style="font-size:20px">#' + esc(tag) + '</h1><span class="muted" style="font-size:13px">' + posts.length + (posts.length === 1 ? " publicação" : " publicações") + '</span></span>' +
-      (canAct() ? '<button type="button" class="btn small" style="margin-left:auto" data-act="posttag" data-id="' + esc(tag) + '">Publicar com #' + esc(tag) + '</button>' : '') + '</div>' +
+      (canAct() ? '<span class="row" style="margin-left:auto;gap:6px"><button type="button" class="btn small' + (followedTags().includes(tag) ? ' ghost' : '') + '" data-act="tagfollow" data-id="' + esc(tag) + '" aria-pressed="' + followedTags().includes(tag) + '">' + (followedTags().includes(tag) ? "Seguindo" : "Seguir") + '</button><button type="button" class="btn ghost small" data-act="posttag" data-id="' + esc(tag) + '">Publicar com #' + esc(tag) + '</button></span>' : '') + '</div>' +
       (posts.length ? posts.map((p) => postCard(p)).join("") : '<p class="empty">Nenhuma publicação com essa hashtag ainda.</p>');
   }
   function viewPost(id) {
@@ -1782,6 +1783,7 @@ button.tickrow:hover{background:var(--soft)}
       sec("Barra lateral", "No modo compacto, a barra lateral mostra só os ícones e o conteúdo ganha mais espaço.", '<label class="switch"><input type="checkbox" data-act="compact"' + (S.compact ? ' checked' : '') + '><span class="track" aria-hidden="true"></span><span>Abas compactas (só ícones)</span></label>') +
       (loggedIn() ? sec("Pessoas bloqueadas", "Vocês não veem o conteúdo um do outro e não podem trocar mensagens.", (() => { const bl = [...blockedByMe()]; return bl.length ? bl.map((id) => '<div class="row" style="flex-wrap:nowrap">' + avatar(id, 36, false) + '<span style="flex:1;min-width:0;display:flex;flex-direction:column"><b>' + esc(U(id).name) + '</b><span class="muted" style="font-size:12.5px">' + esc(handle(id)) + '</span></span><button type="button" class="btn ghost small" data-act="unblock" data-id="' + esc(id) + '">Desbloquear</button></div>').join("") : '<p class="muted" style="margin:0;font-size:14px">Ninguém bloqueado.</p>'; })()) : '') +
       sec("Pessoas silenciadas", "As publicações delas não aparecem no seu feed. Elas não são avisadas.", muted.length ? muted.map((id) => '<div class="row" style="flex-wrap:nowrap">' + avatar(id, 36) + '<span style="flex:1;min-width:0"><b>' + esc(U(id).name) + '</b></span><button type="button" class="btn ghost small" data-act="unmute" data-id="' + esc(id) + '">Reativar</button></div>').join("") : '<p class="muted" style="margin:0;font-size:14px">Ninguém silenciado.</p>') +
+      (loggedIn() ? sec("Hashtags que sigo", "As publicações com essas hashtags aparecem na aba Seguindo do feed. Só você vê esta lista.", followedTags().length ? followedTags().map((t) => '<div class="row" style="flex-wrap:nowrap"><button type="button" class="linkname" style="flex:1;min-width:0;text-align:left" data-go="tag:' + esc(t) + '">#' + esc(t) + '</button><button type="button" class="btn ghost small" data-act="tagfollow" data-id="' + esc(t) + '">Deixar de seguir</button></div>').join("") : '<p class="muted" style="margin:0;font-size:13.5px">Você ainda não segue nenhuma hashtag. Abra uma # e toque em “Seguir”.</p>') : '') +
       sec("Privacidade", "", '<p style="margin:0;font-size:14px;line-height:1.55">Seu perfil, publicações, argumentos e comentários ficam visíveis para quem tem conta na EcoEco. Mensagens aparecem só para você e a outra pessoa na tela, e publicações salvas e vagas salvas são privadas.</p>') +
       (S.isAdmin ? sec("Moderação", "Você administra a EcoEco beta.", '<button type="button" class="btn ghost small" data-go="moderation" style="align-self:flex-start">Abrir painel de denúncias' + (S.reports.filter((r) => (r.status || "pendente") === "pendente").length ? ' · ' + S.reports.filter((r) => (r.status || "pendente") === "pendente").length : '') + '</button>') : '') +
       sec("Sobre a EcoEco", "", '<div class="row" style="gap:8px">' + Object.keys(PAGES).map((k) => '<button type="button" class="btn ghost small" data-go="page:' + k + '">' + PAGES[k].title + '</button>').join("") + '</div>') +
@@ -1837,6 +1839,15 @@ button.tickrow:hover{background:var(--soft)}
     if (lastIn && lastIn > (msgRead()[other] || 0)) saveState({ msgRead: Object.assign({}, msgRead(), { [other]: lastIn }) });
   }
   const watchList = () => (S.pstate && S.pstate.watch) || [];
+  // Hashtags que sigo (privado: fica no estado da própria pessoa)
+  const followedTags = () => (S.pstate && Array.isArray(S.pstate.tags)) ? S.pstate.tags : [];
+  async function toggleTagFollow(tag) {
+    if (!canAct()) { toast("Entre na sua conta para seguir hashtags."); return; }
+    const on = followedTags().includes(tag);
+    await saveState({ tags: on ? followedTags().filter((t) => t !== tag) : followedTags().concat(tag), tagSeen: Object.assign({}, S.pstate.tagSeen, on ? {} : { [tag]: now() }) });
+    toast(on ? "Você deixou de seguir #" + tag : "Agora você segue #" + tag + ". As publicações aparecem na aba Seguindo.");
+    render();
+  }
 
   /* ---------- seguidores / seguindo ---------- */
   function viewFollows(id, which) {
@@ -2246,7 +2257,8 @@ button.tickrow:hover{background:var(--soft)}
       case "reply-cancel": S.replyTo = null; render(); return;
       case "stab": S.stab = id; render(); return;
       case "clearq": S.q = ""; render(); return;
-      case "posttag": S.draft = (S.draft ? S.draft.trim() + " " : "") + "#" + id + " "; go("compose"); { const el = $("#comp"); if (el) el.setSelectionRange(0, 0); } return;
+      case "tagfollow": await toggleTagFollow(id); return;
+      case "posttag":S.draft = (S.draft ? S.draft.trim() + " " : "") + "#" + id + " "; go("compose"); { const el = $("#comp"); if (el) el.setSelectionRange(0, 0); } return;
       case "close": S.edit = null; S.report = null; S.chartModal = null; S.form = null; S.blockAsk = null; renderModal(); return;
       case "newform": if (!canAct()) { toast("Entre na sua conta para publicar."); return; } S.form = { kind: id, v: {} }; renderModal(); { const el = $("#genForm input, #genForm textarea"); if (el) el.focus(); } return;
       case "join": { const ex = isMember(id); await toggleDoc("members", id + "__" + S.meId, ex, { comm: id, user: S.meId, createdAt: now() }); return; }
