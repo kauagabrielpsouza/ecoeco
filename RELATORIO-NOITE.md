@@ -46,6 +46,13 @@ Esses arquivos **não foram testados num banco de verdade**, porque não tenho a
   - Todas as telas, janelas, formulários, avisos e mensagens de erro: menus, entrada e cadastro, feed, busca, perfil, debates, comunidades, artigos e anexos, vagas, eventos, biblioteca, mercado, notícias, mensagens, notificações, Moderação e painel de admin, aviso de suspensão e páginas institucionais.
   - As categorias, tipos e status continuam gravados em português no banco e são traduzidos só na tela.
   - **Fica em português de propósito:** o que as pessoas escrevem, as notícias e as frases que o robô de indicadores grava (ex.: "0,55% no dia"). Nessas frases, os números já aparecem no formato en-US. As mensagens de erro que vêm das funções do banco (SQL 07) também estão em português.
+- **J. Quadro "Notícias agora":**
+  - Fica na coluna da direita, entre Indicadores e "Debate da semana", no mesmo estilo dos outros quadros.
+  - Mostra as 3 notícias mais recentes da tabela `news_items`, de fontes diferentes quando possível.
+  - Cada item tem o título em Lora (até 2 linhas, cortando com "…") e, em Manrope, a fonte e há quanto tempo saiu ("Agência Brasil · há 2 h"). O clique abre a matéria em nova aba.
+  - No rodapé, "Ver todas →" leva à aba Notícias.
+  - Atualiza sozinho quando o robô grava notícias novas. Se não houver notícias do robô, o quadro não aparece. No celular a coluna da direita não aparece, então o quadro também não.
+  - Textos no dicionário: "Notícias agora / News now", "há X / X ago", "Ver todas → / See all →".
 - **I. Revisão final:**
   - Testei todas as telas em inglês e em português, no computador e no celular (375 px). Nenhuma passa da largura da tela, e nenhuma chave do dicionário aparece crua.
   - No celular, o perfil agora tem 7 abas. Abas que não cabem ganharam um esmaecido na borda, para mostrar que dá para rolar.
@@ -78,3 +85,4 @@ Primeiro, rode os SQL 05, 06 e 07. Para os testes com outra pessoa, crie uma **s
   3. Desfaça a suspensão e confira tudo de novo.
   4. No Registro, as ações aparecem anotadas.
 - **Inglês:** Configurações → Idioma → English. Na tela de entrada também há o botão "English".
+- **Notícias agora:** no computador, olhe a coluna da direita, abaixo dos Indicadores. O quadro só aparece depois que o robô de notícias rodar pelo menos uma vez (Etapa 6 do ROTEIRO). Clique numa notícia (abre em nova aba) e em "Ver todas →".

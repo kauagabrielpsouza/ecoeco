@@ -68,5 +68,5 @@ Tudo abaixo está em `site/index.html`. Os textos da interface ficam em `site/js
 - Sobre, Regras, Termos de uso e Política de privacidade (rascunho: revisar com advogado antes de abrir ao público). Em português e inglês.
 
 ## Responsividade e acessibilidade
-- Desktop (3 colunas), tablet (2), celular (barra inferior + Explorar). Abas que não cabem rolam para o lado, com esmaecido na borda.
+- Desktop (3 colunas; a coluna da direita traz Indicadores, **Notícias agora**, Debate da semana, Em alta, Próximos eventos e Quem seguir), tablet (2), celular (barra inferior + Explorar). Abas que não cabem rolam para o lado, com esmaecido na borda.
 - Contraste conferido, foco visível, navegação por teclado, rótulos acessíveis, variações com seta e texto.
