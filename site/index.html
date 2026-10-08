@@ -1314,7 +1314,7 @@ button.tickrow:hover{background:var(--soft)}
   const debVotes = (did) => S.votes.filter((v) => debOf(v) === did);
   const debArgs = (did) => S.args.filter((a) => debOf(a) === did);
   const debComments = (did) => S.posts.filter((p) => p.debate === did);
-  const sideLabel = (d, sd) => sd === "A" ? d.sideA : sd === "B" ? d.sideB : "Depende";
+  const sideLabel = (d, sd) => sd === "A" ? d.sideA : sd === "B" ? d.sideB : tr("deb.depends");
   const argScore = (x) => S.ups.filter((u) => u.arg === x.id).length * 2 + S.argComments.filter((c) => c.arg === x.id).length;
   const myVote = (did) => loggedIn() ? debVotes(did).find((v) => (v.user || v.id) === S.meId) : null;
   // Com o SQL 06, cada pessoa só lê o próprio voto; os totais vêm da função debate_vote_stats.
@@ -1333,27 +1333,27 @@ button.tickrow:hover{background:var(--soft)}
       S.ups.filter((u) => argIds.has(u.arg) && recent(u)).length + S.argComments.filter((c) => argIds.has(c.arg) && recent(c)).length + (recent(d) ? 3 : 0);
   }
   const topDebates = (n) => S.debates.map((d) => ({ d, s: weekScore(d) })).filter((x) => x.s > 0).sort((a, b) => b.s - a.s).slice(0, n).map((x) => x.d);
-  const debBar = (st, d) => st.tot === 0 ? '<div class="debate-bar" role="img" aria-label="Sem votos ainda"><span style="width:100%;background:var(--line2)"></span></div>' : '<div class="debate-bar" role="img" aria-label="' + st.pa + '% ' + esc(d.sideA) + ', ' + (100 - st.pa) + '% ' + esc(d.sideB) + '"><span style="width:' + st.pa + '%;background:var(--accent)"></span><span style="width:' + (100 - st.pa) + '%;background:var(--gold)"></span></div>';
+  const debBar = (st, d) => st.tot === 0 ? '<div class="debate-bar" role="img" aria-label="' + tr("deb.noVotes") + '"><span style="width:100%;background:var(--line2)"></span></div>' : '<div class="debate-bar" role="img" aria-label="' + st.pa + '% ' + esc(d.sideA) + ', ' + (100 - st.pa) + '% ' + esc(d.sideB) + '"><span style="width:' + st.pa + '%;background:var(--accent)"></span><span style="width:' + (100 - st.pa) + '%;background:var(--gold)"></span></div>';
   function debateCard(d, big) {
     const st = debateStats(d.id), na = debArgs(d.id).length, nc = debComments(d.id).length, mv = myVote(d.id);
-    return '<article class="item debcard' + (big ? ' big' : '') + '"><div class="row muted" style="font-size:12.5px;gap:6px"><span class="pill acc">' + esc(d.cat || "Outros") + '</span><span>' + rel(d.createdAt) + '</span>' + (mv ? '<span class="pill">Você votou: ' + esc(mv.side === "A" ? d.sideA : d.sideB) + '</span>' : '') + '</div>' +
+    return '<article class="item debcard' + (big ? ' big' : '') + '"><div class="row muted" style="font-size:12.5px;gap:6px"><span class="pill acc">' + esc(optLabel("debcat", d.cat || "Outros")) + '</span><span>' + rel(d.createdAt) + '</span>' + (mv ? '<span class="pill">' + tr("deb.youVoted", { side: esc(mv.side === "A" ? d.sideA : d.sideB) }) + '</span>' : '') + '</div>' +
       '<h2><button type="button" class="linkname" style="font-family:var(--serif);font-size:' + (big ? 21 : 18) + 'px;text-align:left;line-height:1.3" data-go="debate:' + esc(d.id) + '">' + esc(d.title) + '</button></h2>' +
       (big && d.desc ? '<p class="muted clamp2" style="margin:0;font-size:14.5px">' + esc(d.desc) + '</p>' : '') +
       debBar(st, d) + '<div class="row" style="justify-content:space-between;font-size:13px"><b style="color:var(--accent)">' + esc(d.sideA) + (st.tot ? ' · ' + st.pa + '%' : '') + '</b><b style="color:var(--gold-ink)">' + esc(d.sideB) + (st.tot ? ' · ' + (100 - st.pa) + '%' : '') + '</b></div>' +
-      '<div class="row muted" style="font-size:13px;gap:14px"><span>' + st.tot + (st.tot === 1 ? " voto" : " votos") + '</span><span>' + na + (na === 1 ? " argumento" : " argumentos") + '</span><span>' + nc + (nc === 1 ? " post no feed" : " posts no feed") + '</span><button type="button" class="linkname" style="color:var(--accent);margin-left:auto" data-go="debate:' + esc(d.id) + '">Entrar no debate →</button></div></article>';
+      '<div class="row muted" style="font-size:13px;gap:14px"><span>' + tr.n("poll.votes", st.tot) + '</span><span>' + tr.n("deb.args", na) + '</span><span>' + tr.n("deb.feedPosts", nc) + '</span><button type="button" class="linkname" style="color:var(--accent);margin-left:auto" data-go="debate:' + esc(d.id) + '">' + tr("deb.enter") + '</button></div></article>';
   }
   function viewDebates() {
     const q = S.debQ.trim().toLowerCase();
-    const search = '<label class="search">' + svg(I.search, 18) + '<span class="sr">Buscar debates</span><input id="dq" type="search" placeholder="Buscar qualquer debate, inclusive os antigos" value="' + esc(S.debQ) + '"></label>';
-    const head = secHead("Debates", "Vote, argumente e comente. Critique ideias, nunca pessoas.", canAct() ? '<button type="button" class="btn small" data-act="newform" data-id="debate">Propor debate</button>' : '', search + '<div style="height:2px"></div>');
+    const search = '<label class="search">' + svg(I.search, 18) + '<span class="sr">' + tr("deb.search") + '</span><input id="dq" type="search" placeholder="' + tr("deb.searchPh") + '" value="' + esc(S.debQ) + '"></label>';
+    const head = secHead(tr("nav.debates"), tr("deb.sub"), canAct() ? '<button type="button" class="btn small" data-act="newform" data-id="debate">' + tr("deb.propose") + '</button>' : '', search + '<div style="height:2px"></div>');
     if (q) {
       const res = S.debates.filter((d) => [d.title, d.desc, d.cat, d.sideA, d.sideB].join(" ").toLowerCase().includes(q) || debArgs(d.id).some((a) => (a.text || "").toLowerCase().includes(q))).sort(byNew);
-      return head + eyebrow(res.length + (res.length === 1 ? " debate encontrado" : " debates encontrados")) + (res.length ? res.map((d) => debateCard(d)).join("") : '<p class="empty">Nenhum debate com esse termo. Que tal propor um?</p>');
+      return head + eyebrow(tr.n("deb.found", res.length)) + (res.length ? res.map((d) => debateCard(d)).join("") : '<p class="empty">' + tr("deb.noneFound") + '</p>');
     }
     const top = topDebates(3);
     const rest = S.debates.filter((d) => !top.includes(d)).sort(byNew);
-    return head + eyebrow("Principais debates da semana") + (top.length ? top.map((d, i) => debateCard(d, i === 0)).join("") : '<p class="empty">Nenhum debate movimentado nesta semana.</p>') +
-      eyebrow("Todos os debates") + (rest.length ? rest.map((d) => debateCard(d)).join("") : '<p class="empty">Não há outros debates ainda.</p>');
+    return head + eyebrow(tr("deb.top")) + (top.length ? top.map((d, i) => debateCard(d, i === 0)).join("") : '<p class="empty">' + tr("deb.topEmpty") + '</p>') +
+      eyebrow(tr("deb.all")) + (rest.length ? rest.map((d) => debateCard(d)).join("") : '<p class="empty">' + tr("deb.allEmpty") + '</p>');
   }
   function argCard(o, d) {
     const x = o.x, open = !!S.openArgs[x.id];
@@ -1361,16 +1361,16 @@ button.tickrow:hover{background:var(--soft)}
     const sd = x.side === "A" || x.side === "B" ? x.side : "N";
     return '<article class="arg argrow b' + sd + '"><div class="row" style="font-size:13.5px;gap:6px;flex-wrap:nowrap">' + avatar(x.author, 36) + '<span style="display:flex;flex-direction:column;line-height:1.25;min-width:0"><button type="button" class="linkname" style="text-align:left" data-go="profile:' + esc(x.author) + '">' + esc(U(x.author).name) + '</button><span class="muted" style="font-size:12.5px">' + esc(handle(x.author)) + (handle(x.author) ? ' · ' : '') + rel(x.createdAt) + '</span></span><span class="sidetag s' + sd + '">' + esc(sideLabel(d, sd)) + '</span></div>' +
       '<p style="margin:0;font-size:14.5px;overflow-wrap:anywhere;white-space:pre-wrap">' + richText(x.text) + '</p>' +
-      '<div class="row" style="gap:8px"><button type="button" class="up" data-act="up" data-id="' + esc(x.id) + '" aria-pressed="' + o.mine + '"' + (canAct() ? '' : ' disabled') + '>▲ Apoiar · ' + o.n + '</button>' +
-      '<button type="button" class="up" data-act="argc" data-id="' + esc(x.id) + '" aria-expanded="' + open + '">' + svg(I.comment, 14) + ' ' + cs.length + (cs.length === 1 ? " comentário" : " comentários") + '</button>' +
-      ((x.author === S.meId && canAct()) || S.isAdmin ? '<button type="button" class="up" style="margin-left:auto" data-act="argdel" data-id="' + esc(x.id) + '" aria-expanded="' + (S.confirmDel === "args:" + x.id) + '">Apagar</button>' : '') + '</div>' +
-      (S.confirmDel === "args:" + x.id ? '<div class="banner row" role="alertdialog" aria-label="Confirmar exclusão do argumento" style="justify-content:space-between;margin:0;border-radius:10px"><span style="font-size:13.5px">Apagar este argumento? Os apoios e comentários dele também serão apagados.</span><span class="row" style="gap:6px"><button type="button" class="btn ghost small" data-act="argdelno">Cancelar</button><button type="button" class="btn danger small" data-act="argdelok" data-id="' + esc(x.id) + '">Apagar</button></span></div>' : '') +
-      (open ? '<div class="argthread">' + (cs.length ? cs.map((c) => '<div class="argc">' + avatar(c.author, 24, false) + '<div style="min-width:0"><button type="button" class="linkname" style="font-size:13px" data-go="profile:' + esc(c.author) + '">' + esc(U(c.author).name) + '</button> <span class="muted" style="font-size:12px">' + rel(c.createdAt) + '</span> ' + modDel("argComments", c.id) + '<p style="margin:2px 0 0;font-size:13.5px;overflow-wrap:anywhere">' + richText(c.text) + '</p></div></div>').join("") : '<p class="muted" style="margin:0;font-size:13px">Nenhum comentário ainda.</p>') +
-        (canAct() ? '<form class="argcform" data-arg="' + esc(x.id) + '"><label class="sr" for="argc-' + esc(x.id) + '">Comentar argumento</label><input class="input" id="argc-' + esc(x.id) + '" autocomplete="off" placeholder="Comente este argumento…" value="' + esc(S.argcDraft[x.id] || "") + '"><button type="submit" class="btn small">Enviar</button></form>' : '') + '</div>' : '') + '</article>';
+      '<div class="row" style="gap:8px"><button type="button" class="up" data-act="up" data-id="' + esc(x.id) + '" aria-pressed="' + o.mine + '"' + (canAct() ? '' : ' disabled') + '>▲ ' + tr("deb.support") + ' · ' + o.n + '</button>' +
+      '<button type="button" class="up" data-act="argc" data-id="' + esc(x.id) + '" aria-expanded="' + open + '">' + svg(I.comment, 14) + ' ' + tr.n("deb.comments", cs.length) + '</button>' +
+      ((x.author === S.meId && canAct()) || S.isAdmin ? '<button type="button" class="up" style="margin-left:auto" data-act="argdel" data-id="' + esc(x.id) + '" aria-expanded="' + (S.confirmDel === "args:" + x.id) + '">' + tr("deb.del") + '</button>' : '') + '</div>' +
+      (S.confirmDel === "args:" + x.id ? '<div class="banner row" role="alertdialog" aria-label="' + tr("deb.delLabel") + '" style="justify-content:space-between;margin:0;border-radius:10px"><span style="font-size:13.5px">' + tr("deb.delAsk") + '</span><span class="row" style="gap:6px"><button type="button" class="btn ghost small" data-act="argdelno">' + tr("common.cancel") + '</button><button type="button" class="btn danger small" data-act="argdelok" data-id="' + esc(x.id) + '">' + tr("deb.del") + '</button></span></div>' : '') +
+      (open ? '<div class="argthread">' + (cs.length ? cs.map((c) => '<div class="argc">' + avatar(c.author, 24, false) + '<div style="min-width:0"><button type="button" class="linkname" style="font-size:13px" data-go="profile:' + esc(c.author) + '">' + esc(U(c.author).name) + '</button> <span class="muted" style="font-size:12px">' + rel(c.createdAt) + '</span> ' + modDel("argComments", c.id) + '<p style="margin:2px 0 0;font-size:13.5px;overflow-wrap:anywhere">' + richText(c.text) + '</p></div></div>').join("") : '<p class="muted" style="margin:0;font-size:13px">' + tr("deb.noComments") + '</p>') +
+        (canAct() ? '<form class="argcform" data-arg="' + esc(x.id) + '"><label class="sr" for="argc-' + esc(x.id) + '">' + tr("deb.commentArg") + '</label><input class="input" id="argc-' + esc(x.id) + '" autocomplete="off" placeholder="' + tr("deb.commentArgPh") + '" value="' + esc(S.argcDraft[x.id] || "") + '"><button type="submit" class="btn small">' + tr("common.send") + '</button></form>' : '') + '</div>' : '') + '</article>';
   }
   function viewDebate(id) {
     const d = S.debates.find((x) => x.id === id);
-    if (!d) return backHead("debates", "Debates") + '<p class="empty">Este debate não existe mais.</p>';
+    if (!d) return backHead("debates", tr("nav.debates")) + '<p class="empty">' + tr("deb.gone") + '</p>';
     const st = debateStats(id), mv = myVote(id), side = mv ? mv.side : null;
     const all = debArgs(id);
     const cnt = { all: all.length, A: all.filter((x) => x.side === "A").length, B: all.filter((x) => x.side === "B").length, N: all.filter((x) => x.side !== "A" && x.side !== "B").length };
@@ -1383,27 +1383,27 @@ button.tickrow:hover{background:var(--soft)}
     const posBtn = (sd, label) => '<button type="button" class="chip pos p' + sd + '" data-act="argside" data-id="' + sd + '" aria-pressed="' + (pos === sd) + '">' + esc(label) + '</button>';
     const voteBtn = (sd, label) => '<button type="button" class="chip pos votebtn p' + sd + '" data-act="vote" data-id="' + sd + '" aria-pressed="' + (side === sd) + '">' + (side === sd ? '✓ ' : '') + esc(label) + '</button>';
     const fil = (k, label) => '<button type="button" class="chip" data-act="argfilter" data-id="' + k + '" aria-pressed="' + (f === k) + '">' + esc(label) + ' (' + cnt[k] + ')</button>';
-    return backHead("debates", "Debates", esc(d.cat || ""), canDel(d.author) ? '<span style="margin-left:auto">' + delBtn("debates", id) + '</span>' : '') +
+    return backHead("debates", tr("nav.debates"), esc(optLabel("debcat", d.cat || "")), canDel(d.author) ? '<span style="margin-left:auto">' + delBtn("debates", id) + '</span>' : '') +
       '<div style="padding:18px 20px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:12px"><h1 class="debtitle" style="font-size:27px;line-height:1.22;margin:0">' + esc(d.title) + '</h1>' +
       (d.desc ? '<p class="muted" style="margin:0;white-space:pre-wrap">' + richText(d.desc) + '</p>' : '') +
-      '<span class="muted" style="font-size:12.5px">Proposto por <button type="button" class="linkname" style="font-weight:500" data-go="profile:' + esc(d.author) + '">' + esc(U(d.author).name) + '</button> · ' + rel(d.createdAt) + '</span>' +
-      debBar(st, d) + '<div class="row" style="justify-content:space-between;font-size:14px"><b style="color:var(--accent)">' + esc(d.sideA) + (st.tot ? ' · ' + st.pa + '%' : '') + '</b><span class="muted">' + st.tot + (st.tot === 1 ? " voto" : " votos") + '</span><b style="color:var(--gold-ink)">' + esc(d.sideB) + (st.tot ? ' · ' + (100 - st.pa) + '%' : '') + '</b></div>' +
-      (canAct() ? '<div class="row" role="group" aria-label="Votar" style="gap:8px;flex-wrap:nowrap">' + voteBtn("A", d.sideA) + voteBtn("B", d.sideB) + '</div>' : '') +
-      '<div class="row" style="justify-content:space-between">' + (side ? '<span class="muted" style="font-size:13.5px">Seu voto: <b style="color:' + (side === "A" ? "var(--accent)" : "var(--gold-ink)") + '">' + esc(sideLabel(d, side)) + '</b>' + (canAct() ? ' · <button type="button" class="linkname muted" style="font-weight:400;text-decoration:underline" data-act="unvote">desfazer voto</button>' : '') + '</span>' : (canAct() ? '<span class="muted" style="font-size:13.5px">Vote acima. Argumentar é opcional.</span>' : '<span></span>')) +
-      (canAct() ? '<button type="button" class="btn ghost small" data-act="sharedeb" data-id="' + esc(id) + '" style="display:inline-flex;align-items:center;gap:6px">' + svg(I.repost, 16) + 'Comentar no feed' + (nFeed ? ' · ' + nFeed : '') + '</button>' : (nFeed ? '<span class="muted" style="font-size:13px">' + plural(nFeed, "post no feed", "posts no feed") + '</span>' : '')) + '</div></div>' +
-      (canAct() ? '<form id="argForm" class="stack-form"><span style="font-weight:600;font-size:14.5px">Argumentar <span class="muted" style="font-weight:400;font-size:13px">(opcional)</span></span><div class="row" style="gap:6px"><span class="muted" style="font-size:13px">Sua posição:</span>' + posBtn("A", d.sideA) + posBtn("B", d.sideB) + posBtn("N", "Depende") + '</div>' +
-        '<label class="sr" for="ain">Seu argumento</label><textarea id="ain" rows="3" maxlength="800" placeholder="' + (pos ? (pos === "N" ? "Explique do que depende: dados, contexto, condições…" : "Escreva um argumento para “" + esc(sideLabel(d, pos)) + "”…") : "Escolha sua posição acima e escreva seu argumento…") + '">' + esc(S.argDraft) + '</textarea>' +
-        '<div class="row" style="justify-content:space-between"><span class="muted" style="font-size:12.5px">' + (pos === "A" || pos === "B" ? "Ao publicar, seu voto fica em “" + esc(sideLabel(d, pos)) + "”." : pos === "N" ? "Argumentos “Depende” não mudam seu voto." : "") + '</span><button type="submit" class="btn small"' + (pos ? '' : ' disabled') + '>Publicar argumento</button></div></form>' : '') +
-      '<div style="padding:18px 20px 0;display:flex;flex-direction:column;gap:10px"><h2 style="margin:0;font-size:20px;font-weight:800;letter-spacing:-.015em">Argumentos das pessoas</h2>' +
-      '<div class="filters" style="padding-bottom:4px">' + fil("all", "Sem filtro") + fil("A", d.sideA) + fil("B", d.sideB) + fil("N", "Depende") + '</div><span class="muted" style="font-size:12.5px">Ordenados dos mais relevantes para os menos relevantes (apoios e comentários).</span></div>' +
-      '<div class="arglist">' + (list.length ? list.map((o) => argCard(o, d)).join("") : '<p class="muted" style="margin:0">' + (f === "all" ? "Nenhum argumento ainda. Seja a primeira pessoa a argumentar." : "Nenhum argumento neste filtro.") + '</p>') + '</div>' +
-      '<p class="muted" style="margin:0;padding:4px 20px 24px;font-size:13px">Regra dos debates: argumente contra a ideia, nunca contra a pessoa. Cite dados e fontes quando puder.</p>';
+      '<span class="muted" style="font-size:12.5px">' + tr("deb.by", { name: '<button type="button" class="linkname" style="font-weight:500" data-go="profile:' + esc(d.author) + '">' + esc(U(d.author).name) + '</button>' }) + ' · ' + rel(d.createdAt) + '</span>' +
+      debBar(st, d) + '<div class="row" style="justify-content:space-between;font-size:14px"><b style="color:var(--accent)">' + esc(d.sideA) + (st.tot ? ' · ' + st.pa + '%' : '') + '</b><span class="muted">' + tr.n("poll.votes", st.tot) + '</span><b style="color:var(--gold-ink)">' + esc(d.sideB) + (st.tot ? ' · ' + (100 - st.pa) + '%' : '') + '</b></div>' +
+      (canAct() ? '<div class="row" role="group" aria-label="' + tr("deb.vote") + '" style="gap:8px;flex-wrap:nowrap">' + voteBtn("A", d.sideA) + voteBtn("B", d.sideB) + '</div>' : '') +
+      '<div class="row" style="justify-content:space-between">' + (side ? '<span class="muted" style="font-size:13.5px">' + tr("deb.yourVote") + ' <b style="color:' + (side === "A" ? "var(--accent)" : "var(--gold-ink)") + '">' + esc(sideLabel(d, side)) + '</b>' + (canAct() ? ' · <button type="button" class="linkname muted" style="font-weight:400;text-decoration:underline" data-act="unvote">' + tr("deb.undo") + '</button>' : '') + '</span>' : (canAct() ? '<span class="muted" style="font-size:13.5px">' + tr("deb.voteAbove") + '</span>' : '<span></span>')) +
+      (canAct() ? '<button type="button" class="btn ghost small" data-act="sharedeb" data-id="' + esc(id) + '" style="display:inline-flex;align-items:center;gap:6px">' + svg(I.repost, 16) + tr("deb.commentFeed") + (nFeed ? ' · ' + nFeed : '') + '</button>' : (nFeed ? '<span class="muted" style="font-size:13px">' + tr.n("deb.feedPosts", nFeed) + '</span>' : '')) + '</div></div>' +
+      (canAct() ? '<form id="argForm" class="stack-form"><span style="font-weight:600;font-size:14.5px">' + tr("deb.argue") + ' <span class="muted" style="font-weight:400;font-size:13px">' + tr("common.optional") + '</span></span><div class="row" style="gap:6px"><span class="muted" style="font-size:13px">' + tr("deb.yourPos") + '</span>' + posBtn("A", d.sideA) + posBtn("B", d.sideB) + posBtn("N", tr("deb.depends")) + '</div>' +
+        '<label class="sr" for="ain">' + tr("deb.yourArg") + '</label><textarea id="ain" rows="3" maxlength="800" placeholder="' + (pos ? (pos === "N" ? tr("deb.phDepends") : tr("deb.phSide", { side: esc(sideLabel(d, pos)) })) : tr("deb.phChoose")) + '">' + esc(S.argDraft) + '</textarea>' +
+        '<div class="row" style="justify-content:space-between"><span class="muted" style="font-size:12.5px">' + (pos === "A" || pos === "B" ? tr("deb.voteGoes", { side: esc(sideLabel(d, pos)) }) : pos === "N" ? tr("deb.dependsNoVote") : "") + '</span><button type="submit" class="btn small"' + (pos ? '' : ' disabled') + '>' + tr("deb.publishArg") + '</button></div></form>' : '') +
+      '<div style="padding:18px 20px 0;display:flex;flex-direction:column;gap:10px"><h2 style="margin:0;font-size:20px;font-weight:800;letter-spacing:-.015em">' + tr("deb.argsTitle") + '</h2>' +
+      '<div class="filters" style="padding-bottom:4px">' + fil("all", tr("deb.noFilter")) + fil("A", d.sideA) + fil("B", d.sideB) + fil("N", tr("deb.depends")) + '</div><span class="muted" style="font-size:12.5px">' + tr("deb.sorted") + '</span></div>' +
+      '<div class="arglist">' + (list.length ? list.map((o) => argCard(o, d)).join("") : '<p class="muted" style="margin:0">' + tr(f === "all" ? "deb.noArgs" : "deb.noArgsFilter") + '</p>') + '</div>' +
+      '<p class="muted" style="margin:0;padding:4px 20px 24px;font-size:13px">' + tr("deb.rule") + '</p>';
   }
   function debateEmbed(did) {
     const d = S.debates.find((x) => x.id === did);
-    if (!d) return '<span class="demo">Este debate não está mais disponível.</span>';
+    if (!d) return '<span class="demo">' + tr("deb.unavailable") + '</span>';
     const st = debateStats(did);
-    return '<button type="button" class="filecard debembed" data-go="debate:' + esc(did) + '" style="text-align:left;width:100%;flex-direction:column;align-items:stretch;gap:8px"><span class="row muted" style="font-size:12px;gap:6px">' + svg(I.debate, 15) + 'Debate · ' + esc(d.cat || "") + '</span><b style="font-family:var(--serif);font-size:16px;line-height:1.3">' + esc(d.title) + '</b>' + debBar(st, d) + '<span class="row" style="justify-content:space-between;font-size:12.5px"><span style="color:var(--accent);font-weight:600">' + esc(d.sideA) + (st.tot ? ' ' + st.pa + '%' : '') + '</span><span class="muted">' + st.tot + (st.tot === 1 ? " voto" : " votos") + '</span><span style="color:var(--gold-ink);font-weight:600">' + esc(d.sideB) + (st.tot ? ' ' + (100 - st.pa) + '%' : '') + '</span></span></button>';
+    return '<button type="button" class="filecard debembed" data-go="debate:' + esc(did) + '" style="text-align:left;width:100%;flex-direction:column;align-items:stretch;gap:8px"><span class="row muted" style="font-size:12px;gap:6px">' + svg(I.debate, 15) + tr("deb.one") + ' · ' + esc(optLabel("debcat", d.cat || "")) + '</span><b style="font-family:var(--serif);font-size:16px;line-height:1.3">' + esc(d.title) + '</b>' + debBar(st, d) + '<span class="row" style="justify-content:space-between;font-size:12.5px"><span style="color:var(--accent);font-weight:600">' + esc(d.sideA) + (st.tot ? ' ' + st.pa + '%' : '') + '</span><span class="muted">' + tr.n("poll.votes", st.tot) + '</span><span style="color:var(--gold-ink);font-weight:600">' + esc(d.sideB) + (st.tot ? ' ' + (100 - st.pa) + '%' : '') + '</span></span></button>';
   }
   function conversations() {
     const map = {};
@@ -1437,8 +1437,12 @@ button.tickrow:hover{background:var(--soft)}
   const JOB_KINDS = ["Estágio", "Emprego", "Trainee", "Pesquisa"];
   const MODES = ["Presencial", "Híbrido", "Remoto"];
   const EV_FORMATS = ["Online", "Presencial", "Híbrido"];
-  const MONTHS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
-  const WEEK = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
+  // Meses e dias da semana no idioma escolhido (dicionário: month.0–11, week.0–6)
+  const MONTHS = new Proxy([], { get: (a, k) => (k === "length" ? 12 : /^\d+$/.test(k) ? tr("month." + k) : a[k]) });
+  const WEEK = new Proxy([], { get: (a, k) => (k === "length" ? 7 : /^\d+$/.test(k) ? tr("week." + k) : a[k]) });
+  // Opções gravadas em português no banco (categoria, tipo, formato...) e mostradas no idioma escolhido
+  const OPTS = () => ({ debcat: DEB_CATS, artkind: ART_KINDS, jobkind: JOB_KINDS, mode: MODES, evfmt: EV_FORMATS, libkind: LIB_KINDS, libtheme: LIB_THEMES });
+  const optLabel = (group, v) => { const i = (OPTS()[group] || []).indexOf(v); return i >= 0 ? tr("opt." + group + "." + i) : v; };
   const byNew = (a, b) => (b.createdAt || 0) - (a.createdAt || 0);
   const todayStr = () => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
   const evDate = (s) => { const [y, m, d] = String(s || "").split("-").map(Number); return new Date(y || 2026, (m || 1) - 1, d || 1); };
