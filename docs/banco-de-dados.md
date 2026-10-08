@@ -35,7 +35,7 @@ O campo que identifica o autor varia: `author`, `user`, `from` ou `by`. A regra 
 | `communities` | name, icon, hue, desc, rules, author | author |
 | `members` | comm, user | user |
 | `topics`, `topicReplies` | comm/topic, author, title, text | author |
-| `articles` | author, kind, title, summary, body, editedAt | author |
+| `articles` | author, kind, title, summary, body, attachments, editedAt | author |
 | `articleLikes`, `articleComments` | article, user/author | user/author |
 | `jobs` | author, title, company, kind, mode, city, area, deadline, link, desc | author |
 | `events` | author, title, date, time, format, place, org, link, desc | author |
@@ -44,6 +44,39 @@ O campo que identifica o autor varia: `author`, `user`, `from` ou `by`. A regra 
 | `private` | salvos (post/job/lib/news), `state` (lista de ativos, leitura de mensagens) | dono (só ele lê) |
 
 O site chama `data/users/<id>` de coleção privada; a ponte (`ecoeco-backend.js`) traduz para `private`.
+
+## Anexos dos artigos (`articles.attachments`)
+Lista com até **5** itens (arquivos e links somados). Cada item:
+
+| Campo | Tipos | O que é |
+|---|---|---|
+| `type` | todos | `"image"`, `"pdf"` ou `"link"` |
+| `url` | todos | Imagem/PDF: endereço público no bucket `media`. Link: endereço `http(s)://` validado |
+| `name` | todos | Nome do arquivo, ou título opcional do link |
+| `size` | image, pdf | Tamanho em bytes (máximo 10 MB, o mesmo limite do bucket) |
+| `caption` | image | Legenda opcional |
+| `n` | image | Número fixo da imagem. No texto, um parágrafo só com `[imagem N]` mostra a imagem ali; as que não forem inseridas aparecem numa galeria no fim |
+
+- Imagens aceitas: JPG, PNG, WebP e GIF. Documentos: PDF.
+- Os arquivos ficam em `media/<id-da-pessoa>/...`. Ao remover um anexo, salvar uma edição sem ele ou excluir o artigo, o site apaga o arquivo do Storage (a regra `media_delete` só permite isso ao dono ou a um admin).
+- O rascunho de um texto novo (incluindo os anexos já enviados) fica salvo no navegador da pessoa (`localStorage`, chave `eco-artdraft-<id>`), não no banco.
+- Artigos antigos sem `attachments` continuam funcionando normalmente.
+
+## Limpeza em cascata (`supabase/05_limpeza_em_cascata.sql`)
+Quando um documento é apagado, o banco apaga sozinho o que depende dele, mesmo que seja de outras pessoas:
+
+| Ao apagar | Também apaga |
+|---|---|
+| `posts` | `comments`, `likes`, `reposts`, `pollVotes` |
+| `comments` | `commentLikes` e respostas (`comments` com `parent`) |
+| `articles` | `articleComments`, `articleLikes` |
+| `debates` | `votes`, `args`, `debateComments` |
+| `args` | `ups`, `argComments` |
+| `communities` | `members`, `topics` |
+| `topics` | `topicReplies` |
+| `events` | `rsvps` |
+
+Os arquivos no Storage (foto da publicação, anexos do artigo) são apagados pelo site. O mesmo arquivo também impede republicar a própria publicação.
 
 ## Por que uma tabela genérica?
 Para a interface do protótipo funcionar quase sem mudanças. Com ~30 pessoas e alguns milhares de documentos, o desempenho é tranquilo. Se a EcoEco crescer muito (milhares de pessoas), vale migrar as coleções mais usadas (posts, comments, likes) para tabelas próprias com índices. Peça isso ao Claude Code quando chegar a hora.

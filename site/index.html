@@ -480,6 +480,36 @@ body.compact .brand .wm{display:none}
 .argrow.bB{border-left-color:var(--gold)}
 .chip.pos.pB[aria-pressed="true"]{background:var(--gold);border-color:var(--gold);color:#17231F}
 .chip.pos.pN[aria-pressed="true"]{background:var(--ink2);border-color:var(--ink2);color:var(--surface)}
+.chip.votebtn{flex:1;min-width:0;height:auto;min-height:40px;padding:8px 12px;font-size:14px;line-height:1.3;white-space:normal}
+/* anexos de artigos */
+.atted{display:flex;flex-direction:column;gap:10px;padding:14px;border:1px dashed var(--line2);border-radius:12px}
+.attitem{display:flex;gap:12px;align-items:flex-start;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--surface2)}
+.attitem .thumb{width:64px;height:64px;flex:none;border-radius:8px;object-fit:cover;background:var(--soft)}
+.attitem .ext,.filecard .ext.link{width:40px;height:40px;flex:none;border-radius:8px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;font-weight:600;text-transform:uppercase}
+.attinfo{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;font-size:13.5px}
+.attinfo b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.attctl{display:flex;flex-direction:column;gap:4px;flex:none}
+.attctl .row{gap:4px;flex-wrap:nowrap}
+.attctl .mini{min-width:32px}
+.attprog{height:6px;border-radius:3px;background:var(--line2);overflow:hidden}
+.attprog span{display:block;height:100%;background:var(--accent);transition:width .15s}
+.attcap{height:34px;font-size:13.5px}
+@media (max-width:560px){.attitem{flex-wrap:wrap}.attinfo{flex-basis:calc(100% - 76px)}.attctl{flex-direction:row;width:100%;justify-content:flex-end;gap:6px}.atted{padding:12px}}
+.artfig{margin:0 0 1em;display:flex;flex-direction:column;gap:6px}
+.artfig .zoom{padding:0;border:0;background:var(--soft);cursor:zoom-in;border-radius:10px;overflow:hidden;display:block;width:100%}
+.artfig img{display:block;width:100%;height:auto;max-height:520px;object-fit:contain}
+.artfig figcaption{font-family:var(--sans);font-size:13.5px;line-height:1.45;color:var(--ink2);text-align:center}
+.artgallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.artgallery .artfig{margin:0}
+.artgallery .artfig img{aspect-ratio:1;object-fit:cover;max-height:none}
+.artatts{display:flex;flex-direction:column;gap:12px;padding-top:14px;border-top:1px solid var(--line)}
+.artatts h2{font-size:18px;margin:0;font-weight:800;letter-spacing:-.01em}
+.filecard.pdf{flex-wrap:wrap}
+.filecard .acts{display:flex;gap:6px;margin-left:auto}
+.lightbox{flex-direction:column;gap:10px;cursor:zoom-out;background:rgba(10,12,16,.88)}
+.lightbox img{max-width:100%;max-height:calc(100vh - 120px);border-radius:8px;object-fit:contain}
+.lightbox p{margin:0;color:#fff;font-size:14px;text-align:center;max-width:640px}
+.lightbox .close{position:absolute;top:12px;right:12px;color:#fff;background:rgba(255,255,255,.14);border:0;border-radius:999px;width:40px;height:40px;font-size:18px}
 .debcard.big{background:linear-gradient(180deg,var(--accent-soft),var(--surface))}
 /* indicadores econômicos */
 .kpi-hero{display:flex;flex-direction:column;gap:2px;padding:14px 16px;border-radius:10px;background:var(--brand);color:#fff;position:relative;overflow:hidden}
@@ -679,7 +709,7 @@ button.tickrow:hover{background:var(--soft)}
     topicDraft: { title: "", text: "" }, treplyDraft: "", acDraft: "", artDraft: { id: null, kind: "Artigo", title: "", summary: "", body: "" }, shareArticle: null,
     artFilter: "all", jobF: { kind: "all", mode: "all", q: "", saved: false }, evTab: "upcoming", form: null, confirmDel: null, acct: false, blocks: [], raw: {}, blockAsk: null, pstate: {}, savedAll: [], reports: [], isAdmin: false, modTab: "pending", notifF: "all", newsF: "all", libF: { kind: "all", theme: "all", q: "", saved: false }, library: [], convQ: "", watchDraft: "", onb2: null, compact: store.get("eco-compact", false),
     debates: [], debateComments: [], argComments: [], debQ: "", openArgs: {}, argcDraft: {}, dcDraft: "", argFilter: "all", argSide: null, shareDebate: null,
-    view: store.get("eco-view", "feed"), tab: "foryou", ptab: "posts", q: "", stab: "posts",
+    view: store.get("eco-view", "feed"), tab: "foryou", ptab: "posts", q: "", stab: "all",
     editing: null, editDraft: "", replyTo: null,
     draft: "", commentDraft: "", msgDraft: "", argDraft: "",
     att: null, chart: null, poll: null, dataMenu: false, uploading: false,
@@ -713,7 +743,13 @@ button.tickrow:hover{background:var(--soft)}
   const followerCount = (id) => S.follows.filter((f) => f.to === id).length;
   const followingCount = (id) => S.follows.filter((f) => f.from === id).length;
   const likesOf = (pid) => S.likes.filter((l) => l.post === pid);
-  const repostsOf = (pid) => S.reposts.filter((r) => r.post === pid);
+  // "1 seguidor", "2 seguidores"
+  const plural = (n, one, many) => n + " " + (n === 1 ? one : many);
+  // Texto em minúsculas e sem acentos, para buscas
+  const norm = (s) => String(s == null ? "" : s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  const postAuthor = (pid) => { const p = S.posts.find((x) => x.id === pid); return p ? p.author : null; };
+  // Republicar a própria publicação não vale (nem as antigas aparecem)
+  const repostsOf = (pid) => { const a = postAuthor(pid); return S.reposts.filter((r) => r.post === pid && r.user !== a); };
   const commentsOf = (pid) => S.comments.filter((c) => c.post === pid).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
   const mediaSrc = (m) => m.asset ? (/^https?:/.test(m.asset) ? m.asset : "/_blob/" + m.asset) : (m.data || "");
   const TOKEN = /(@[a-z0-9._]{2,24}|#[\p{L}\p{N}_]{2,40}|\$[A-Z]{4}\d{1,2}\b)/giu;
@@ -790,7 +826,7 @@ button.tickrow:hover{background:var(--soft)}
     if (!canAct()) { toast(S.db ? "Entre na sua conta para interagir." : "Sem conexão com o banco de dados nesta visualização."); return false; }
     try { await fn(); if (okMsg) toast(okMsg); return true; }
     catch (e) {
-      if (e && e.code === "quota_exceeded") toast("O banco de dados do protótipo está cheio.");
+      if (e && e.code === "quota_exceeded") toast("O banco de dados está cheio. Avise a administração da EcoEco.");
       else if (e && e.code === "invalid_argument") toast("Não foi possível salvar. Se anexou uma imagem, tente uma menor.");
       else toast("Não deu para salvar agora. Tente de novo.");
       return false;
@@ -847,7 +883,8 @@ button.tickrow:hover{background:var(--soft)}
     if (v === "compose") { S.view = "feed"; S.tab = "foryou"; S.q = ""; render(); const t = $("#comp"); if (t) t.focus(); return; }
     if (v === "me") v = "profile:" + (S.meId || "");
     if (v.startsWith("profile:")) S.ptab = "posts";
-    if (v === "write") S.artDraft = blankArt();
+    if (S.view.split(":")[0] === "write" && v.split(":")[0] !== "write") leaveWrite();
+    if (v === "write" && S.artDraft.id) S.artDraft = blankArt();
     S.view = v; S.menu = null; S.dataMenu = false; S.editing = null; S.replyTo = null; S.confirmDel = null; S.acct = false; if (v.startsWith("debate:")) { S.argFilter = "all"; S.argSide = null; }
     if (v === "notifications") { S.prevSeen = S.seenNotif; S.seenNotif = now(); store.set("eco-seen", S.seenNotif); }
     if (!v.includes(":")) store.set("eco-view", v);
@@ -863,7 +900,7 @@ button.tickrow:hover{background:var(--soft)}
     const EXPL = ["explore", "news", "debates", "communities", "articles", "jobs", "events", "library", "market"];
     const cur = (id) => (id === base && (id !== "profile" || S.view === "profile:" + S.meId)) ? ' aria-current="page"' : "";
     const items = [["feed", "Início", I.home], ["notifications", "Notificações", I.bell, n], ["news", "Notícias", I.news], ["communities", "Comunidades", I.group], ["debates", "Debates", I.debate], ["articles", "Artigos", I.doc], ["jobs", "Vagas", I.work], ["events", "Eventos", I.cal], ["library", "Biblioteca", I.book], ["market", "Mercado", I.trend], ["messages", "Mensagens", I.mail, unreadConvs()], ["profile", "Perfil", I.user]];
-    $("#nav").innerHTML = items.map(([id, label, ic, c]) => '<button type="button" data-go="' + (id === "profile" ? "me" : id) + '"' + cur(id) + (S.compact ? ' title="' + label + '" aria-label="' + label + (c ? ", " + c + " novas" : "") + '"' : '') + '>' + svg(ic, 22) + '<span class="lbl">' + label + '</span>' + (c ? '<span class="count" aria-label="' + c + ' novas">' + c + '</span>' : '') + '</button>').join("");
+    $("#nav").innerHTML = items.map(([id, label, ic, c]) => '<button type="button" data-go="' + (id === "profile" ? "me" : id) + '"' + cur(id) + (S.compact ? ' title="' + label + '" aria-label="' + label + (c ? ", " + (c === 1 ? "1 nova" : c + " novas") : "") + '"' : '') + '>' + svg(ic, 22) + '<span class="lbl">' + label + '</span>' + (c ? '<span class="count" aria-label="' + (c === 1 ? "1 nova" : c + " novas") + '">' + c + '</span>' : '') + '</button>').join("");
     $("#bottom").innerHTML = [["feed", "Início", I.home], ["notifications", "Avisos", I.bell], ["compose", "Publicar", I.plus], ["explore", "Explorar", I.grid], ["messages", "Mensagens", I.mail, unreadConvs()], ["profile", "Perfil", I.user]].map(([id, label, ic, c]) => '<button type="button" data-go="' + (id === "profile" ? "me" : id) + '"' + (id === "explore" ? (EXPL.includes(base) ? ' aria-current="page"' : '') : cur(id)) + (c ? ' aria-label="' + label + ', ' + c + ' novas"' : '') + '><span class="bicon">' + svg(ic, 22) + (c ? '<span class="bdot" aria-hidden="true"></span>' : '') + '</span>' + label + '</button>').join("");
     const me = U(S.meId);
     const [bg, fg] = hueOf(S.meId || "x");
@@ -929,13 +966,13 @@ button.tickrow:hover{background:var(--soft)}
     const votes = S.pollVotes.filter((v) => v.post === p.id);
     const mine = votes.find((v) => v.user === S.meId);
     const total = votes.length;
-    const showRes = !!mine || !canAct() || p.author === S.meId;
+    const showRes = !!mine;   // porcentagens só depois de votar
     return '<div class="poll">' + opts.map((o, i) => {
       const n = votes.filter((v) => v.opt === i).length;
       const pct = total ? Math.round(n / total * 100) : 0;
       const isMine = mine && mine.opt === i;
       return '<button type="button" class="pollopt' + (isMine ? " mine" : "") + '" data-act="pollvote" data-id="' + esc(p.id) + '" data-opt="' + i + '"' + (canAct() ? "" : " disabled") + ' aria-pressed="' + !!isMine + '">' + (showRes ? '<span class="fill" style="width:' + pct + '%"></span>' : '') + '<span>' + esc(o) + (isMine ? " ✓" : "") + '</span>' + (showRes ? '<span class="pct">' + pct + '%</span>' : '') + '</button>';
-    }).join("") + '<span class="muted" style="font-size:12.5px">' + total + (total === 1 ? " voto" : " votos") + (mine ? " · clique em outra opção para mudar seu voto" : (canAct() ? " · escolha uma opção para ver o resultado" : "")) + '</span></div>';
+    }).join("") + '<span class="muted" style="font-size:12.5px">' + plural(total, "voto", "votos") + (mine ? " · clique em outra opção para mudar seu voto" : (canAct() ? " · vote para ver o resultado" : " · entre na sua conta para votar e ver o resultado")) + '</span></div>';
   }
   function postCard(p, opts) {
     const u = U(p.author);
@@ -947,7 +984,7 @@ button.tickrow:hover{background:var(--soft)}
     const saved = isSaved(p.id);
     const menu = S.menu === p.id ? '<div class="menu" role="menu">' +
       '<button type="button" role="menuitem" data-act="save" data-id="' + esc(p.id) + '">' + (saved ? "Remover dos salvos" : "Salvar publicação") + '</button>' +
-      (mine ? '<button type="button" role="menuitem" data-act="pin" data-id="' + esc(p.id) + '">' + (U(S.meId).pinned === p.id ? "Desafixar do perfil" : "Fixar no perfil") + '</button><button type="button" role="menuitem" data-act="editpost" data-id="' + esc(p.id) + '">Editar publicação</button><button type="button" role="menuitem" class="red" data-act="delete" data-id="' + esc(p.id) + '">Excluir publicação</button>' :
+      (mine ? '<button type="button" role="menuitem" data-act="pin" data-id="' + esc(p.id) + '">' + (U(S.meId).pinned === p.id ? "Desafixar do perfil" : "Fixar no perfil") + '</button><button type="button" role="menuitem" data-act="editpost" data-id="' + esc(p.id) + '">Editar publicação</button><button type="button" role="menuitem" class="red" data-act="delete" data-id="' + esc(p.id) + '">' + (S.confirmDel === "posts:" + p.id ? "Confirmar exclusão" : "Excluir publicação") + '</button>' :
         '<button type="button" role="menuitem" data-act="mute" data-id="' + esc(p.author) + '">Silenciar ' + esc(u.name) + '</button><button type="button" role="menuitem" class="red" data-act="block" data-id="' + esc(p.author) + '">Bloquear ' + esc(u.name) + '</button><button type="button" role="menuitem" class="red" data-act="report" data-id="' + esc(p.id) + '">Denunciar publicação</button>') + '</div>' : "";
     const editing = S.editing === p.id;
     const textHtml = editing
@@ -964,7 +1001,7 @@ button.tickrow:hover{background:var(--soft)}
       '<div class="actions">' +
       '<button type="button" class="like" data-act="like" data-id="' + esc(p.id) + '" aria-pressed="' + liked + '" aria-label="Curtir">' + svg(I.heart, 18, liked ? "currentColor" : "none") + likesOf(p.id).length + '</button>' +
       '<button type="button" data-go="post:' + esc(p.id) + '" aria-label="Comentar">' + svg(I.comment, 18) + commentsOf(p.id).length + '</button>' +
-      '<button type="button" class="rep" data-act="repost" data-id="' + esc(p.id) + '" aria-pressed="' + rep + '" aria-label="Republicar">' + svg(I.repost, 18) + repostsOf(p.id).length + '</button>' +
+      '<button type="button" class="rep" data-act="repost" data-id="' + esc(p.id) + '" aria-pressed="' + rep + '"' + (mine ? ' disabled title="Você não pode republicar a sua própria publicação" aria-label="Republicar (indisponível na sua própria publicação)"' : ' aria-label="Republicar"') + '>' + svg(I.repost, 18) + repostsOf(p.id).length + '</button>' +
       '</div></div></article>';
   }
 
@@ -997,7 +1034,7 @@ button.tickrow:hover{background:var(--soft)}
     if (S.tab === "following") list = list.filter((p) => p.author === S.meId || fol.has(p.author) || repostsOf(p.id).some((r) => fol.has(r.user)));
     list = list.slice().sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     const searching = !!S.q.trim();
-    const searchBar = '<label class="search">' + svg(I.search, 18) + '<span class="sr">Buscar</span><input id="q" type="search" placeholder="Buscar pessoas, publicações, #temas, $ativos" value="' + esc(S.q) + '"></label>';
+    const searchBar = '<label class="search">' + svg(I.search, 18) + '<span class="sr">Buscar</span><input id="q" type="search" placeholder="Buscar pessoas, publicações, artigos, debates, vagas…" value="' + esc(S.q) + '"></label>';
     if (searching) return '<div class="head">' + searchBar + viewSearch(S.q.trim());
     return '<div class="head">' + searchBar +
       '<div class="tabs" role="tablist" aria-label="Feed">' + [["foryou", "Para você"], ["following", "Seguindo"]].map(([id, l]) => '<button type="button" role="tab" data-tab="' + id + '" aria-selected="' + (S.tab === id) + '">' + l + '</button>').join("") + '</div></div>' +
@@ -1013,18 +1050,46 @@ button.tickrow:hover{background:var(--soft)}
   }
   function viewSearch(q) {
     const ql = q.toLowerCase().replace(/^[@#$]/, "");
-    const posts = S.posts.filter((p) => !S.muted.includes(p.author) && ((p.text || "").toLowerCase().includes(q.toLowerCase()) || U(p.author).name.toLowerCase().includes(ql) || (U(p.author).username || "").includes(ql))).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-    const people = Object.keys(S.users).filter((id) => !isHidden(id)).filter((id) => { const u = S.users[id]; return (u.name || "").toLowerCase().includes(ql) || (u.username || "").toLowerCase().includes(ql) || (u.headline || "").toLowerCase().includes(ql); });
+    const nqFull = norm(q), nql = norm(ql);
+    const posts = S.posts.filter((p) => !S.muted.includes(p.author) && (norm(p.text).includes(nqFull) || norm(U(p.author).name).includes(nql) || norm(U(p.author).username).includes(nql))).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    const people = Object.keys(S.users).filter((id) => !isHidden(id)).filter((id) => { const u = S.users[id]; return [u.name, u.username, u.headline].some((x) => norm(x).includes(nql)); });
     const tagCount = {};
     S.posts.forEach((p) => new Set(tagsIn(p.text)).forEach((t) => { if (t.includes(ql)) tagCount[t] = (tagCount[t] || 0) + 1; }));
     const tags = Object.entries(tagCount).sort((a, b) => b[1] - a[1]);
-    const tabs = [["posts", "Publicações", posts.length], ["people", "Pessoas", people.length], ["tags", "Hashtags", tags.length]];
-    let body = "";
-    if (S.stab === "people") body = people.length ? people.map(personRow).join("") : '<p class="empty">Nenhuma pessoa encontrada.</p>';
-    else if (S.stab === "tags") body = tags.length ? tags.map(([t, n]) => '<button type="button" class="conv" data-go="tag:' + esc(t) + '"><span class="av s42" style="background:var(--accent-soft);color:var(--accent);font-size:18px">#</span><span style="display:flex;flex-direction:column"><b>#' + esc(t) + '</b><span class="muted" style="font-size:13px">' + n + (n === 1 ? " publicação" : " publicações") + '</span></span></button>').join("") : '<p class="empty">Nenhuma hashtag encontrada.</p>';
-    else body = posts.length ? posts.map((p) => postCard(p)).join("") : '<p class="empty">Nenhuma publicação encontrada.</p>';
+    // Outros tipos de conteúdo (busca sem diferenciar acentos e maiúsculas)
+    const nq = norm(ql), has = (...xs) => xs.some((x) => norm(x).includes(nq));
+    const arts = S.articles.filter((a) => has(a.title, a.summary, a.body, a.kind, U(a.author).name)).sort(byNew);
+    const debs = S.debates.filter((d) => has(d.title, d.desc, d.cat, d.sideA, d.sideB)).sort(byNew);
+    const comms = S.communities.filter((c) => has(c.name, c.desc, c.rules)).sort((a, b) => commMembers(b.id).length - commMembers(a.id).length);
+    const jobs = S.jobs.filter((j) => has(j.title, j.company, j.kind, j.mode, j.city, j.area, j.desc)).sort(byNew);
+    const evs = S.events.filter((e) => has(e.title, e.org, e.place, e.format, e.desc)).sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+    const libs = S.library.filter((m) => has(m.title, m.authors, m.kind, m.theme, m.desc)).sort(byNew);
+    const news = NEWS.map((n, i) => ({ n, i })).filter(({ n }) => has(n.title, n.prev, n.src, n.cat));
+    const commRow = (c) => { const n = commMembers(c.id).length; return '<button type="button" class="conv" data-go="community:' + esc(c.id) + '">' + commIcon(c) + '<span style="flex:1;min-width:0;display:flex;flex-direction:column;text-align:left"><b>' + esc(c.name) + '</b><span class="muted clamp1" style="font-size:13px">' + esc(c.desc || "") + '</span><span class="muted" style="font-size:12.5px">' + plural(n, "membro", "membros") + '</span></span></button>'; };
+    const newsRow = ({ n }) => '<article class="news"><div class="row muted" style="font-size:12.5px;flex-wrap:nowrap"><b style="color:var(--ink)">' + esc(n.src) + '</b>·<span>' + esc(n.cat) + '</span>' + (n.date ? '·<span>' + esc(n.date) + '</span>' : '') + '</div><h2>' + esc(n.title) + '</h2><a href="' + esc(n.href) + '" target="_blank" rel="noopener" style="font-weight:700;text-decoration:none;font-size:13.5px">Ler no site ↗</a></article>';
+    const tagRow = ([t, n]) => '<button type="button" class="conv" data-go="tag:' + esc(t) + '"><span class="av s42" style="background:var(--accent-soft);color:var(--accent);font-size:18px">#</span><span style="display:flex;flex-direction:column"><b>#' + esc(t) + '</b><span class="muted" style="font-size:13px">' + plural(n, "publicação", "publicações") + '</span></span></button>';
+    const groups = [
+      ["people", "Pessoas", people, personRow],
+      ["posts", "Publicações", posts, (p) => postCard(p)],
+      ["tags", "Hashtags", tags, tagRow],
+      ["articles", "Artigos e projetos", arts, articleRow],
+      ["debates", "Debates", debs, (d) => debateCard(d)],
+      ["communities", "Comunidades", comms, commRow],
+      ["jobs", "Vagas", jobs, jobRow],
+      ["events", "Eventos", evs, evRow],
+      ["library", "Biblioteca", libs, libRow],
+      ["news", "Notícias", news, newsRow]
+    ];
+    const total = groups.reduce((s, g) => s + g[2].length, 0);
+    const cur = groups.find((g) => g[0] === S.stab);
+    let body;
+    if (cur) body = cur[2].length ? cur[2].map(cur[3]).join("") : '<p class="empty">Nada encontrado em ' + esc(cur[1].toLowerCase()) + '.</p>';
+    else body = total ? groups.filter((g) => g[2].length).map(([id, label, list, fn]) =>
+        '<section aria-label="' + esc(label) + '"><div class="row" style="justify-content:space-between;padding:14px 20px 4px"><span class="eyebrow">' + esc(label) + ' (' + list.length + ')</span>' + (list.length > 3 ? '<button type="button" class="linkname" style="color:var(--accent);font-size:13px" data-act="stab" data-id="' + id + '">Ver todos</button>' : '') + '</div>' + list.slice(0, 3).map(fn).join("") + '</section>').join("")
+      : '<p class="empty">Nada encontrado para “' + esc(q) + '”. Tente outra palavra.</p>';
+    const chip = (id, label, n) => '<button type="button" class="chip" data-act="stab" data-id="' + id + '" aria-pressed="' + ((cur ? cur[0] : "all") === id) + '"' + (id !== "all" && !n ? ' disabled' : '') + '>' + esc(label) + ' (' + n + ')</button>';
     return '<div class="row" style="justify-content:space-between;font-size:13.5px"><span class="muted">Resultados para “' + esc(q) + '”</span><button type="button" class="linkname" style="color:var(--accent)" data-act="clearq">Limpar busca</button></div>' +
-      '<div class="tabs" role="tablist" aria-label="Resultados">' + tabs.map(([id, l, n]) => '<button type="button" role="tab" data-act="stab" data-id="' + id + '" aria-selected="' + (S.stab === id) + '">' + l + ' (' + n + ')</button>').join("") + '</div></div>' + body;
+      '<div class="filters" role="group" aria-label="Tipo de resultado" style="padding-bottom:0">' + chip("all", "Tudo", total) + groups.filter(([id, , list]) => list.length || (cur && cur[0] === id)).map(([id, l, list]) => chip(id, l, list.length)).join("") + '</div></div>' + body;
   }
   function viewTag(tag) {
     const posts = S.posts.filter((p) => tagsIn(p.text).includes(tag) && !S.muted.includes(p.author)).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
@@ -1062,7 +1127,7 @@ button.tickrow:hover{background:var(--soft)}
     const fol = following().has(id);
     const [bg, fg] = hueOf(id);
     const posts = S.posts.filter((p) => p.author === id).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-    const reps = S.reposts.filter((r) => r.user === id).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).map((r) => S.posts.find((p) => p.id === r.post)).filter(Boolean);
+    const reps = S.reposts.filter((r) => r.user === id && postAuthor(r.post) !== id).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).map((r) => S.posts.find((p) => p.id === r.post)).filter(Boolean);
     const tab = S.ptab;
     const coverStyle = u.cover ? 'background:var(--brand) url(' + esc(u.cover) + ') center/cover no-repeat' : '';
     const meta = [u.role ? svg(I.work, 15) + esc(u.role) : "", u.school ? svg(I.school, 15) + esc(u.school) : "", u.city ? svg(I.pin, 15) + esc(u.city) : "", u.link ? svg(I.link, 15) + '<a href="' + esc(/^https?:\/\//i.test(u.link) ? u.link : "https://" + u.link) + '" target="_blank" rel="noopener">' + esc(u.link.replace(/^https?:\/\//i, "")) + '</a>' : ""].filter(Boolean);
@@ -1090,7 +1155,7 @@ button.tickrow:hover{background:var(--soft)}
       (u.headline ? '<p style="margin:0;font-weight:500">' + esc(u.headline) + '</p>' : (own ? '<p class="muted" style="margin:0">Adicione um título ao seu perfil em “Editar perfil”.</p>' : '')) +
       (u.bio ? '<p style="margin:0;white-space:pre-wrap">' + esc(u.bio) + '</p>' : '') +
       (meta.length ? '<div class="row muted" style="font-size:13.5px;gap:14px">' + meta.map((m) => '<span class="row" style="gap:5px">' + m + '</span>').join("") + '</div>' : '') +
-      '<div class="stats"><button type="button" class="statbtn" data-go="follows:' + esc(id) + ':following"><b>' + followingCount(id) + '</b> <span class="muted">seguindo</span></button><button type="button" class="statbtn" data-go="follows:' + esc(id) + ':followers"><b>' + followerCount(id) + '</b> <span class="muted">seguidores</span></button><span><b>' + posts.length + '</b> <span class="muted">publicações</span></span></div>' +
+      '<div class="stats"><button type="button" class="statbtn" data-go="follows:' + esc(id) + ':following"><b>' + followingCount(id) + '</b> <span class="muted">seguindo</span></button><button type="button" class="statbtn" data-go="follows:' + esc(id) + ':followers"><b>' + followerCount(id) + '</b> <span class="muted">' + (followerCount(id) === 1 ? "seguidor" : "seguidores") + '</span></button><span><b>' + posts.length + '</b> <span class="muted">' + (posts.length === 1 ? "publicação" : "publicações") + '</span></span></div>' +
       (u.fake ? '<span class="demo">Perfil de demonstração: esta pessoa não existe e não responde mensagens.</span>' : '') + '</div>' +
       '<div class="head" style="position:static;padding-top:12px"><div class="tabs" role="tablist" aria-label="Conteúdo do perfil">' + [["posts", "Publicações"], ["reposts", "Republicações"], ["articles", "Artigos"]].concat(own ? [["saved", "Salvos"]] : []).concat([["about", "Sobre"]]).map(([t, l]) => '<button type="button" role="tab" data-ptab="' + t + '" aria-selected="' + (tab === t) + '">' + l + '</button>').join("") + '</div></div>' + body;
   }
@@ -1124,7 +1189,7 @@ button.tickrow:hover{background:var(--soft)}
   const debVotes = (did) => S.votes.filter((v) => debOf(v) === did);
   const debArgs = (did) => S.args.filter((a) => debOf(a) === did);
   const debComments = (did) => S.posts.filter((p) => p.debate === did);
-  const sideLabel = (d, sd) => sd === "A" ? d.sideA : sd === "B" ? d.sideB : "Imparcial";
+  const sideLabel = (d, sd) => sd === "A" ? d.sideA : sd === "B" ? d.sideB : "Depende";
   const argScore = (x) => S.ups.filter((u) => u.arg === x.id).length * 2 + S.argComments.filter((c) => c.arg === x.id).length;
   const myVote = (did) => loggedIn() ? debVotes(did).find((v) => (v.user || v.id) === S.meId) : null;
   function debateStats(did) {
@@ -1186,19 +1251,21 @@ button.tickrow:hover{background:var(--soft)}
     const nFeed = debComments(id).length;
     const pos = S.argSide || side || "";
     const posBtn = (sd, label) => '<button type="button" class="chip pos p' + sd + '" data-act="argside" data-id="' + sd + '" aria-pressed="' + (pos === sd) + '">' + esc(label) + '</button>';
+    const voteBtn = (sd, label) => '<button type="button" class="chip pos votebtn p' + sd + '" data-act="vote" data-id="' + sd + '" aria-pressed="' + (side === sd) + '">' + (side === sd ? '✓ ' : '') + esc(label) + '</button>';
     const fil = (k, label) => '<button type="button" class="chip" data-act="argfilter" data-id="' + k + '" aria-pressed="' + (f === k) + '">' + esc(label) + ' (' + cnt[k] + ')</button>';
     return backHead("debates", "Debates", esc(d.cat || ""), d.author === S.meId && canAct() ? '<span style="margin-left:auto">' + delBtn("debates", id) + '</span>' : '') +
       '<div style="padding:18px 20px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:12px"><h1 class="debtitle" style="font-size:27px;line-height:1.22;margin:0">' + esc(d.title) + '</h1>' +
       (d.desc ? '<p class="muted" style="margin:0;white-space:pre-wrap">' + richText(d.desc) + '</p>' : '') +
       '<span class="muted" style="font-size:12.5px">Proposto por <button type="button" class="linkname" style="font-weight:500" data-go="profile:' + esc(d.author) + '">' + esc(U(d.author).name) + '</button> · ' + rel(d.createdAt) + '</span>' +
       debBar(st, d) + '<div class="row" style="justify-content:space-between;font-size:14px"><b style="color:var(--accent)">' + esc(d.sideA) + (st.tot ? ' · ' + st.pa + '%' : '') + '</b><span class="muted">' + st.tot + (st.tot === 1 ? " voto" : " votos") + '</span><b style="color:var(--gold-ink)">' + esc(d.sideB) + (st.tot ? ' · ' + (100 - st.pa) + '%' : '') + '</b></div>' +
-      '<div class="row" style="justify-content:space-between">' + (side ? '<span class="muted" style="font-size:13.5px">Seu voto: <b style="color:' + (side === "A" ? "var(--accent)" : "var(--warn)") + '">' + esc(sideLabel(d, side)) + '</b>' + (canAct() ? ' · <button type="button" class="linkname muted" style="font-weight:400;text-decoration:underline" data-act="unvote">desfazer</button>' : '') + '</span>' : '<span class="muted" style="font-size:13.5px">Você vota ao publicar seu argumento.</span>') +
-      (canAct() ? '<button type="button" class="btn ghost small" data-act="sharedeb" data-id="' + esc(id) + '" style="display:inline-flex;align-items:center;gap:6px">' + svg(I.repost, 16) + 'Comentar no feed' + (nFeed ? ' · ' + nFeed : '') + '</button>' : (nFeed ? '<span class="muted" style="font-size:13px">' + nFeed + ' posts no feed</span>' : '')) + '</div></div>' +
-      (canAct() ? '<form id="argForm" class="stack-form"><span style="font-weight:600;font-size:14.5px">Argumentar</span><div class="row" style="gap:6px"><span class="muted" style="font-size:13px">Sua posição:</span>' + posBtn("A", d.sideA) + posBtn("B", d.sideB) + posBtn("N", "Imparcial") + '</div>' +
-        '<label class="sr" for="ain">Seu argumento</label><textarea id="ain" rows="3" maxlength="800" placeholder="' + (pos ? (pos === "N" ? "Escreva um comentário imparcial: dados, contexto, os dois lados…" : "Escreva um argumento para “" + esc(sideLabel(d, pos)) + "”…") : "Escolha sua posição acima e escreva seu argumento…") + '">' + esc(S.argDraft) + '</textarea>' +
-        '<div class="row" style="justify-content:space-between"><span class="muted" style="font-size:12.5px">' + (pos === "A" || pos === "B" ? "Ao publicar, seu voto fica em “" + esc(sideLabel(d, pos)) + "”." : pos === "N" ? "Comentários imparciais não contam voto." : "") + '</span><button type="submit" class="btn small"' + (pos ? '' : ' disabled') + '>Publicar argumento</button></div></form>' : '') +
+      (canAct() ? '<div class="row" role="group" aria-label="Votar" style="gap:8px;flex-wrap:nowrap">' + voteBtn("A", d.sideA) + voteBtn("B", d.sideB) + '</div>' : '') +
+      '<div class="row" style="justify-content:space-between">' + (side ? '<span class="muted" style="font-size:13.5px">Seu voto: <b style="color:' + (side === "A" ? "var(--accent)" : "var(--gold-ink)") + '">' + esc(sideLabel(d, side)) + '</b>' + (canAct() ? ' · <button type="button" class="linkname muted" style="font-weight:400;text-decoration:underline" data-act="unvote">desfazer voto</button>' : '') + '</span>' : (canAct() ? '<span class="muted" style="font-size:13.5px">Vote acima. Argumentar é opcional.</span>' : '<span></span>')) +
+      (canAct() ? '<button type="button" class="btn ghost small" data-act="sharedeb" data-id="' + esc(id) + '" style="display:inline-flex;align-items:center;gap:6px">' + svg(I.repost, 16) + 'Comentar no feed' + (nFeed ? ' · ' + nFeed : '') + '</button>' : (nFeed ? '<span class="muted" style="font-size:13px">' + plural(nFeed, "post no feed", "posts no feed") + '</span>' : '')) + '</div></div>' +
+      (canAct() ? '<form id="argForm" class="stack-form"><span style="font-weight:600;font-size:14.5px">Argumentar <span class="muted" style="font-weight:400;font-size:13px">(opcional)</span></span><div class="row" style="gap:6px"><span class="muted" style="font-size:13px">Sua posição:</span>' + posBtn("A", d.sideA) + posBtn("B", d.sideB) + posBtn("N", "Depende") + '</div>' +
+        '<label class="sr" for="ain">Seu argumento</label><textarea id="ain" rows="3" maxlength="800" placeholder="' + (pos ? (pos === "N" ? "Explique do que depende: dados, contexto, condições…" : "Escreva um argumento para “" + esc(sideLabel(d, pos)) + "”…") : "Escolha sua posição acima e escreva seu argumento…") + '">' + esc(S.argDraft) + '</textarea>' +
+        '<div class="row" style="justify-content:space-between"><span class="muted" style="font-size:12.5px">' + (pos === "A" || pos === "B" ? "Ao publicar, seu voto fica em “" + esc(sideLabel(d, pos)) + "”." : pos === "N" ? "Argumentos “Depende” não mudam seu voto." : "") + '</span><button type="submit" class="btn small"' + (pos ? '' : ' disabled') + '>Publicar argumento</button></div></form>' : '') +
       '<div style="padding:18px 20px 0;display:flex;flex-direction:column;gap:10px"><h2 style="margin:0;font-size:20px;font-weight:800;letter-spacing:-.015em">Argumentos das pessoas</h2>' +
-      '<div class="filters" style="padding-bottom:4px">' + fil("all", "Sem filtro") + fil("A", d.sideA) + fil("B", d.sideB) + fil("N", "Imparciais") + '</div><span class="muted" style="font-size:12.5px">Ordenados dos mais relevantes para os menos relevantes (apoios e comentários).</span></div>' +
+      '<div class="filters" style="padding-bottom:4px">' + fil("all", "Sem filtro") + fil("A", d.sideA) + fil("B", d.sideB) + fil("N", "Depende") + '</div><span class="muted" style="font-size:12.5px">Ordenados dos mais relevantes para os menos relevantes (apoios e comentários).</span></div>' +
       '<div class="arglist">' + (list.length ? list.map((o) => argCard(o, d)).join("") : '<p class="muted" style="margin:0">' + (f === "all" ? "Nenhum argumento ainda. Seja a primeira pessoa a argumentar." : "Nenhum argumento neste filtro.") + '</p>') + '</div>' +
       '<p class="muted" style="margin:0;padding:4px 20px 24px;font-size:13px">Regra dos debates: argumente contra a ideia, nunca contra a pessoa. Cite dados e fontes quando puder.</p>';
   }
@@ -1274,7 +1341,7 @@ button.tickrow:hover{background:var(--soft)}
   function viewExplore() {
     const t = todayStr();
     const tiles = [
-      ["news", "Notícias", I.news, NEWS.length + " prévias de hoje"],
+      ["news", "Notícias", I.news, ((today) => today ? plural(today, "prévia de hoje", "prévias de hoje") : plural(NEWS.length, "prévia recente", "prévias recentes"))(NEWS.filter((n) => n.date === new Date().toLocaleDateString("pt-BR", { day: "numeric", month: "numeric" })).length)],
       ["communities", "Comunidades", I.group, S.communities.length + (S.communities.length === 1 ? " grupo com fórum" : " grupos com fórum")],
       ["debates", "Debates", I.debate, S.debates.length + (S.debates.length === 1 ? " debate" : " debates")],
       ["articles", "Artigos e projetos", I.doc, S.articles.length + (S.articles.length === 1 ? " texto publicado" : " textos publicados")],
@@ -1329,11 +1396,203 @@ button.tickrow:hover{background:var(--soft)}
   }
 
   /* ---------- artigos e projetos ---------- */
+  // Anexos: lista em articles.attachments = [{ type: "image"|"pdf"|"link", url, name, size, caption, n }]
+  const ATT_MAX = 5, ATT_MAX_BYTES = 10 * 1048576;
+  const ATT_TYPES = { "image/jpeg": "image", "image/png": "image", "image/webp": "image", "image/gif": "image", "application/pdf": "pdf" };
+  const ATT_EXT = { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", gif: "image/gif", pdf: "application/pdf" };
+  const ATT_ACCEPT = "image/jpeg,image/png,image/webp,image/gif,application/pdf,.jpg,.jpeg,.png,.webp,.gif,.pdf";
+  const okFileUrl = (u) => /^(https:\/\/|blob:)/i.test(String(u || ""));
+  const okLinkUrl = (u) => /^https?:\/\//i.test(String(u || ""));
+  const attsOf = (a) => (Array.isArray(a && a.attachments) ? a.attachments : []).filter((x) => x && (x.type === "link" ? okLinkUrl(x.url) : (x.type === "image" || x.type === "pdf") && okFileUrl(x.url)));
+  const IMG_MARK = /^\[imagem (\d+)\]$/i;
+  const imgMarker = (n) => "[imagem " + n + "]";
+  const usedImgs = (body) => new Set(String(body || "").split(/\n\s*\n/).map((b) => IMG_MARK.exec(b.trim())).filter(Boolean).map((m) => +m[1]));
+  const linkHost = (u) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch (e) { return u; } };
+  const dlUrl = (u, name) => /^https:/i.test(u) ? u + (u.includes("?") ? "&" : "?") + "download=" + encodeURIComponent(name || "arquivo.pdf") : u;
+  const attKey = () => Math.random().toString(36).slice(2, 10);
+  const cleanAtts = (list) => list.filter((x) => x.status !== "uploading").slice(0, ATT_MAX).map((x) => x.type === "link"
+    ? { type: "link", url: x.url, name: String(x.name || "").slice(0, 120) }
+    : Object.assign({ type: x.type, url: x.url, name: String(x.name || "").slice(0, 120), size: x.size || 0 }, x.type === "image" ? { caption: String(x.caption || "").slice(0, 200), n: x.n } : {}));
+  const delFile = (url) => { if (url && S.assets && S.assets.delete) S.assets.delete(url).catch(() => {}); };
+  const delFiles = (list) => (list || []).forEach((x) => { if (x && x.type !== "link") delFile(x.url); });
+
+  function figureHtml(x) {
+    const src = esc(x.previewUrl || x.url);
+    return '<figure class="artfig"><button type="button" class="zoom" data-act="lightbox" data-src="' + src + '" data-cap="' + esc(x.caption || "") + '" aria-label="Ampliar imagem' + (x.caption ? ": " + esc(x.caption) : "") + '"><img src="' + src + '" alt="' + esc(x.caption || x.name || "Imagem do texto") + '" loading="lazy"></button>' + (x.caption ? '<figcaption>' + esc(x.caption) + '</figcaption>' : '') + '</figure>';
+  }
+  // Texto do artigo: um parágrafo que é só "[imagem N]" vira a imagem N
+  function articleBody(body, atts) {
+    const imgs = {}; atts.forEach((x) => { if (x.type === "image" && x.n) imgs[x.n] = x; });
+    return String(body || "").split(/\n\s*\n/).map((b) => { const m = IMG_MARK.exec(b.trim()); return m && imgs[+m[1]] ? figureHtml(imgs[+m[1]]) : paragraphs(b); }).join("");
+  }
+  // Fim do artigo: galeria (imagens não inseridas no texto), PDFs e links
+  function attSection(atts, body) {
+    const used = usedImgs(body);
+    const gal = atts.filter((x) => x.type === "image" && !used.has(x.n)), pdfs = atts.filter((x) => x.type === "pdf"), links = atts.filter((x) => x.type === "link");
+    if (!gal.length && !pdfs.length && !links.length) return "";
+    return '<section class="artatts" aria-label="Anexos"><h2>Anexos</h2>' +
+      (gal.length ? '<div class="artgallery">' + gal.map(figureHtml).join("") + '</div>' : '') +
+      pdfs.map((x) => { const u = esc(x.previewUrl || x.url); return '<div class="filecard pdf"><span class="ext">PDF</span><span style="display:flex;flex-direction:column;min-width:0;flex:1"><b style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(x.name || "Documento.pdf") + '</b><span class="muted" style="font-size:12.5px">' + (x.size ? fmtSize(x.size) : "PDF") + '</span></span><span class="acts"><a class="mini" style="display:inline-flex;align-items:center;text-decoration:none;color:var(--ink)" href="' + u + '" target="_blank" rel="noopener">Abrir</a><a class="mini" style="display:inline-flex;align-items:center;text-decoration:none;color:var(--ink)" href="' + esc(dlUrl(x.previewUrl || x.url, x.name)) + '" download="' + esc(x.name || "documento.pdf") + '">Baixar</a></span></div>'; }).join("") +
+      links.map((x) => '<a class="filecard" href="' + esc(x.url) + '" target="_blank" rel="noopener noreferrer"><span class="ext link">' + svg(I.link, 18) + '</span><span style="display:flex;flex-direction:column;min-width:0;flex:1"><b style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(x.name || linkHost(x.url)) + '</b><span class="muted" style="font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(linkHost(x.url)) + ' ↗</span></span></a>').join("") +
+      '</section>';
+  }
+  function openLightbox(src, cap) {
+    closeLightbox();
+    const back = document.activeElement;
+    const box = document.createElement("div");
+    box.className = "overlay lightbox"; box.id = "lightbox";
+    box.setAttribute("role", "dialog"); box.setAttribute("aria-modal", "true"); box.setAttribute("aria-label", cap || "Imagem ampliada");
+    box.innerHTML = '<button type="button" class="close" aria-label="Fechar imagem">✕</button><img src="' + esc(src) + '" alt="' + esc(cap || "Imagem ampliada") + '">' + (cap ? '<p>' + esc(cap) + '</p>' : '');
+    box._back = back;
+    box.addEventListener("click", closeLightbox);
+    document.body.appendChild(box);
+    box.querySelector(".close").focus();
+  }
+  function closeLightbox() { const b = $("#lightbox"); if (!b) return; const back = b._back; b.remove(); if (back && back.focus) back.focus(); }
+
+  /* rascunho (só para textos novos; fica salvo neste navegador) */
+  const draftKey = () => "eco-artdraft-" + (S.meId || "anon");
+  function loadDraft() {
+    const s = store.get(draftKey(), null), d = blankArt(); d.loaded = true;
+    if (!s) return d;
+    Object.assign(d, { kind: s.kind || "Artigo", title: s.title || "", summary: s.summary || "", body: s.body || "" });
+    d.atts = attsOf({ attachments: s.attachments }).map((x) => Object.assign({ key: attKey(), status: "done" }, x));
+    renumberImgs(d);
+    d.hadDraft = !!(d.title || d.summary || d.body || d.atts.length);
+    return d;
+  }
+  function saveDraft() {
+    const d = S.artDraft; if (d.id || !d.loaded) return;
+    const empty = !d.title.trim() && !d.summary.trim() && !d.body.trim() && !d.atts.length;
+    store.set(draftKey(), empty ? null : { kind: d.kind, title: d.title, summary: d.summary, body: d.body, attachments: cleanAtts(d.atts), savedAt: now() });
+    const el = $("#a-saved"); if (el) el.textContent = empty ? "" : "Rascunho salvo neste navegador";
+  }
+  let draftTimer = null;
+  const saveDraftSoon = () => { clearTimeout(draftTimer); draftTimer = setTimeout(saveDraft, 600); };
+  // Ao sair da tela de escrever: rascunho novo fica guardado; edição cancelada apaga os arquivos enviados nela
+  function leaveWrite() {
+    const d = S.artDraft;
+    if (d.id) { d.atts.forEach((x) => { if (x.type !== "link" && x.url && !d.orig.includes(x.url)) delFile(x.url); }); S.artDraft = blankArt(); }
+    else { clearTimeout(draftTimer); saveDraft(); d.preview = false; }
+  }
+
+  // Contador da tela de escrever: "0 palavras · mínimo 30 palavras" até chegar a 30
+  const ART_MIN_WORDS = 30;
+  const wordInfo = (body) => { const n = wc(body); return plural(n, "palavra", "palavras") + " · " + (n < ART_MIN_WORDS ? "mínimo " + ART_MIN_WORDS + " palavras" : readMin(body) + " min de leitura"); };
+  const uploadingCount = (d) => d.atts.filter((x) => x.status === "uploading").length;
+  // Numera as imagens só entre imagens (links e PDFs não contam), na ordem da lista,
+  // e atualiza os marcadores [imagem N] do texto para acompanhar.
+  function renumberImgs(d) {
+    const map = {}; let k = 0;
+    d.atts.forEach((x) => { if (x.type !== "image") return; k++; if (x.n && x.n !== k) map[x.n] = k; x.n = k; });
+    if (Object.keys(map).length) d.body = d.body.replace(/\[imagem (\d+)\]/gi, (m, n) => (map[n] ? imgMarker(map[n]) : m));
+  }
+  function addArtFiles(files) {
+    const d = S.artDraft;
+    if (!S.assets) { toast("O envio de arquivos não está disponível agora."); return; }
+    const room = ATT_MAX - d.atts.length;
+    if (room <= 0) { toast("Limite de " + ATT_MAX + " anexos por texto (arquivos e links somados). Remova um para adicionar outro."); return; }
+    if (files.length > room) { toast("Você escolheu " + files.length + " arquivos, mas só cabe" + (room === 1 ? " mais 1" : "m mais " + room) + " (limite de " + ATT_MAX + " anexos). Nada foi enviado."); return; }
+    const prepared = [];
+    for (const f of files) {
+      const ext = (f.name.split(".").pop() || "").toLowerCase();
+      const type = ATT_TYPES[f.type] ? f.type : ATT_EXT[ext];
+      if (!type || !ATT_TYPES[type]) { toast("“" + f.name + "” não é aceito. Use imagens JPG, PNG, WebP ou GIF, ou PDF. Nada foi enviado."); return; }
+      if (f.size > ATT_MAX_BYTES) { toast("“" + f.name + "” tem " + fmtSize(f.size) + ". O limite é 10 MB por arquivo. Nada foi enviado."); return; }
+      prepared.push({ f, type, kind: ATT_TYPES[type] });
+    }
+    prepared.forEach(({ f, type, kind }) => {
+      const att = { key: attKey(), type: kind, name: f.name.slice(0, 120), size: f.size, status: "uploading", progress: 0, caption: "" };
+      if (kind === "image") att.previewUrl = URL.createObjectURL(f);
+      d.atts.push(att); renumberImgs(d);
+      S.assets.upload(f, { type, onProgress: (p) => { att.progress = p; const bar = document.getElementById("attp-" + att.key), lab = document.getElementById("attl-" + att.key); if (bar) bar.style.width = Math.round(p * 100) + "%"; if (lab) lab.textContent = "Enviando… " + Math.round(p * 100) + "%"; } })
+        .then((up) => {
+          att.url = up.url || up.id; att.status = "done";
+          if (S.artDraft !== d || !d.atts.includes(att)) { delFile(att.url); return; }   // removido ou cancelado durante o envio
+          saveDraft(); render();
+        })
+        .catch((e) => {
+          const i = d.atts.indexOf(att); if (i >= 0) d.atts.splice(i, 1);
+          toast(e && e.code === "too_large" ? "“" + att.name + "” passou do limite de 10 MB." : e && e.code === "unsupported_type" ? "O servidor não aceitou o tipo de “" + att.name + "”." : "Não foi possível enviar “" + att.name + "”. Tente de novo.");
+          render();
+        });
+    });
+    render();
+  }
+  function addArtLink() {
+    const d = S.artDraft;
+    if (d.atts.length >= ATT_MAX) { toast("Limite de " + ATT_MAX + " anexos por texto (arquivos e links somados)."); return; }
+    const raw = (d.lurl || "").trim();
+    if (!raw) { toast("Cole o endereço do link."); const el = $("#a-lurl"); if (el) el.focus(); return; }
+    const u = safeLink(raw);
+    let ok = okLinkUrl(u); try { ok = ok && new URL(u).hostname.includes("."); } catch (e) { ok = false; }
+    if (!ok) { toast("Esse endereço não é válido. Use um link que comece com http:// ou https://."); const el = $("#a-lurl"); if (el) el.focus(); return; }
+    d.atts.push({ key: attKey(), type: "link", url: u, name: (d.ltitle || "").trim().slice(0, 120), status: "done" });
+    d.lurl = ""; d.ltitle = ""; d.linkForm = false;
+    saveDraft(); render(); toast("Link adicionado");
+  }
+  function removeAtt(key) {
+    const d = S.artDraft, i = d.atts.findIndex((x) => x.key === key); if (i < 0) return;
+    const x = d.atts.splice(i, 1)[0];
+    if (x.type === "image" && x.n) { d.body = d.body.split(/\n\s*\n/).filter((b) => b.trim().toLowerCase() !== imgMarker(x.n)).join("\n\n"); renumberImgs(d); }
+    if (x.type !== "link" && x.status === "done" && x.url) { if (d.id && d.orig.includes(x.url)) d.removed.push(x.url); else delFile(x.url); }
+    saveDraft(); render(); toast("Anexo removido");
+  }
+  function moveAtt(key, dir) {
+    const d = S.artDraft, i = d.atts.findIndex((x) => x.key === key), j = i + dir;
+    if (i < 0 || j < 0 || j >= d.atts.length) return;
+    [d.atts[i], d.atts[j]] = [d.atts[j], d.atts[i]];
+    renumberImgs(d); saveDraft(); render();
+  }
+  function insertImage(key) {
+    const d = S.artDraft, x = d.atts.find((a) => a.key === key); if (!x || !x.n) return;
+    const ta = $("#a-body"); if (ta) d.body = ta.value;
+    const pos = Math.min(d.body.length, d.caret == null ? d.body.length : d.caret);
+    const before = d.body.slice(0, pos).replace(/\s+$/, ""), after = d.body.slice(pos).replace(/^\s+/, "");
+    d.body = (before ? before + "\n\n" : "") + imgMarker(x.n) + "\n\n" + after;
+    d.caret = (before ? before.length + 2 : 0) + imgMarker(x.n).length + 2;
+    saveDraft(); render();
+    const el = $("#a-body"); if (el) { el.focus(); el.setSelectionRange(d.caret, d.caret); }
+    toast("Imagem " + x.n + " inserida no texto");
+  }
+  async function publishArt() {
+    const d = S.artDraft;
+    if (uploadingCount(d)) { toast("Espere os arquivos terminarem de enviar para publicar."); return; }
+    if (!d.title.trim()) { toast("Dê um título ao texto."); if (d.preview) { d.preview = false; render(); } const el = $("#a-title"); if (el) el.focus(); return; }
+    if (wc(d.body) < 30) { toast("O texto está muito curto. Para textos curtos, use uma publicação no feed."); if (d.preview) { d.preview = false; render(); } return; }
+    const body = { kind: ART_KINDS.includes(d.kind) ? d.kind : "Artigo", title: d.title.trim().slice(0, 140), summary: d.summary.trim().slice(0, 300), body: d.body.trim().slice(0, 20000), attachments: cleanAtts(d.atts) };
+    if (d.id) {
+      if (await write(() => col("articles").doc(d.id).update(Object.assign(body, { editedAt: now() })), "Texto atualizado")) { const id = d.id; delFiles(d.removed.map((url) => ({ type: "file", url }))); S.artDraft = blankArt(); go("article:" + id); }
+    } else {
+      let nid = null;
+      if (await write(async () => { const r = await col("articles").add(Object.assign(body, { author: S.meId, createdAt: now() })); nid = r && r.id; }, "Texto publicado")) { store.set(draftKey(), null); S.artDraft = blankArt(); go(nid ? "article:" + nid : "articles"); }
+    }
+  }
+  function attEditor(d) {
+    const used = usedImgs(d.body), full = d.atts.length >= ATT_MAX;
+    const item = (x, i) => {
+      const up = x.status === "uploading", pct = Math.round((x.progress || 0) * 100);
+      const thumb = x.type === "image" ? '<img class="thumb" src="' + esc(x.previewUrl || x.url) + '" alt="">' : x.type === "pdf" ? '<span class="ext">PDF</span>' : '<span class="ext">' + svg(I.link, 18) + '</span>';
+      const info = x.type === "link"
+        ? '<b>' + esc(x.name || linkHost(x.url)) + '</b><span class="muted" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(x.url) + '</span>'
+        : '<b>' + esc(x.name) + '</b>' + (up ? '<span class="muted" id="attl-' + x.key + '">Enviando… ' + pct + '%</span><div class="attprog" role="presentation"><span id="attp-' + x.key + '" style="width:' + pct + '%"></span></div>'
+          : '<span class="muted">' + (x.type === "image" ? "Imagem " + x.n + " · " : "PDF · ") + fmtSize(x.size || 0) + (x.type === "image" ? (used.has(x.n) ? ' · <b style="color:var(--accent)">no texto</b>' : ' · vai para a galeria') : '') + '</span>') +
+          (x.type === "image" && !up ? '<label class="sr" for="attcap-' + x.key + '">Legenda da imagem ' + x.n + '</label><input class="input attcap" id="attcap-' + x.key + '" data-key="' + x.key + '" maxlength="200" placeholder="Legenda (opcional)" value="' + esc(x.caption || "") + '">' +
+            '<span><button type="button" class="mini" id="attins-' + x.key + '" data-act="attins" data-id="' + x.key + '"' + (used.has(x.n) ? ' disabled' : '') + '>' + (used.has(x.n) ? "Já está no texto" : "Inserir no texto") + '</button></span>' : '');
+      const label = x.name || linkHost(x.url);
+      return '<div class="attitem">' + thumb + '<div class="attinfo">' + info + '</div><div class="attctl"><span class="row"><button type="button" class="mini" id="attup-' + x.key + '" data-act="attup" data-id="' + x.key + '" aria-label="Subir ' + esc(label) + '"' + (i === 0 ? ' disabled' : '') + '>↑</button><button type="button" class="mini" id="attdn-' + x.key + '" data-act="attdown" data-id="' + x.key + '" aria-label="Descer ' + esc(label) + '"' + (i === d.atts.length - 1 ? ' disabled' : '') + '>↓</button></span><button type="button" class="mini" id="attrm-' + x.key + '" data-act="attrm" data-id="' + x.key + '" aria-label="Remover ' + esc(label) + '">Remover</button></div></div>';
+    };
+    return '<section class="atted" aria-labelledby="att-h"><span id="att-h" style="font-weight:600;font-size:14.5px">Anexos <span class="muted" style="font-weight:400;font-size:13px">' + d.atts.length + ' de ' + ATT_MAX + ' · imagens JPG, PNG, WebP ou GIF e PDF, até 10 MB cada</span></span>' +
+      d.atts.map(item).join("") +
+      (d.linkForm ? '<div class="attitem" style="flex-direction:column;align-items:stretch"><label class="field" for="a-lurl">Endereço do link<input id="a-lurl" inputmode="url" autocomplete="off" placeholder="https://…" value="' + esc(d.lurl || "") + '"></label><label class="field" for="a-ltitle">Título (opcional)<input id="a-ltitle" maxlength="120" autocomplete="off" value="' + esc(d.ltitle || "") + '"></label><span class="row" style="justify-content:flex-end"><button type="button" class="btn ghost small" data-act="attlinkx">Cancelar</button><button type="button" class="btn small" data-act="attlinkok">Adicionar link</button></span></div>' : '') +
+      '<span class="row" style="gap:8px"><button type="button" class="btn ghost small" data-act="attfile"' + (full ? ' disabled' : '') + ' style="display:inline-flex;align-items:center;gap:6px">' + svg(I.clip, 15) + 'Adicionar arquivo</button><button type="button" class="btn ghost small" data-act="attlink"' + (full || d.linkForm ? ' disabled' : '') + ' style="display:inline-flex;align-items:center;gap:6px">' + svg(I.link, 15) + 'Adicionar link</button>' + (full ? '<span class="muted" style="font-size:12.5px">Limite de ' + ATT_MAX + ' anexos atingido.</span>' : '') + '</span></section>';
+  }
+
   function articleRow(a) {
-    const likes = S.articleLikes.filter((l) => l.article === a.id).length, cm = S.articleComments.filter((c) => c.article === a.id).length;
+    const likes = S.articleLikes.filter((l) => l.article === a.id).length, cm = S.articleComments.filter((c) => c.article === a.id).length, na = attsOf(a).length;
     return '<article class="item"><div class="row muted" style="font-size:12.5px;gap:6px"><span class="pill acc">' + esc(a.kind || "Artigo") + '</span>' + avatar(a.author, 24, false) + '<button type="button" class="linkname" style="font-weight:500;font-size:13px" data-go="profile:' + esc(a.author) + '">' + esc(U(a.author).name) + '</button><span>· ' + rel(a.createdAt) + ' · ' + readMin(a.body) + ' min de leitura</span></div>' +
       '<h2><button type="button" class="linkname" style="font-family:var(--serif);font-size:19px;text-align:left;line-height:1.3" data-go="article:' + esc(a.id) + '">' + esc(a.title) + '</button></h2>' + (a.summary ? '<p class="muted clamp2" style="margin:0;font-size:14.5px">' + esc(a.summary) + '</p>' : '') +
-      '<div class="row muted" style="font-size:13px;gap:14px"><span class="row" style="gap:4px">' + svg(I.heart, 15) + likes + '</span><span class="row" style="gap:4px">' + svg(I.comment, 15) + cm + '</span><button type="button" class="linkname" style="color:var(--accent);margin-left:auto" data-go="article:' + esc(a.id) + '">Ler →</button></div></article>';
+      '<div class="row muted" style="font-size:13px;gap:14px"><span class="row" style="gap:4px">' + svg(I.heart, 15) + likes + '</span><span class="row" style="gap:4px">' + svg(I.comment, 15) + cm + '</span>' + (na ? '<span class="row" style="gap:4px">' + svg(I.clip, 15) + na + (na === 1 ? " anexo" : " anexos") + '</span>' : '') + '<button type="button" class="linkname" style="color:var(--accent);margin-left:auto" data-go="article:' + esc(a.id) + '">Ler →</button></div></article>';
   }
   function viewArticles() {
     let list = S.articles.slice().sort(byNew);
@@ -1351,21 +1610,34 @@ button.tickrow:hover{background:var(--soft)}
     return backHead("articles", "Artigos e projetos", "", mine ? '<span class="row" style="margin-left:auto;flex-wrap:nowrap"><button type="button" class="btn ghost small" data-act="editart" data-id="' + esc(id) + '">Editar</button>' + delBtn("articles", id) + '</span>' : '') +
       '<article class="reader"><span class="pill acc" style="align-self:flex-start">' + esc(a.kind || "Artigo") + '</span><h1>' + esc(a.title) + '</h1>' + (a.summary ? '<p class="lede">' + esc(a.summary) + '</p>' : '') +
       '<div class="row byline">' + avatar(a.author, 36) + '<span style="display:flex;flex-direction:column;line-height:1.3;min-width:0"><button type="button" class="linkname" style="text-align:left" data-go="profile:' + esc(a.author) + '">' + esc(U(a.author).name) + '</button><span class="muted" style="font-size:12.5px">' + esc([U(a.author).headline, fmtDate(a.createdAt) + (a.editedAt ? " · editado" : ""), readMin(a.body) + " min de leitura"].filter(Boolean).join(" · ")) + '</span></span></div>' +
-      '<div class="bodytext">' + paragraphs(a.body) + '</div>' +
+      '<div class="bodytext">' + articleBody(a.body, attsOf(a)) + '</div>' + attSection(attsOf(a), a.body) +
       '<div class="actions"><button type="button" class="like" data-act="alike" data-id="' + esc(id) + '" aria-pressed="' + liked + '"' + (canAct() ? '' : ' disabled') + '>' + svg(I.heart, 18, liked ? "currentColor" : "none") + likes.length + (likes.length === 1 ? " curtida" : " curtidas") + '</button>' + (canAct() ? '<button type="button" data-act="shareart" data-id="' + esc(id) + '">' + svg(I.repost, 18) + 'Compartilhar no feed</button>' : '') + '</div></article>' +
       (canAct() ? '<form class="inline-form" id="acForm" style="border-top:1px solid var(--line)">' + avatar(S.meId, 36) + '<label class="sr" for="acin">Comentar o texto</label><input class="input" id="acin" autocomplete="off" placeholder="Comente este texto…" value="' + esc(S.acDraft) + '"><button class="btn" type="submit">Comentar</button></form>' : '') +
       eyebrow("Comentários (" + cs.length + ")") + (cs.length ? cs.map(simpleComment).join("") : '<p class="empty">Seja a primeira pessoa a comentar.</p>');
   }
-  const blankArt = () => ({ id: null, kind: "Artigo", title: "", summary: "", body: "" });
+  const blankArt = () => ({ id: null, kind: "Artigo", title: "", summary: "", body: "", atts: [], orig: [], removed: [], loaded: false, preview: false, linkForm: false, lurl: "", ltitle: "", caret: null });
   function viewWrite() {
     if (!canAct()) return backHead("articles", "Escrever") + '<p class="empty">Entre na sua conta para escrever.</p>';
-    const d = S.artDraft;
-    return backHead(d.id ? "article:" + d.id : "articles", d.id ? "Editar texto" : "Escrever", "Deixe uma linha em branco entre parágrafos. Comece uma linha com ## para criar um subtítulo.") +
+    if (!S.artDraft.id && !S.artDraft.loaded) S.artDraft = loadDraft();
+    const d = S.artDraft, busy = uploadingCount(d);
+    const pubLabel = busy ? "Aguarde o envio…" : d.id ? "Salvar alterações" : "Publicar texto";
+    if (d.preview) {
+      const atts = d.atts.filter((x) => x.status !== "uploading").map((x) => Object.assign(cleanAtts([x])[0], { previewUrl: x.previewUrl }));
+      return backHead(d.id ? "article:" + d.id : "articles", "Pré-visualização", "É assim que o texto vai aparecer depois de publicado.") +
+        '<article class="reader"><span class="pill acc" style="align-self:flex-start">' + esc(d.kind || "Artigo") + '</span><h1>' + esc(d.title || "Sem título") + '</h1>' + (d.summary ? '<p class="lede">' + esc(d.summary) + '</p>' : '') +
+        '<div class="row byline">' + avatar(S.meId, 36) + '<span style="display:flex;flex-direction:column;line-height:1.3;min-width:0"><b>' + esc(U(S.meId).name) + '</b><span class="muted" style="font-size:12.5px">' + readMin(d.body) + ' min de leitura</span></span></div>' +
+        '<div class="bodytext">' + articleBody(d.body, atts) + '</div>' + attSection(atts, d.body) + '</article>' +
+        '<div class="row" style="justify-content:flex-end;padding:0 20px 24px"><button type="button" class="btn ghost" data-act="artedit">Voltar a editar</button><button type="button" class="btn" data-act="artpublish"' + (busy ? ' disabled' : '') + '>' + pubLabel + '</button></div>';
+    }
+    return backHead(d.id ? "article:" + d.id : "articles", d.id ? "Editar texto" : "Escrever") +
+      (d.hadDraft && !d.id ? '<div class="banner row" style="justify-content:space-between">Recuperamos o seu rascunho.' + '<button type="button" class="btn ghost small' + (S.confirmDel === "artdraft" ? ' armed' : '') + '" data-act="artdiscard">' + (S.confirmDel === "artdraft" ? "Confirmar: apagar rascunho e anexos" : "Descartar rascunho") + '</button></div>' : '') +
       '<form id="artForm" style="padding:18px 20px 24px;display:flex;flex-direction:column;gap:14px"><div class="row"><span class="muted" style="font-size:13px">Tipo:</span>' + ART_KINDS.map((k) => '<button type="button" class="chip" data-act="akind" data-id="' + esc(k) + '" aria-pressed="' + (d.kind === k) + '">' + esc(k) + '</button>').join("") + '</div>' +
       '<label class="field" for="a-title">Título<input id="a-title" maxlength="140" value="' + esc(d.title) + '" style="font-family:var(--serif);font-size:19px;height:48px"></label>' +
       '<label class="field" for="a-summary">Resumo (aparece na lista de textos)<textarea id="a-summary" rows="2" maxlength="300">' + esc(d.summary) + '</textarea></label>' +
-      '<label class="field" for="a-body">Texto<textarea id="a-body" rows="16" maxlength="20000" style="font-family:var(--serif);font-size:16.5px;line-height:1.6">' + esc(d.body) + '</textarea></label>' +
-      '<div class="row" style="justify-content:space-between"><span class="muted" style="font-size:13px" id="a-count">' + wc(d.body) + ' palavras · ' + readMin(d.body) + ' min de leitura</span><span class="row"><button type="button" class="btn ghost" data-go="' + (d.id ? "article:" + esc(d.id) : "articles") + '">Cancelar</button><button type="submit" class="btn">' + (d.id ? "Salvar alterações" : "Publicar texto") + '</button></span></div></form>';
+      '<label class="field" for="a-body">Texto<textarea id="a-body" rows="16" maxlength="20000" aria-describedby="a-tip" style="font-family:var(--serif);font-size:16.5px;line-height:1.6">' + esc(d.body) + '</textarea></label>' +
+      '<span class="muted" id="a-tip" style="font-size:12.5px;margin-top:-8px">Dica: deixe uma linha em branco entre parágrafos e comece uma linha com ## para criar um subtítulo.</span>' +
+      attEditor(d) +
+      '<div class="row" style="justify-content:space-between"><span class="muted" style="font-size:13px;display:flex;flex-direction:column"><span id="a-count">' + wordInfo(d.body) + '</span>' + (d.id ? '' : '<span id="a-saved">' + (d.loaded && (d.title || d.summary || d.body || d.atts.length) ? "Rascunho salvo neste navegador" : "") + '</span>') + (busy ? '<span style="color:var(--accent)">Enviando ' + busy + (busy === 1 ? " arquivo" : " arquivos") + '. Espere terminar para publicar.</span>' : '') + '</span><span class="row"><button type="button" class="btn ghost" data-go="' + (d.id ? "article:" + esc(d.id) : "articles") + '">Cancelar</button><button type="button" class="btn ghost" data-act="artpreview">Pré-visualizar</button><button type="submit" class="btn"' + (busy ? ' disabled' : '') + '>' + pubLabel + '</button></span></div></form>';
   }
   function articleEmbed(aid) {
     const a = S.articles.find((x) => x.id === aid);
@@ -1447,20 +1719,20 @@ button.tickrow:hover{background:var(--soft)}
     community: { title: "Criar comunidade", submit: "Criar comunidade", fields: [["name", "Nome", "text", 60, "Ex.: Economia Comportamental", true], ["icon", "Sigla (até 3 letras)", "text", 3, "Ex.: EC"], ["desc", "Descrição", "area", 220, "Sobre o que a comunidade conversa?", true], ["rules", "Regras (opcional)", "area", 300, "Ex.: cite fontes; critique ideias, não pessoas"]] },
     job: { title: "Divulgar vaga", submit: "Publicar vaga", note: "Divulgue só vagas reais e com link oficial. Nunca peça pagamento ou dados bancários de candidatos.", fields: [["title", "Cargo", "text", 90, "Ex.: Estágio em análise de crédito", true], ["company", "Empresa ou instituição", "text", 80, "", true], ["kind", "Tipo", "select", JOB_KINDS], ["mode", "Formato", "select", MODES], ["city", "Cidade", "text", 60, "Ex.: Maringá, PR"], ["area", "Área", "text", 40, "Ex.: Crédito, Macro, Dados"], ["deadline", "Inscrições até (opcional)", "date"], ["link", "Link ou e-mail para se candidatar", "text", 300, "https://…"], ["desc", "Descrição", "area", 3000, "Atividades, requisitos, bolsa ou salário, benefícios", true]] },
     library: { title: "Indicar material", submit: "Adicionar à biblioteca", note: "Indique materiais reais e, se possível, com link oficial ou de acesso livre. Não compartilhe cópias piratas.", fields: [["title", "Título", "text", 160, "Ex.: Formação Econômica do Brasil", true], ["authors", "Autor(es)", "text", 120, "Ex.: Celso Furtado", true], ["kind", "Tipo", "select", LIB_KINDS], ["theme", "Tema", "select", LIB_THEMES], ["year", "Ano", "text", 4, "Ex.: 1959"], ["link", "Link (opcional)", "text", 300, "https://…"], ["desc", "Por que indicar?", "area", 500, "Para quem é, o que tem de bom", true]] },
-    debate: { title: "Propor debate", submit: "Publicar debate", note: "Faça uma pergunta com dois lados claros. Ex.: “O Banco Central deveria cortar juros mais rápido?”", fields: [["title", "Pergunta do debate", "text", 140, "Ex.: O salário mínimo deveria subir acima da inflação?", true], ["cat", "Tema", "select", DEB_CATS], ["sideA", "Lado 1", "text", 40, "Ex.: Sim", true], ["sideB", "Lado 2", "text", 40, "Ex.: Não", true], ["desc", "Contexto", "area", 1200, "Dados e fatos que ajudam a entender a discussão"]] },
-    event: { title: "Divulgar evento", submit: "Publicar evento", fields: [["title", "Nome do evento", "text", 120, "Ex.: Semana Acadêmica de Economia", true], ["date", "Data", "date", 0, "", true], ["time", "Horário", "time"], ["format", "Formato", "select", EV_FORMATS], ["place", "Local ou plataforma", "text", 100, "Ex.: Auditório do bloco C ou YouTube"], ["org", "Organização", "text", 80, "Ex.: Centro Acadêmico de Economia"], ["link", "Link de inscrição ou transmissão", "text", 300, "https://…"], ["desc", "Descrição", "area", 2000, "Programação, palestrantes, público"]] }
+    debate: { title: "Propor debate", submit: "Publicar debate", note: "Faça uma pergunta com dois lados claros. Ex.: “O Banco Central deveria cortar juros mais rápido?”", fields: [["title", "Pergunta do debate", "text", 140, "Ex.: O salário mínimo deveria subir acima da inflação?", true], ["cat", "Tema", "select", DEB_CATS, "", true], ["sideA", "Lado 1", "text", 40, "Ex.: Sim", true], ["sideB", "Lado 2", "text", 40, "Ex.: Não", true], ["desc", "Contexto", "area", 1200, "Dados e fatos que ajudam a entender a discussão"]] },
+    event: { title: "Divulgar evento", submit: "Publicar evento", fields: [["title", "Nome do evento", "text", 120, "Ex.: Semana Acadêmica de Economia", true], ["date", "Data", "date", 0, "", true], ["time", "Horário", "time"], ["format", "Formato", "select", EV_FORMATS, "", true], ["place", "Local ou plataforma", "text", 100, "Ex.: Auditório do bloco C ou YouTube"], ["org", "Organização", "text", 80, "Ex.: Centro Acadêmico de Economia"], ["link", "Link de inscrição ou transmissão", "text", 300, "https://…"], ["desc", "Descrição", "area", 2000, "Programação, palestrantes, público"]] }
   };
   function formModalHtml() {
     const F = FORMS[S.form.kind], v = S.form.v;
     const fld = ([name, label, type, a, ph, req]) => {
       const id = "f-" + name, val = v[name] == null ? "" : v[name];
-      if (type === "select") return '<label class="field" for="' + id + '">' + label + '<select id="' + id + '">' + a.map((o) => '<option' + (o === val ? " selected" : "") + '>' + esc(o) + '</option>').join("") + '</select></label>';
+      if (type === "select") return '<label class="field" for="' + id + '">' + label + (req ? " *" : "") + '<select id="' + id + '"' + (req ? ' aria-required="true"' : '') + '>' + (req ? '<option value="" disabled' + (a.includes(val) ? '' : ' selected') + '>Escolha…</option>' : '') + a.map((o) => '<option' + (o === val ? " selected" : "") + '>' + esc(o) + '</option>').join("") + '</select></label>';
       if (type === "area") return '<label class="field" for="' + id + '">' + label + (req ? " *" : "") + '<textarea id="' + id + '" rows="4" maxlength="' + a + '" placeholder="' + esc(ph || "") + '">' + esc(val) + '</textarea></label>';
-      return '<label class="field" for="' + id + '">' + label + (req ? " *" : "") + '<input id="' + id + '" type="' + type + '"' + (a ? ' maxlength="' + a + '"' : '') + ' placeholder="' + esc(ph || "") + '" value="' + esc(val) + '"' + (type === "date" && name === "date" ? ' min="' + todayStr() + '"' : '') + '></label>';
+      return '<label class="field" for="' + id + '">' + label + (req ? " *" : "") + '<input id="' + id + '" type="' + type + '"' + (a ? ' maxlength="' + a + '"' : '') + ' placeholder="' + esc(ph || "") + '" value="' + esc(val) + '"' + (type === "date" && (name === "date" || name === "deadline") ? ' min="' + todayStr() + '"' : '') + '></label>';
     };
     const pairs = [];
     F.fields.forEach((f) => { const half = ["select", "date", "time"].includes(f[2]) || ["city", "area", "place", "org", "icon", "sideA", "sideB", "year"].includes(f[0]); const last = pairs[pairs.length - 1]; if (half && last && last.half && last.items.length < 2) last.items.push(f); else pairs.push({ half, items: [f] }); });
-    return '<div class="overlay"><form class="dialog" id="genForm" role="dialog" aria-modal="true" aria-labelledby="gfT" style="width:min(580px,100%)"><div class="row" style="justify-content:space-between"><h2 id="gfT">' + F.title + '</h2><button type="button" class="iconbtn" data-act="close" aria-label="Fechar">✕</button></div>' +
+    return '<div class="overlay"><form class="dialog" id="genForm" novalidate role="dialog" aria-modal="true" aria-labelledby="gfT" style="width:min(580px,100%)"><div class="row" style="justify-content:space-between"><h2 id="gfT">' + F.title + '</h2><button type="button" class="iconbtn" data-act="close" aria-label="Fechar">✕</button></div>' +
       (F.note ? '<p class="muted" style="margin:0;font-size:13px">' + F.note + '</p>' : '') +
       pairs.map((p) => p.items.length > 1 ? '<div class="row" style="align-items:flex-start;flex-wrap:nowrap">' + p.items.map((f) => '<div style="flex:1;min-width:0">' + fld(f) + '</div>').join("") + '</div>' : fld(p.items[0])).join("") +
       '<div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-act="close">Cancelar</button><button class="btn" type="submit">' + F.submit + '</button></div></form></div>';
@@ -1470,12 +1742,22 @@ button.tickrow:hover{background:var(--soft)}
     captureForm();
     const F = FORMS[S.form.kind], v = S.form.v;
     const miss = F.fields.find((f) => f[5] && !String(v[f[0]] || "").trim());
-    if (miss) { toast("Preencha: " + miss[1] + "."); const el = document.getElementById("f-" + miss[0]); if (el) el.focus(); return; }
+    const focusF = (name) => { const el = document.getElementById("f-" + name); if (el) el.focus(); };
+    if (miss) { toast((miss[2] === "select" ? "Escolha: " : "Preencha: ") + miss[1] + "."); focusF(miss[0]); return; }
     const body = { author: S.meId, createdAt: now() };
-    F.fields.forEach(([name, , type, a]) => { let x = String(v[name] == null ? "" : v[name]).trim(); if (type === "select" && !a.includes(x)) x = a[0]; body[name] = typeof a === "number" && a ? x.slice(0, a) : x; });
+    F.fields.forEach(([name, , type, a, , req]) => { let x = String(v[name] == null ? "" : v[name]).trim(); if (type === "select" && !a.includes(x)) x = req ? "" : a[0]; body[name] = typeof a === "number" && a ? x.slice(0, a) : x; });
     const kind = S.form.kind;
     if (kind === "community") { body.icon = (body.icon || initials(body.name)).toUpperCase(); body.hue = Math.floor(Math.random() * HUES.length); }
-    if (kind === "event" && body.date < todayStr()) { toast("Escolha uma data de hoje em diante."); return; }
+    if (kind === "event" && body.date < todayStr()) { toast("A data do evento não pode estar no passado. Escolha uma data de hoje em diante."); focusF("date"); return; }
+    if (kind === "job" && body.deadline && body.deadline < todayStr()) { toast("O prazo de inscrição não pode estar no passado. Escolha uma data de hoje em diante ou deixe em branco."); focusF("deadline"); return; }
+    if (body.link) {
+      const u = safeLink(body.link);
+      let ok = false;
+      if (/^mailto:/i.test(u)) ok = kind === "job" && /^mailto:[^\s@]+@[^\s@]+\.[^\s@]+$/i.test(u);
+      else { try { const p = new URL(u); ok = /^https?:$/.test(p.protocol) && p.hostname.includes(".") && !/\s/.test(body.link); } catch (e) { ok = false; } }
+      if (!ok) { toast(kind === "job" ? "O link para se candidatar não é válido. Use um endereço que comece com https:// ou um e-mail (ex.: vagas@empresa.com.br)." : "O link não é válido. Use um endereço que comece com http:// ou https://."); focusF("link"); return; }
+      body.link = u;
+    }
     const colName = { community: "communities", job: "jobs", event: "events", debate: "debates", library: "library" }[kind];
     let newId = null;
     const ok = await write(async () => { const ref = await col(colName).add(body); newId = ref && ref.id; if (kind === "community" && newId) await col("members").doc(newId + "__" + S.meId).set({ comm: newId, user: S.meId, createdAt: now() }); }, { community: "Comunidade criada", job: "Vaga publicada", event: "Evento publicado", debate: "Debate publicado", library: "Material adicionado à biblioteca" }[kind]);
@@ -1492,7 +1774,7 @@ button.tickrow:hover{background:var(--soft)}
       sec("Barra lateral", "No modo compacto, a barra lateral mostra só os ícones e o conteúdo ganha mais espaço.", '<label class="switch"><input type="checkbox" data-act="compact"' + (S.compact ? ' checked' : '') + '><span class="track" aria-hidden="true"></span><span>Abas compactas (só ícones)</span></label>') +
       (loggedIn() ? sec("Pessoas bloqueadas", "Vocês não veem o conteúdo um do outro e não podem trocar mensagens.", (() => { const bl = [...blockedByMe()]; return bl.length ? bl.map((id) => '<div class="row" style="flex-wrap:nowrap">' + avatar(id, 36, false) + '<span style="flex:1;min-width:0;display:flex;flex-direction:column"><b>' + esc(U(id).name) + '</b><span class="muted" style="font-size:12.5px">' + esc(handle(id)) + '</span></span><button type="button" class="btn ghost small" data-act="unblock" data-id="' + esc(id) + '">Desbloquear</button></div>').join("") : '<p class="muted" style="margin:0;font-size:14px">Ninguém bloqueado.</p>'; })()) : '') +
       sec("Pessoas silenciadas", "As publicações delas não aparecem no seu feed. Elas não são avisadas.", muted.length ? muted.map((id) => '<div class="row" style="flex-wrap:nowrap">' + avatar(id, 36) + '<span style="flex:1;min-width:0"><b>' + esc(U(id).name) + '</b></span><button type="button" class="btn ghost small" data-act="unmute" data-id="' + esc(id) + '">Reativar</button></div>').join("") : '<p class="muted" style="margin:0;font-size:14px">Ninguém silenciado.</p>') +
-      sec("Privacidade", "", '<p style="margin:0;font-size:14px;line-height:1.55">Seu perfil, publicações, argumentos e comentários ficam visíveis para quem acessa o protótipo. Mensagens aparecem só para você e a outra pessoa na tela, e publicações salvas e vagas salvas são privadas.</p>') +
+      sec("Privacidade", "", '<p style="margin:0;font-size:14px;line-height:1.55">Seu perfil, publicações, argumentos e comentários ficam visíveis para quem tem conta na EcoEco. Mensagens aparecem só para você e a outra pessoa na tela, e publicações salvas e vagas salvas são privadas.</p>') +
       (S.isAdmin ? sec("Moderação", "Você administra a EcoEco beta.", '<button type="button" class="btn ghost small" data-go="moderation" style="align-self:flex-start">Abrir painel de denúncias' + (S.reports.filter((r) => (r.status || "pendente") === "pendente").length ? ' · ' + S.reports.filter((r) => (r.status || "pendente") === "pendente").length : '') + '</button>') : '') +
       sec("Sobre a EcoEco", "", '<div class="row" style="gap:8px">' + Object.keys(PAGES).map((k) => '<button type="button" class="btn ghost small" data-go="page:' + k + '">' + PAGES[k].title + '</button>').join("") + '</div>') +
       (loggedIn() ? sec("Senha", "Escolha uma senha com pelo menos 8 caracteres.", '<form id="pwForm" class="row" style="align-items:flex-end"><label class="field" for="pw1" style="flex:1;min-width:180px">Nova senha<input id="pw1" type="password" autocomplete="new-password" minlength="8"></label><label class="field" for="pw2" style="flex:1;min-width:180px">Repita a senha<input id="pw2" type="password" autocomplete="new-password" minlength="8"></label><button type="submit" class="btn small" style="height:42px">Trocar senha</button></form>') : '') +
@@ -1593,7 +1875,7 @@ button.tickrow:hover{background:var(--soft)}
       ["A EcoEco", "A EcoEco (The Economy Ecosystem) é uma rede social feita para quem vive, estuda ou gosta de economia. Aqui estudantes, professores, pesquisadores e profissionais publicam análises, debatem ideias, dividem materiais de estudo e encontram oportunidades."],
       ["O que você encontra", "Um feed com publicações, gráficos e votações; debates com votos e argumentos; comunidades por tema com fórum; artigos e projetos; vagas de estágio, emprego e pesquisa; eventos; uma biblioteca de materiais e um painel de mercado."],
       ["Nossa ideia", "Pessoas geram conhecimento, o conhecimento cria conexões e as conexões fazem todo mundo crescer. É isso que a árvore da nossa marca representa."],
-      ["Status", "A EcoEco está em versão beta (protótipo). Algumas funções ainda são simuladas e os dados de demonstração estão marcados como tal."]] },
+      ["Status", "A EcoEco está em teste fechado (versão beta). Conteúdos de demonstração, quando houver, estão marcados como tal."]] },
     rules: { title: "Regras da comunidade", body: [
       ["1. Critique ideias, não pessoas", "Discordar faz parte da economia. Ataques pessoais, xingamentos e discurso de ódio não são aceitos."],
       ["2. Traga dados e fontes", "Sempre que citar números, diga de onde vêm (IBGE, Banco Central, IPEA, artigos). Separe fato de opinião."],
@@ -1619,7 +1901,7 @@ button.tickrow:hover{background:var(--soft)}
   function viewPage(k) {
     const pg = PAGES[k]; if (!pg) return backHead("feed", "Página") + '<p class="empty">Página não encontrada.</p>';
     return backHead(loggedIn() ? "settings" : "feed", pg.title, "EcoEco") +
-      '<article class="reader" style="gap:18px">' + (pg.draft ? '<span class="demo" style="align-self:flex-start">Rascunho para o protótipo. Antes do lançamento, revise este texto com um advogado.</span>' : '') +
+      '<article class="reader" style="gap:18px">' + (pg.draft ? '<span class="demo" style="align-self:flex-start">Rascunho: revisar com advogado antes de abrir ao público.</span>' : '') +
       pg.body.map(([h, t]) => '<section style="display:flex;flex-direction:column;gap:6px"><h2 style="margin:0;font-size:18px;font-weight:700">' + esc(h) + '</h2><p style="margin:0;line-height:1.65">' + esc(t) + '</p></section>').join("") +
       '<div class="row" style="gap:14px;font-size:13.5px;border-top:1px solid var(--line);padding-top:14px">' + Object.keys(PAGES).filter((x) => x !== k).map((x) => '<button type="button" class="linkname" style="color:var(--accent)" data-go="page:' + x + '">' + PAGES[x].title + '</button>').join("") + '</div></article>';
   }
@@ -1673,7 +1955,7 @@ button.tickrow:hover{background:var(--soft)}
       '<section class="mkt-sec"><h2>Minha lista</h2><p class="muted" style="margin:0 0 8px;font-size:13px">Acompanhe ativos da B3. Só você vê sua lista.</p>' +
       (loggedIn() ? '<form id="watchForm" class="row" style="flex-wrap:nowrap"><label class="sr" for="win">Código do ativo</label><input class="input" id="win" maxlength="7" autocomplete="off" placeholder="Código, ex.: PETR4" style="text-transform:uppercase" value="' + esc(S.watchDraft) + '"><button type="submit" class="btn small">Adicionar</button></form>' : '') +
       (w.length ? '<div class="tickers" style="margin-top:8px">' + w.map((t) => '<div class="tickrow"><button type="button" class="linkname" data-go="ticker:' + esc(t) + '"><span class="ticker">$' + esc(t) + '</span></button><span class="muted" style="font-size:13px">' + (counts[t] || 0) + ' na EcoEco</span><a href="' + quoteLink(t) + '" target="_blank" rel="noopener" style="margin-left:auto;font-weight:700;font-size:13px;text-decoration:none">Cotação ↗</a><button type="button" class="iconbtn" data-act="unwatch" data-id="' + esc(t) + '" aria-label="Remover ' + esc(t) + ' da lista">✕</button></div>').join("") + '</div>' : '<p class="muted" style="margin:8px 0 0">Sua lista está vazia.</p>') +
-      '<p class="muted" style="margin:8px 0 0;font-size:12px">Cotações em tempo real entram na versão real da EcoEco. Por enquanto, “Cotação” abre o Google Finance.</p></section>' +
+      '<p class="muted" style="margin:8px 0 0;font-size:12px">As cotações da sua lista ainda não aparecem aqui. O botão “Cotação ↗” abre a página do ativo no Google Finance, em outra aba. Nada aqui é recomendação de investimento.</p></section>' +
       '<p class="muted" style="margin:0;padding:0 0 8px;font-size:12px">Conteúdo educativo. Nada aqui é recomendação de investimento.</p></div>';
   }
   function viewTicker(t) {
@@ -1741,7 +2023,7 @@ button.tickrow:hover{background:var(--soft)}
         '<label class="field" for="o-name">Nome<input id="o-name" required maxlength="60" value="' + esc(o.name) + '"></label>' +
         '<label class="field" for="o-username">Nome de usuário<input id="o-username" maxlength="24" placeholder="ex.: kaua.economia" value="' + esc(o.username) + '"></label>' +
         '<label class="field" for="o-headline">Título do perfil<input id="o-headline" maxlength="80" placeholder="Ex.: Estudante de Economia na UEM" value="' + esc(o.headline) + '"></label>' +
-        '<button class="btn" type="submit">Entrar na rede</button><p class="muted" style="margin:0;font-size:12.5px">Você pode completar o resto do perfil depois, em “Editar perfil”. Seu perfil fica visível para quem acessar este protótipo.</p></form></div>';
+        '<button class="btn" type="submit">Entrar na rede</button><p class="muted" style="margin:0;font-size:12.5px">Você pode completar o resto do perfil depois, em “Editar perfil”. Seu perfil fica visível para quem tem conta na EcoEco.</p></form></div>';
       return;
     }
     if (S.edit) {
@@ -1824,7 +2106,7 @@ button.tickrow:hover{background:var(--soft)}
     $("#bottom").hidden = on;
     if (!on) return;
     $("#login").innerHTML = '<div class="login"><section class="l"><div class="logo-lg"><span class="tile"><img src="' + LOGO + '" alt=""></span><span><b>Eco<span class="g">Eco</span></b><small>The Economy Ecosystem</small></span></div><h1>A rede de quem vive e estuda economia.</h1><p style="margin:0;font-size:17px;opacity:.92;max-width:440px">Debata ideias, acompanhe as notícias e os indicadores do dia e conecte-se com quem entende do assunto.</p></section>' +
-      '<section class="r"><div class="box"><h2 style="margin:0;font-family:var(--serif);font-size:30px">Entrar</h2><p class="muted" style="margin:0">Você saiu da sua conta neste navegador.</p><button type="button" class="btn" style="height:46px;font-size:15px" data-act="signin">Entrar na minha conta</button><p class="muted" style="margin:0;font-size:12.5px;line-height:1.5">Neste protótipo, a entrada usa a sua conta do Claude. No site real, vai ter cadastro com e-mail e senha ou login com Google.</p></div></section></div>';
+      '<section class="r"><div class="box"><h2 style="margin:0;font-family:var(--serif);font-size:30px">Entrar</h2><p class="muted" style="margin:0">Você saiu da sua conta neste navegador.</p><button type="button" class="btn" style="height:46px;font-size:15px" data-act="signin">Entrar na minha conta</button><p class="muted" style="margin:0;font-size:12.5px;line-height:1.5">Entre com o seu nome de usuário e senha.</p></div></section></div>';
   }
 
   /* ---------- render ---------- */
@@ -1849,10 +2131,11 @@ button.tickrow:hover{background:var(--soft)}
   function pickFile(mode, accept) {
     S.fileMode = mode;
     const fp = $("#filepick");
-    fp.value = ""; fp.accept = accept;
+    fp.value = ""; fp.accept = accept; fp.multiple = mode === "artfile";
     fp.click();
   }
   $("#filepick").addEventListener("change", async (ev) => {
+    if (S.fileMode === "artfile") { const fs = [...(ev.target.files || [])]; if (fs.length) addArtFiles(fs); return; }
     const file = ev.target.files && ev.target.files[0];
     if (!file) return;
     const mode = S.fileMode;
@@ -1875,7 +2158,7 @@ button.tickrow:hover{background:var(--soft)}
           const up = await S.assets.upload(file, needType && guess ? { type: guess } : undefined);
           S.att = { kind, asset: up.id, name: file.name.slice(0, 80), size: up.sizeBytes || file.size, mime: up.contentType };
         } else {
-          if (kind !== "image") { toast("Neste protótipo, só quem edita o artifact envia vídeos e arquivos. Fotos funcionam para todos."); return; }
+          if (kind !== "image") { toast("O envio de vídeos e arquivos não está disponível agora. Fotos funcionam normalmente."); return; }
           const data = await readImage(file, 1100, 1100, 0.72);
           S.att = { kind: "image", data, name: file.name.slice(0, 80), size: Math.round(data.length * 0.75) };
         }
@@ -1907,7 +2190,7 @@ button.tickrow:hover{background:var(--soft)}
     if (act !== "menu" && S.menu && !t.closest(".menu")) S.menu = null;
     if (act !== "datamenu" && act !== "insert") S.dataMenu = false;
     switch (act) {
-      case "menu": S.menu = S.menu === id ? null : id; render(); return;
+      case "menu": S.menu = S.menu === id ? null : id; if (S.confirmDel && S.confirmDel.startsWith("posts:")) S.confirmDel = null; render(); return;
       case "acct": S.acct = !S.acct; renderNav(); if (S.acct) { const f = $("#acctmenu button"); if (f) f.focus(); } return;
       case "block": { if (!canAct()) { toast("Entre na sua conta para bloquear."); return; } if (id === S.meId) return; S.menu = null; S.blockAsk = id; render(); renderModal(); return; }
       case "doblock": {
@@ -1922,7 +2205,7 @@ button.tickrow:hover{background:var(--soft)}
       case "unblock": if (await write(() => col("blocks").doc(S.meId + "__" + id).delete(), U(id).name + " foi desbloqueado(a).")) render(); return;
       case "modtab": S.modTab = id; render(); return;
       case "modkeep": await write(() => col("reports").doc(id).update({ status: "mantida", resolvedAt: now(), resolvedBy: S.meId }), "Denúncia resolvida: publicação mantida"); return;
-      case "modremove": { const r = S.reports.find((x) => x.id === id); if (!r) return; const rp = (S.raw.posts || S.posts).find((x) => x.id === r.post); await write(async () => { try { await col("posts").doc(r.post).delete(); } catch (e) {} await col("reports").doc(id).update({ status: "removida", resolvedAt: now(), resolvedBy: S.meId, snapshot: rp ? String(rp.text || "").slice(0, 1000) : "", snapshotAuthor: rp ? rp.author : "" }); }, "Publicação removida"); return; }
+      case "modremove": { const r = S.reports.find((x) => x.id === id); if (!r) return; const rp = (S.raw.posts || S.posts).find((x) => x.id === r.post); await write(async () => { try { await col("posts").doc(r.post).delete(); } catch (e) {} await col("reports").doc(id).update({ status: "removida", resolvedAt: now(), resolvedBy: S.meId, snapshot: rp ? String(rp.text || "").slice(0, 1000) : "", snapshotAuthor: rp ? rp.author : "" }); }, "Publicação removida"); if (rp && rp.media) delFile(rp.media.asset); return; }
       case "notiff": S.notifF = id; render(); return;
       case "markall": S.prevSeen = now(); S.seenNotif = now(); store.set("eco-seen", S.seenNotif); render(); toast("Todas as notificações foram marcadas como lidas."); return;
       case "newsf": S.newsF = id; render(); return;
@@ -1959,7 +2242,25 @@ button.tickrow:hover{background:var(--soft)}
       case "newform": if (!canAct()) { toast("Entre na sua conta para publicar."); return; } S.form = { kind: id, v: {} }; renderModal(); { const el = $("#genForm input, #genForm textarea"); if (el) el.focus(); } return;
       case "join": { const ex = isMember(id); await toggleDoc("members", id + "__" + S.meId, ex, { comm: id, user: S.meId, createdAt: now() }); return; }
       case "artf": S.artFilter = id; render(); return;
-      case "akind": S.artDraft.kind = id; render(); return;
+      case "akind": S.artDraft.kind = id; saveDraft(); render(); return;
+      case "attfile": if (S.artDraft.atts.length >= ATT_MAX) { toast("Limite de " + ATT_MAX + " anexos por texto (arquivos e links somados)."); return; } pickFile("artfile", ATT_ACCEPT); return;
+      case "attlink": S.artDraft.linkForm = true; render(); { const el = $("#a-lurl"); if (el) el.focus(); } return;
+      case "attlinkx": S.artDraft.linkForm = false; S.artDraft.lurl = ""; S.artDraft.ltitle = ""; render(); return;
+      case "attlinkok": addArtLink(); return;
+      case "attins": insertImage(id); return;
+      case "attup": moveAtt(id, -1); return;
+      case "attdown": moveAtt(id, 1); return;
+      case "attrm": removeAtt(id); return;
+      case "artpreview": S.artDraft.preview = true; render(); window.scrollTo(0, 0); return;
+      case "artedit": S.artDraft.preview = false; render(); window.scrollTo(0, 0); return;
+      case "artpublish": publishArt(); return;
+      case "artdiscard": {
+        if (S.confirmDel !== "artdraft") { S.confirmDel = "artdraft"; render(); return; }
+        S.confirmDel = null; const d = S.artDraft;
+        delFiles(d.atts.filter((x) => x.status === "done")); d.atts.forEach((x) => { x.status = "removed"; });
+        S.artDraft = blankArt(); S.artDraft.loaded = true; store.set(draftKey(), null); render(); toast("Rascunho descartado"); return;
+      }
+      case "lightbox": openLightbox(t.dataset.src, t.dataset.cap); return;
       case "alike": { const ex = S.articleLikes.some((l) => l.article === id && l.user === S.meId); await toggleDoc("articleLikes", id + "__" + S.meId, ex, { article: id, user: S.meId, createdAt: now() }); return; }
       case "shareart": { const a = S.articles.find((x) => x.id === id); if (!a) return; S.shareArticle = id; S.draft = S.draft || ""; go("compose"); toast("O texto foi anexado. Escreva um comentário e publique."); return; }
       case "rm-share": S.shareArticle = null; render(); return;
@@ -1968,7 +2269,7 @@ button.tickrow:hover{background:var(--soft)}
       case "argside": { const ta = $("#ain"); if (ta) S.argDraft = ta.value; S.argSide = id; render(); const el = $("#ain"); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); } return; }
       case "argfilter": S.argFilter = id; render(); return;
       case "unvote": { const did = S.view.split(":")[1]; const my = myVote(did); if (my) await write(() => col("votes").doc(my.id).delete(), "Voto desfeito"); return; }
-      case "editart": { const a = S.articles.find((x) => x.id === id); if (!a) return; S.artDraft = { id, kind: a.kind || "Artigo", title: a.title || "", summary: a.summary || "", body: a.body || "" }; go("write:" + id); return; }
+      case "editart": { const a = S.articles.find((x) => x.id === id); if (!a) return; const atts = attsOf(a); S.artDraft = Object.assign(blankArt(), { id, kind: a.kind || "Artigo", title: a.title || "", summary: a.summary || "", body: a.body || "", atts: atts.map((x) => Object.assign({ key: attKey(), status: "done" }, x)), orig: atts.filter((x) => x.type !== "link").map((x) => x.url) }); renumberImgs(S.artDraft); go("write:" + id); return; }
       case "savejob": {
         if (!S.db || !loggedIn()) { toast("Entre na sua conta para salvar vagas."); return; }
         const ex = isJobSaved(id);
@@ -1987,7 +2288,8 @@ button.tickrow:hover{background:var(--soft)}
         S.confirmDel = null;
         const back = { library: "library", debates: "debates", communities: "communities", topics: null, articles: "articles", jobs: "jobs", events: "events" }[cname];
         const tp = cname === "topics" ? S.topics.find((x) => x.id === id) : null;
-        if (await write(() => col(cname).doc(id).delete(), "Excluído")) go(back || (tp ? "community:" + tp.comm : "feed"));
+        const art = cname === "articles" ? S.articles.find((x) => x.id === id) : null;
+        if (await write(() => col(cname).doc(id).delete(), "Excluído")) { if (art) delFiles(attsOf(art)); go(back || (tp ? "community:" + tp.comm : "feed")); }
         return;
       }
       case "signout": if (window.EcoBackend) { window.EcoBackend.signOut(); return; } S.acct = false; S.signedOut = true; store.set("eco-signed-out", true); S.onb = null; S.edit = null; render(); return;
@@ -2010,14 +2312,20 @@ button.tickrow:hover{background:var(--soft)}
       case "rm-cover": captureEdit(); S.edit.cover = ""; renderModal(); return;
       case "pollvote": { const opt = +t.dataset.opt; const key = id + "__" + S.meId; const mine = S.pollVotes.find((v) => v.post === id && v.user === S.meId); await write(() => (mine && mine.opt === opt) ? col("pollVotes").doc(key).delete() : col("pollVotes").doc(key).set({ post: id, user: S.meId, opt, createdAt: now() })); return; }
       case "like": { const ex = likesOf(id).some((l) => l.user === S.meId); await toggleDoc("likes", id + "__" + S.meId, ex, { post: id, user: S.meId, createdAt: now() }); return; }
-      case "repost": { const ex = repostsOf(id).some((r) => r.user === S.meId); if (await toggleDoc("reposts", id + "__" + S.meId, ex, { post: id, user: S.meId, createdAt: now() })) toast(ex ? "Republicação desfeita" : "Republicado no seu perfil"); return; }
+      case "repost": { if (postAuthor(id) === S.meId) { toast("Você não pode republicar a sua própria publicação."); return; } const ex =repostsOf(id).some((r) => r.user === S.meId); if (await toggleDoc("reposts", id + "__" + S.meId, ex, { post: id, user: S.meId, createdAt: now() })) toast(ex ? "Republicação desfeita" : "Republicado no seu perfil"); return; }
       case "follow": { const ex = following().has(id); await toggleDoc("follows", S.meId + "__" + id, ex, { from: S.meId, to: id, createdAt: now() }); return; }
       case "up": { const ex = S.ups.some((u) => u.arg === id && u.user === S.meId); await toggleDoc("ups", id + "__" + S.meId, ex, { arg: id, user: S.meId, createdAt: now() }); return; }
-      case "vote": { const did = S.view.split(":")[1]; if (!did) return; const my = myVote(did); const key = my ? my.id : did + "__" + S.meId; await write(() => (my && my.side === id) ? col("votes").doc(key).delete() : col("votes").doc(key).set({ debate: did, side: id, user: S.meId, createdAt: now() })); return; }
+      case "vote": { const did = S.view.split(":")[1]; if (!did) return; if (id !== "A" && id !== "B") return; const my = myVote(did); if (my && my.side === id) return; const key = my ? my.id : did + "__" + S.meId; await write(() => col("votes").doc(key).set({ debate: did, side: id, user: S.meId, createdAt: now() }), my ? "Voto alterado" : "Voto registrado"); return; }
       case "argc": S.openArgs[id] = !S.openArgs[id]; render(); if (S.openArgs[id]) { const el = document.getElementById("argc-" + id); if (el) el.focus(); } return;
       case "mute": S.menu = null; S.muted = [...S.muted, id]; store.set("eco-muted", S.muted); toast(U(id).name + " foi silenciado(a) no seu feed."); render(); return;
       case "report": S.report = id; render(); return;
-      case "delete": if (await write(() => col("posts").doc(id).delete(), "Publicação excluída")) { if (S.view === "post:" + id) go("feed"); } return;
+      case "delete": {
+        if (S.confirmDel !== "posts:" + id) { S.confirmDel = "posts:" + id; render(); const b = document.querySelector('[data-act="delete"][data-id="' + CSS.escape(id) + '"]'); if (b) b.focus(); return; }
+        S.confirmDel = null; S.menu = null;
+        const p = (S.raw.posts || S.posts).find((x) => x.id === id);
+        if (await write(() => col("posts").doc(id).delete(), "Publicação excluída")) { if (p && p.media) delFile(p.media.asset); if (S.view === "post:" + id) go("feed"); else render(); }
+        return;
+      }
       case "edit": { const u = U(S.meId); S.edit = { name: u.name || "", username: u.username || "", headline: u.headline || "", bio: u.bio || "", role: u.role || "", school: u.school || "", city: u.city || "", link: u.link || "", education: u.education || "", experience: u.experience || "", photo: u.photo || "", cover: u.cover || "" }; renderModal(); return; }
       case "discuss": { const n = NEWS[+id]; S.draft = "Sobre a notícia “" + n.title + "” (" + n.src + "): "; go("compose"); const el = $("#comp"); if (el) el.setSelectionRange(el.value.length, el.value.length); return; }
     }
@@ -2031,7 +2339,7 @@ button.tickrow:hover{background:var(--soft)}
     else if (id === "min") S.msgDraft = el.value;
     else if (id === "ain") S.argDraft = el.value;
     else if (id === "ept") S.editDraft = el.value;
-    else if (id === "q") { S.q = el.value; render(); }
+    else if (id === "q") { if (!S.q.trim() && el.value.trim()) S.stab = "all"; S.q = el.value; render(); }
     else if (id === "dq") { S.debQ = el.value; render(); }
     else if (id === "lq") { S.libF.q = el.value; render(); }
     else if (id === "cq") { S.convQ = el.value; render(); }
@@ -2043,7 +2351,10 @@ button.tickrow:hover{background:var(--soft)}
     else if (id === "trin") S.treplyDraft = el.value;
     else if (id === "acin") S.acDraft = el.value;
     else if (id === "jq") { S.jobF.q = el.value; render(); }
-    else if (/^a-(title|summary|body)$/.test(id)) { S.artDraft[id.slice(2)] = el.value; if (id === "a-body") { const c = $("#a-count"); if (c) c.textContent = wc(el.value) + " palavras · " + readMin(el.value) + " min de leitura"; } }
+    else if (id === "a-lurl") S.artDraft.lurl = el.value;
+    else if (id === "a-ltitle") S.artDraft.ltitle = el.value;
+    else if (id.startsWith("attcap-")) { const x = S.artDraft.atts.find((a) => a.key === el.dataset.key); if (x) { x.caption = el.value; saveDraftSoon(); } }
+    else if (/^a-(title|summary|body)$/.test(id)) { S.artDraft[id.slice(2)] = el.value; saveDraftSoon(); if (id === "a-body") { S.artDraft.caret = el.selectionStart; const c = $("#a-count"); if (c) c.textContent = wordInfo(el.value); } }
     else if (el.dataset.poll !== undefined && S.poll) S.poll[+el.dataset.poll] = el.value;
     else if (S.chartModal && /^c-/.test(id)) { captureChart(); const p = $("#chartPrev"); if (p) p.innerHTML = chartSvg(S.chartModal.spec()) || '<p class="muted" style="margin:0">A prévia aparece quando houver dados válidos.</p>'; }
   });
@@ -2099,19 +2410,17 @@ button.tickrow:hover{background:var(--soft)}
       const text = S.acDraft.trim(); if (!text) return;
       if (await write(() => col("articleComments").add({ article: S.view.split(":")[1], author: S.meId, text: text.slice(0, 1000), createdAt: now() }))) { S.acDraft = ""; render(); }
     } else if (f === "artForm") {
-      const d = S.artDraft;
-      if (!d.title.trim()) { toast("Dê um título ao texto."); const el = $("#a-title"); if (el) el.focus(); return; }
-      if (wc(d.body) < 30) { toast("O texto está muito curto. Para textos curtos, use uma publicação no feed."); return; }
-      const body = { kind: ART_KINDS.includes(d.kind) ? d.kind : "Artigo", title: d.title.trim().slice(0, 140), summary: d.summary.trim().slice(0, 300), body: d.body.trim().slice(0, 20000) };
-      if (d.id) { if (await write(() => col("articles").doc(d.id).update(Object.assign(body, { editedAt: now() })), "Texto atualizado")) { const id = d.id; S.artDraft = blankArt(); go("article:" + id); } }
-      else { let nid = null; if (await write(async () => { const r = await col("articles").add(Object.assign(body, { author: S.meId, createdAt: now() })); nid = r && r.id; }, "Texto publicado")) { S.artDraft = blankArt(); go(nid ? "article:" + nid : "articles"); } }
+      const ae = document.activeElement;
+      if (ae && (ae.id === "a-lurl" || ae.id === "a-ltitle")) { addArtLink(); return; }   // Enter no campo do link
+      if (ae && ae.id && ae.id.startsWith("attcap-")) return;
+      await publishArt();
     } else if (f === "msgForm") {
       const text = S.msgDraft.trim(); if (!text) return;
       const to = S.view.split(":")[1];
       if (await write(() => col("messages").add({ from: S.meId, to, text: text.slice(0, 1000), createdAt: now() }))) { S.msgDraft = ""; render(); }
     } else if (f === "argForm") {
       const did = S.view.split(":")[1]; const my = myVote(did); const pos = S.argSide || (my && my.side); const text = S.argDraft.trim();
-      if (!pos) { toast("Escolha sua posição: um dos lados ou imparcial."); return; }
+      if (!pos) { toast("Escolha sua posição: um dos lados ou “Depende”."); return; }
       if (!text) { toast("Escreva seu argumento."); return; }
       const ok = await write(async () => {
         await col("args").add({ debate: did, side: pos, author: S.meId, text: text.slice(0, 800), createdAt: now() });
@@ -2151,7 +2460,14 @@ button.tickrow:hover{background:var(--soft)}
     }
   });
 
+  const trackCaret = (ev) => { if (ev.target && ev.target.id === "a-body") S.artDraft.caret = ev.target.selectionStart; };
+  document.addEventListener("keyup", trackCaret);
+  document.addEventListener("mouseup", trackCaret);
+  document.addEventListener("select", trackCaret, true);
+  document.addEventListener("focusout", trackCaret);   // ao clicar em "Inserir no texto", o campo perde o foco: guarda onde estava o cursor
+  document.addEventListener("selectionchange", () => { const a = document.activeElement; if (a && a.id === "a-body") S.artDraft.caret = a.selectionStart; });
   document.addEventListener("keydown", (ev) => {
+    if (ev.key === "Escape" && $("#lightbox")) { closeLightbox(); return; }
     if (ev.key === "Escape" && S.acct) { S.acct = false; renderNav(); $("#mecard").focus(); return; }
     if (ev.key === "Escape") { if (S.edit || S.report || S.chartModal || S.form || S.blockAsk) { S.edit = null; S.report = null; S.chartModal = null; S.form = null; S.blockAsk = null; renderModal(); } else if (S.menu || S.dataMenu) { S.menu = null; S.dataMenu = false; render(); } }
     if (ev.key === "Enter" && (ev.metaKey || ev.ctrlKey) && ev.target.id === "comp") { $("#composer").requestSubmit(); }
