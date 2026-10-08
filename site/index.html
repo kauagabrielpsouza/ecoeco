@@ -1481,7 +1481,7 @@ button.tickrow:hover{background:var(--soft)}
   const backHead = (to, title, sub, right) => '<div class="head" style="flex-direction:row;align-items:center;padding-bottom:14px"><button type="button" class="iconbtn" data-go="' + esc(to) + '" aria-label="Voltar">' + svg(I.back, 20) + '</button><span style="display:flex;flex-direction:column;line-height:1.25;min-width:0"><h1 style="font-size:19px">' + title + '</h1>' + (sub ? '<span class="muted" style="font-size:13px">' + sub + '</span>' : '') + '</span>' + (right || '') + '</div>';
   const secHead = (title, desc, right, extra) => '<div class="head"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><h1>' + title + '</h1>' + (right || '') + '</div>' + (desc ? '<p class="muted" style="margin:-8px 0 0;font-size:13.5px">' + desc + '</p>' : '') + (extra || '<div style="height:2px"></div>') + '</div>';
   const eyebrow = (t) => '<div style="padding:14px 20px 4px" class="eyebrow">' + t + '</div>';
-  const delBtn = (colName, id, label) => { const armed = S.confirmDel === colName + ":" + id; return '<button type="button" class="btn ghost small' + (armed ? ' armed' : '') + '" data-act="del" data-col="' + colName + '" data-id="' + esc(id) + '">' + (armed ? "Confirmar exclusão" : (label || "Excluir")) + '</button>'; };
+  const delBtn = (colName, id, label) => { const armed = S.confirmDel === colName + ":" + id; return '<button type="button" class="btn ghost small' + (armed ? ' armed' : '') + '" data-act="del" data-col="' + colName + '" data-id="' + esc(id) + '">' + (armed ? tr("common.confirmDelete") : (label || tr("common.delete"))) + '</button>'; };
   function simpleComment(c, colName) {
     return '<div class="comment">' + avatar(c.author, 36) + '<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px"><div class="meta row" style="font-size:13.5px"><button type="button" class="linkname" data-go="profile:' + esc(c.author) + '">' + esc(U(c.author).name) + '</button><span class="muted">' + esc(handle(c.author)) + (handle(c.author) ? ' · ' : '') + rel(c.createdAt) + '</span>' + (colName ? '<span style="margin-left:auto">' + modDel(colName, c.id) + '</span>' : '') + '</div><p style="margin:0;font-size:14.5px;white-space:pre-wrap;overflow-wrap:anywhere">' + richText(c.text) + '</p></div></div>';
   }
@@ -1490,16 +1490,16 @@ button.tickrow:hover{background:var(--soft)}
   function viewExplore() {
     const t = todayStr();
     const tiles = [
-      ["news", "Notícias", I.news, ((today) => today ? plural(today, "prévia de hoje", "prévias de hoje") : plural(NEWS.length, "prévia recente", "prévias recentes"))(NEWS.filter((n) => n.date === new Date().toLocaleDateString("pt-BR", { day: "numeric", month: "numeric" })).length)],
-      ["communities", "Comunidades", I.group, S.communities.length + (S.communities.length === 1 ? " grupo com fórum" : " grupos com fórum")],
-      ["debates", "Debates", I.debate, S.debates.length + (S.debates.length === 1 ? " debate" : " debates")],
-      ["articles", "Artigos e projetos", I.doc, S.articles.length + (S.articles.length === 1 ? " texto publicado" : " textos publicados")],
-      ["jobs", "Vagas", I.work, ((n) => n + (n === 1 ? " vaga aberta" : " vagas abertas"))(S.jobs.filter((j) => !j.deadline || j.deadline >= t).length)],
-      ["library", "Biblioteca", I.book, S.library.length + (S.library.length === 1 ? " material" : " materiais")],
-      ["market", "Mercado", I.trend, "Indicadores e ativos"],
-      ["events", "Eventos", I.cal, ((n) => n + (n === 1 ? " evento na agenda" : " eventos na agenda"))(S.events.filter((e) => e.date >= t).length)]
+      ["news", tr("nav.news"), I.news, ((today) => today ? tr.n("exp.newsToday", today) : tr.n("exp.newsRecent", NEWS.length))(NEWS.filter((n) => n.date === new Date().toLocaleDateString("pt-BR", { day: "numeric", month: "numeric" })).length)],
+      ["communities", tr("nav.communities"), I.group, tr.n("exp.groups", S.communities.length)],
+      ["debates", tr("nav.debates"), I.debate, tr.n("exp.debates", S.debates.length)],
+      ["articles", tr("search.articles"), I.doc, tr.n("exp.articles", S.articles.length)],
+      ["jobs", tr("nav.jobs"), I.work, tr.n("exp.jobs", S.jobs.filter((j) => !j.deadline || j.deadline >= t).length)],
+      ["library", tr("nav.library"), I.book, tr.n("exp.library", S.library.length)],
+      ["market", tr("nav.market"), I.trend, tr("exp.market")],
+      ["events", tr("nav.events"), I.cal, tr.n("exp.events", S.events.filter((e) => e.date >= t).length)]
     ];
-    return secHead("Explorar", "Tudo o que existe na EcoEco.") + '<div class="grid2">' + tiles.map(([id, l, ic, d]) => '<button type="button" class="tile" data-go="' + id + '"><span style="color:var(--accent)">' + svg(ic, 24) + '</span><b>' + l + '</b><span class="muted" style="font-size:12.5px">' + d + '</span></button>').join("") + '</div>';
+    return secHead(tr("nav.explore"), tr("exp.sub")) + '<div class="grid2">' + tiles.map(([id, l, ic, d]) => '<button type="button" class="tile" data-go="' + id + '"><span style="color:var(--accent)">' + svg(ic, 24) + '</span><b>' + l + '</b><span class="muted" style="font-size:12.5px">' + d + '</span></button>').join("") + '</div>';
   }
 
   /* ---------- comunidades ---------- */
@@ -1508,40 +1508,40 @@ button.tickrow:hover{background:var(--soft)}
     const st = size ? ';width:' + size + 'px;height:' + size + 'px;font-size:' + Math.round(size * 0.36) + 'px;border-radius:' + Math.round(size / 4) + 'px' : '';
     return '<span class="comm-ic" style="background:' + bg + ';color:' + fg + st + '" aria-hidden="true">' + esc((c.icon || initials(c.name)).slice(0, 3)) + '</span>';
   }
-  const joinBtn = (cid) => { const m = isMember(cid); return '<button type="button" class="btn small' + (m ? ' ghost' : '') + '" data-act="join" data-id="' + esc(cid) + '" aria-pressed="' + m + '">' + (m ? "Participando" : "Participar") + '</button>'; };
+  const joinBtn = (cid) => { const m = isMember(cid); return '<button type="button" class="btn small' + (m ? ' ghost' : '') + '" data-act="join" data-id="' + esc(cid) + '" aria-pressed="' + m + '">' + tr(m ? "comm.joined" : "comm.join") + '</button>'; };
   function viewCommunities() {
     const list = S.communities.slice().sort((a, b) => memberCount(b.id) - memberCount(a.id));
     const mine = loggedIn() ? list.filter((c) => isMember(c.id)) : [];
     const other = list.filter((c) => !mine.includes(c));
     const row = (c) => {
       const n = memberCount(c.id), t = S.topics.filter((x) => x.comm === c.id).length;
-      return '<div class="conv">' + commIcon(c) + '<button type="button" data-go="community:' + esc(c.id) + '" style="flex:1;min-width:0;display:flex;flex-direction:column;border:0;background:none;padding:0;text-align:left"><b>' + esc(c.name) + '</b><span class="muted clamp1" style="font-size:13px">' + esc(c.desc || "") + '</span><span class="muted" style="font-size:12.5px">' + n + (n === 1 ? " membro" : " membros") + ' · ' + t + (t === 1 ? " tópico" : " tópicos") + '</span></button>' + (canAct() ? joinBtn(c.id) : '') + '</div>';
+      return '<div class="conv">' + commIcon(c) + '<button type="button" data-go="community:' + esc(c.id) + '" style="flex:1;min-width:0;display:flex;flex-direction:column;border:0;background:none;padding:0;text-align:left"><b>' + esc(c.name) + '</b><span class="muted clamp1" style="font-size:13px">' + esc(c.desc || "") + '</span><span class="muted" style="font-size:12.5px">' + tr.n("comm.members", n) + ' · ' + tr.n("comm.topics", t) + '</span></button>' + (canAct() ? joinBtn(c.id) : '') + '</div>';
     };
-    return secHead("Comunidades", "Grupos por tema, cada um com seu fórum. Entre nos que combinam com você.", canAct() ? '<button type="button" class="btn small" data-act="newform" data-id="community">Criar comunidade</button>' : '') +
-      (mine.length ? eyebrow("Suas comunidades") + mine.map(row).join("") : '') +
-      eyebrow(mine.length ? "Descobrir" : "Todas as comunidades") + (other.length ? other.map(row).join("") : '<p class="empty">Você já participa de todas as comunidades.</p>');
+    return secHead(tr("nav.communities"), tr("comm.sub"), canAct() ? '<button type="button" class="btn small" data-act="newform" data-id="community">' + tr("comm.create") + '</button>' : '') +
+      (mine.length ? eyebrow(tr("comm.yours")) + mine.map(row).join("") : '') +
+      eyebrow(tr(mine.length ? "comm.discover" : "comm.all")) + (other.length ? other.map(row).join("") : '<p class="empty">' + tr("comm.inAll") + '</p>');
   }
   function viewCommunity(id) {
     const c = S.communities.find((x) => x.id === id);
-    if (!c) return backHead("communities", "Comunidade") + '<p class="empty">Esta comunidade não existe mais.</p>';
+    if (!c) return backHead("communities", tr("comm.one")) + '<p class="empty">' + tr("comm.gone") + '</p>';
     const mem = commMembers(id), member = isMember(id);
     const last = (t) => Math.max(t.createdAt || 0, ...S.topicReplies.filter((r) => r.topic === t.id).map((r) => r.createdAt || 0));
     const topics = S.topics.filter((t) => t.comm === id).sort((a, b) => last(b) - last(a));
-    return backHead("communities", esc(c.name), plural(memberCount(id), "membro", "membros"), canDel(c.author) ? '<span style="margin-left:auto">' + delBtn("communities", id, "Excluir") + '</span>' : '') +
-      '<div style="padding:18px 20px;border-bottom:1px solid var(--line);display:flex;gap:14px;align-items:flex-start">' + commIcon(c, 64) + '<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px"><p style="margin:0">' + esc(c.desc || "") + '</p>' + (c.rules ? '<p class="muted" style="margin:0;font-size:13px"><b>Regras:</b> ' + esc(c.rules) + '</p>' : '') + '<div class="row">' + avStack(mem.map((m) => m.user)) + (canAct() ? joinBtn(id) : '') + '</div></div></div>' +
-      (canAct() ? (member ? '<form id="topicForm" class="stack-form"><label class="sr" for="tt">Título do tópico</label><input class="input" id="tt" maxlength="120" autocomplete="off" placeholder="Abra um tópico: qual é a pergunta ou o tema?" value="' + esc(S.topicDraft.title) + '"><label class="sr" for="tx">Texto do tópico</label><textarea id="tx" rows="3" maxlength="2000" placeholder="Explique o contexto (opcional)">' + esc(S.topicDraft.text) + '</textarea><button type="submit" class="btn small" style="align-self:flex-end">Abrir tópico</button></form>' : '<div class="banner">Participe da comunidade para abrir tópicos e responder.</div>') : '') +
-      eyebrow("Tópicos (" + topics.length + ")") +
-      (topics.length ? topics.map((t) => { const r = S.topicReplies.filter((x) => x.topic === t.id).length; return '<button type="button" class="conv" data-go="topic:' + esc(t.id) + '" style="align-items:flex-start">' + avatar(t.author, 36, false) + '<span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><b style="font-size:15px">' + esc(t.title) + '</b>' + (t.text ? '<span class="muted clamp2" style="font-size:13.5px">' + esc(t.text) + '</span>' : '') + '<span class="muted" style="font-size:12.5px">' + esc(U(t.author).name) + ' · ' + rel(t.createdAt) + ' · ' + r + (r === 1 ? " resposta" : " respostas") + '</span></span></button>'; }).join("") : '<p class="empty">Nenhum tópico ainda. Que tal abrir o primeiro?</p>');
+    return backHead("communities", esc(c.name), tr.n("comm.members", memberCount(id)), canDel(c.author) ? '<span style="margin-left:auto">' + delBtn("communities", id) + '</span>' : '') +
+      '<div style="padding:18px 20px;border-bottom:1px solid var(--line);display:flex;gap:14px;align-items:flex-start">' + commIcon(c, 64) + '<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px"><p style="margin:0">' + esc(c.desc || "") + '</p>' + (c.rules ? '<p class="muted" style="margin:0;font-size:13px"><b>' + tr("comm.rules") + '</b> ' + esc(c.rules) + '</p>' : '') + '<div class="row">' + avStack(mem.map((m) => m.user)) + (canAct() ? joinBtn(id) : '') + '</div></div></div>' +
+      (canAct() ? (member ? '<form id="topicForm" class="stack-form"><label class="sr" for="tt">' + tr("topic.titleLbl") + '</label><input class="input" id="tt" maxlength="120" autocomplete="off" placeholder="' + tr("topic.titlePh") + '" value="' + esc(S.topicDraft.title) + '"><label class="sr" for="tx">' + tr("topic.textLbl") + '</label><textarea id="tx" rows="3" maxlength="2000" placeholder="' + tr("topic.textPh") + '">' + esc(S.topicDraft.text) + '</textarea><button type="submit" class="btn small" style="align-self:flex-end">' + tr("topic.open") + '</button></form>' : '<div class="banner">' + tr("comm.joinToPost") + '</div>') : '') +
+      eyebrow(tr("comm.topicsTitle") + " (" + topics.length + ")") +
+      (topics.length ? topics.map((t) => { const r = S.topicReplies.filter((x) => x.topic === t.id).length; return '<button type="button" class="conv" data-go="topic:' + esc(t.id) + '" style="align-items:flex-start">' + avatar(t.author, 36, false) + '<span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><b style="font-size:15px">' + esc(t.title) + '</b>' + (t.text ? '<span class="muted clamp2" style="font-size:13.5px">' + esc(t.text) + '</span>' : '') + '<span class="muted" style="font-size:12.5px">' + esc(U(t.author).name) + ' · ' + rel(t.createdAt) + ' · ' + tr.n("topic.replies", r) + '</span></span></button>'; }).join("") : '<p class="empty">' + tr("comm.noTopics") + '</p>');
   }
   function viewTopic(id) {
     const t = S.topics.find((x) => x.id === id);
-    if (!t) return backHead("communities", "Tópico") + '<p class="empty">Este tópico não existe mais.</p>';
-    const c = S.communities.find((x) => x.id === t.comm) || { name: "Comunidade" };
+    if (!t) return backHead("communities", tr("topic.one")) + '<p class="empty">' + tr("topic.gone") + '</p>';
+    const c = S.communities.find((x) => x.id === t.comm) || { name: tr("comm.one") };
     const rs = S.topicReplies.filter((r) => r.topic === id).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
-    return backHead("community:" + t.comm, esc(c.name), "Fórum da comunidade", canDel(t.author) ? '<span style="margin-left:auto">' + delBtn("topics", id) + '</span>' : '') +
+    return backHead("community:" + t.comm, esc(c.name), tr("topic.forum"), canDel(t.author) ? '<span style="margin-left:auto">' + delBtn("topics", id) + '</span>' : '') +
       '<article style="padding:18px 20px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:10px"><div class="row">' + avatar(t.author, 36) + '<span style="display:flex;flex-direction:column;line-height:1.25"><button type="button" class="linkname" style="text-align:left" data-go="profile:' + esc(t.author) + '">' + esc(U(t.author).name) + '</button><span class="muted" style="font-size:12.5px">' + esc(handle(t.author)) + (handle(t.author) ? ' · ' : '') + rel(t.createdAt) + '</span></span></div><h2 style="margin:0;font-size:21px;font-weight:800;letter-spacing:-.015em;line-height:1.25">' + esc(t.title) + '</h2>' + (t.text ? '<p style="margin:0;white-space:pre-wrap;overflow-wrap:anywhere">' + richText(t.text) + '</p>' : '') + '</article>' +
-      (canAct() ? (isMember(t.comm) ? '<form class="inline-form" id="treplyForm">' + avatar(S.meId, 36) + '<label class="sr" for="trin">Responder ao tópico</label><input class="input" id="trin" autocomplete="off" placeholder="Escreva uma resposta…" value="' + esc(S.treplyDraft) + '"><button class="btn" type="submit">Responder</button></form>' : '<div class="banner row" style="justify-content:space-between">Participe da comunidade para responder.' + joinBtn(t.comm) + '</div>') : '') +
-      eyebrow("Respostas (" + rs.length + ")") + (rs.length ? rs.map((c) => simpleComment(c, "topicReplies")).join("") : '<p class="empty">Ninguém respondeu ainda.</p>');
+      (canAct() ? (isMember(t.comm) ? '<form class="inline-form" id="treplyForm">' + avatar(S.meId, 36) + '<label class="sr" for="trin">' + tr("topic.replyLbl") + '</label><input class="input" id="trin" autocomplete="off" placeholder="' + tr("topic.replyPh") + '" value="' + esc(S.treplyDraft) + '"><button class="btn" type="submit">' + tr("comment.reply") + '</button></form>' : '<div class="banner row" style="justify-content:space-between">' + tr("topic.joinToReply") + joinBtn(t.comm) + '</div>') : '') +
+      eyebrow(tr("topic.repliesTitle") + " (" + rs.length + ")") + (rs.length ? rs.map((c) => simpleComment(c, "topicReplies")).join("") : '<p class="empty">' + tr("topic.noReplies") + '</p>');
   }
 
   /* ---------- artigos e projetos ---------- */

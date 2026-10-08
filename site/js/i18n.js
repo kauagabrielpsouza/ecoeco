@@ -684,4 +684,61 @@
     "week.0": ["domingo", "Sunday"], "week.1": ["segunda", "Monday"], "week.2": ["terça", "Tuesday"], "week.3": ["quarta", "Wednesday"],
     "week.4": ["quinta", "Thursday"], "week.5": ["sexta", "Friday"], "week.6": ["sábado", "Saturday"]
   });
+
+  // -------------------------------------------------------------------
+  // Explorar, comunidades e fórum
+  // -------------------------------------------------------------------
+  add({
+    "exp.sub": ["Tudo o que existe na EcoEco.", "Everything on EcoEco."],
+    "exp.newsToday_one": ["1 prévia de hoje", "1 preview from today"],
+    "exp.newsToday_other": ["{n} prévias de hoje", "{n} previews from today"],
+    "exp.newsRecent_one": ["1 prévia recente", "1 recent preview"],
+    "exp.newsRecent_other": ["{n} prévias recentes", "{n} recent previews"],
+    "exp.groups_one": ["1 grupo com fórum", "1 group with a forum"],
+    "exp.groups_other": ["{n} grupos com fórum", "{n} groups with forums"],
+    "exp.debates_one": ["1 debate", "1 debate"],
+    "exp.debates_other": ["{n} debates", "{n} debates"],
+    "exp.articles_one": ["1 texto publicado", "1 published piece"],
+    "exp.articles_other": ["{n} textos publicados", "{n} published pieces"],
+    "exp.jobs_one": ["1 vaga aberta", "1 open position"],
+    "exp.jobs_other": ["{n} vagas abertas", "{n} open positions"],
+    "exp.library_one": ["1 material", "1 resource"],
+    "exp.library_other": ["{n} materiais", "{n} resources"],
+    "exp.market": ["Indicadores e ativos", "Indicators and assets"],
+    "exp.events_one": ["1 evento na agenda", "1 upcoming event"],
+    "exp.events_other": ["{n} eventos na agenda", "{n} upcoming events"],
+
+    "comm.one": ["Comunidade", "Community"],
+    "comm.join": ["Participar", "Join"],
+    "comm.joined": ["Participando", "Joined"],
+    "comm.topics_one": ["1 tópico", "1 topic"],
+    "comm.topics_other": ["{n} tópicos", "{n} topics"],
+    "comm.sub": ["Grupos por tema, cada um com seu fórum. Entre nos que combinam com você.", "Topic groups, each with its own forum. Join the ones that suit you."],
+    "comm.create": ["Criar comunidade", "Create community"],
+    "comm.yours": ["Suas comunidades", "Your communities"],
+    "comm.discover": ["Descobrir", "Discover"],
+    "comm.all": ["Todas as comunidades", "All communities"],
+    "comm.inAll": ["Você já participa de todas as comunidades.", "You're already in every community."],
+    "comm.gone": ["Esta comunidade não existe mais.", "This community no longer exists."],
+    "comm.rules": ["Regras:", "Rules:"],
+    "comm.joinToPost": ["Participe da comunidade para abrir tópicos e responder.", "Join the community to start topics and reply."],
+    "comm.topicsTitle": ["Tópicos", "Topics"],
+    "comm.noTopics": ["Nenhum tópico ainda. Que tal abrir o primeiro?", "No topics yet. Why not start the first one?"],
+
+    "topic.one": ["Tópico", "Topic"],
+    "topic.gone": ["Este tópico não existe mais.", "This topic no longer exists."],
+    "topic.forum": ["Fórum da comunidade", "Community forum"],
+    "topic.titleLbl": ["Título do tópico", "Topic title"],
+    "topic.titlePh": ["Abra um tópico: qual é a pergunta ou o tema?", "Start a topic: what's the question or subject?"],
+    "topic.textLbl": ["Texto do tópico", "Topic text"],
+    "topic.textPh": ["Explique o contexto (opcional)", "Explain the context (optional)"],
+    "topic.open": ["Abrir tópico", "Start topic"],
+    "topic.replies_one": ["1 resposta", "1 reply"],
+    "topic.replies_other": ["{n} respostas", "{n} replies"],
+    "topic.replyLbl": ["Responder ao tópico", "Reply to the topic"],
+    "topic.replyPh": ["Escreva uma resposta…", "Write a reply…"],
+    "topic.joinToReply": ["Participe da comunidade para responder.", "Join the community to reply."],
+    "topic.repliesTitle": ["Respostas", "Replies"],
+    "topic.noReplies": ["Ninguém respondeu ainda.", "No one has replied yet."]
+  });
 })();
