@@ -1229,4 +1229,8 @@
     "auth.signedOut": ["Você saiu da sua conta neste navegador.", "You signed out of your account in this browser."],
     "auth.signInMine": ["Entrar na minha conta", "Sign in to my account"]
   });
+
+  add({
+    "ncat.Empresas": ["Empresas", "Companies"]
+  });
 })();

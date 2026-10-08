@@ -34,6 +34,12 @@ Proporção: ~70% neutros, ~20% verdes, 5–10% dourado. Texto dourado em fundo 
 - Variações econômicas: seta + texto + cor (▲ alta, ▼ queda, • estável).
 - Árvore/ramificações: só como metáfora sutil (capa padrão do perfil, cartão da Selic, tela de entrada).
 
+## Textos e idiomas
+- Todo texto de interface fica no dicionário `site/js/i18n.js`, com português e inglês lado a lado. Nada de texto fixo no código: use `tr("chave")` (ou `tr.n("chave", número)` quando tiver singular/plural).
+- Valores gravados no banco (categorias, tipos, formatos, temas, status de denúncia) continuam em português e são traduzidos só na hora de mostrar (`optLabel`).
+- Datas e números usam o formato do idioma (`pt-BR` ou `en-US`).
+- Tom: português do Brasil simples e direto; inglês americano.
+
 ## Logo
 - `prototipo/` e `site/` usam a árvore recortada da logo enviada (imagem WebP embutida).
 - **Pendência:** pedir ao designer a versão vetorial (SVG) da árvore e do logotipo "EcoEco".

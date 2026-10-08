@@ -28,6 +28,9 @@ Para incluir outra fonte, adicione em `fontes.json` (`"resumo": false` para port
 
 Categorias automáticas: Agronegócio, Mercado, Internacional, Empresas, Brasil (por palavras-chave inteiras). Notícias com mais de 10 dias são apagadas.
 
+## Idioma dos dados
+Os textos gerados pelos robôs (ex.: "0,55% no dia", "mantida desde 16/9") são gravados em português. Em inglês, o site troca só o formato dos números e das datas; as palavras continuam em português. Para traduzir também essas frases, os robôs precisariam gravar valores separados (número, variação, data) em vez de frases prontas.
+
 ## Limites e cuidados
 - O GitHub pode atrasar execuções agendadas em alguns minutos em horários de pico.
 - Repositórios sem commits por 60 dias têm os agendamentos pausados.

@@ -23,12 +23,16 @@ ecoeco/
 ├── site/                   ← o site que vai para o ar (GitHub Pages)
 │   ├── index.html          ← a EcoEco inteira (interface + lógica)
 │   ├── config.js           ← endereço e chave pública do seu Supabase (você preenche)
-│   └── js/ecoeco-backend.js← ponte entre o site e o Supabase (login, banco, arquivos, dados ao vivo)
+│   ├── js/ecoeco-backend.js← ponte entre o site e o Supabase (login, banco, arquivos, dados ao vivo)
+│   └── js/i18n.js          ← todos os textos da interface, em português e inglês
 ├── supabase/               ← banco de dados (rodar no SQL Editor do Supabase, nesta ordem)
 │   ├── 01_estrutura.sql
 │   ├── 02_seguranca.sql
 │   ├── 03_dados_iniciais.sql
-│   └── 04_tornar_admin.sql
+│   ├── 04_tornar_admin.sql
+│   ├── 05_limpeza_em_cascata.sql   ← apagar algo apaga o que depende dele
+│   ├── 06_privacidade_perfil.sql   ← votos secretos e comunidades escondíveis
+│   └── 07_moderacao_admin.sql      ← suspensão, banimento e painel de admin
 ├── scripts/                ← robôs que atualizam indicadores e notícias
 │   ├── atualizar-mercado.mjs
 │   ├── atualizar-noticias.mjs

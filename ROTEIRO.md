@@ -91,6 +91,7 @@ curtir, comentar, entrar num debate e argumentar. Se aparecer erro, investigue e
 **Você faz**
 1. Crie a sua conta no site local (usuário e senha, convite `ECOECO2026`).
 2. No Supabase → SQL Editor, abra `supabase/04_tornar_admin.sql`, troque `seu_usuario` pelo seu usuário e rode. Isso libera o painel de **Moderação** para você.
+   Depois rode, nesta ordem, `supabase/05_limpeza_em_cascata.sql`, `supabase/06_privacidade_perfil.sql` e `supabase/07_moderacao_admin.sql`.
 3. Recarregue o site: em Configurações deve aparecer "Moderação".
 
 **Deu certo se…** você consegue publicar, sair da conta e entrar de novo, e o post continua lá.
@@ -170,7 +171,7 @@ Investigue a causa, corrija e me explique o que mudou.
 3. Acompanhe no Supabase: **Authentication → Users** (quantas contas) e **Reports/Logs** se algo travar.
 
 **Situações comuns**
-- *Alguém esqueceu a senha*: use o comando no fim de `supabase/04_tornar_admin.sql` para definir uma senha temporária.
+- *Alguém esqueceu a senha*: em Configurações → Moderação → Contas, use "Senha temporária" (precisa do SQL 07). Também dá pelo comando no fim de `supabase/04_tornar_admin.sql`.
 - *Site parou de carregar depois de dias sem uso*: o Supabase gratuito pausa o projeto após 1 semana parado. Entre no painel e clique em **Restore**.
 - *Robô parou*: o GitHub desliga agendamentos de repositórios sem nenhum commit por 60 dias. Faça qualquer commit ou rode o workflow manualmente.
 

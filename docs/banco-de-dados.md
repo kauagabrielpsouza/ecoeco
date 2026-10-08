@@ -29,7 +29,7 @@ O campo que identifica o autor varia: `author`, `user`, `from` ou `by`. A regra 
 | `reports` | post, by, reason, status, snapshot | by (só quem denunciou e admins leem) |
 | `debates` | author, title, cat, sideA, sideB, desc | author |
 | `votes` | debate, side, user | user |
-| `args` | debate, side (A/B/N), author, text | author |
+| `args` | debate, side (A/B/N — N aparece como "Depende"), author, text | author |
 | `ups` | arg, user | user |
 | `argComments` | arg, author, text | author |
 | `communities` | name, icon, hue, desc, rules, author | author |
@@ -77,6 +77,33 @@ Quando um documento é apagado, o banco apaga sozinho o que depende dele, mesmo 
 | `events` | `rsvps` |
 
 Os arquivos no Storage (foto da publicação, anexos do artigo) são apagados pelo site. O mesmo arquivo também impede republicar a própria publicação.
+
+## Privacidade do perfil (`supabase/06_privacidade_perfil.sql`)
+- Opções no documento `users` da pessoa: `showDebates` e `showCommunities` (sem o campo, vale "mostrar").
+- `votes`: cada pessoa lê só o próprio voto (admin lê todos). Totais por debate: `debate_vote_stats()` → `debate, side_a, side_b, recent` (recent = votos dos últimos 7 dias).
+- `members`: escondidos dos outros quando `showCommunities = false`. Total por comunidade: `community_member_counts()` → `comm, members`.
+- O site chama essas funções por `EcoBackend.rpc` e atualiza os totais a cada minuto e quando a pessoa vota ou entra numa comunidade. Sem o SQL 06, o site conta pelas linhas que consegue ler.
+
+## Moderação (`supabase/07_moderacao_admin.sql`)
+| Tabela | Campos | Quem lê |
+|---|---|---|
+| `sanctions` | user_id, kind (`suspensao`/`banimento`), until, reason, created_by, created_at | a própria pessoa e admins |
+| `mod_log` | admin_id, action, target_user, target_collection, target_id, snapshot (cópia), reason, created_at | só admins |
+
+Funções (todas conferem `is_admin()`, menos `my_sanction`):
+
+| Função | O que faz |
+|---|---|
+| `my_sanction()` | punição ativa da própria conta (o site mostra o aviso) |
+| `admin_delete_doc(coleção, id, motivo)` | guarda cópia no registro e apaga |
+| `admin_set_sanction(conta, tipo, dias, motivo)` / `admin_lift_sanction(conta)` | suspender/banir e desfazer (não vale para si mesmo) |
+| `admin_list_users()` | contas com usuário, cadastro, último acesso, status |
+| `admin_list_invites()`, `admin_create_invite(código, usos)`, `admin_set_invite_active(código, ativo)` | convites |
+| `admin_set_password(conta, senha)` | senha temporária (mín. 8 caracteres) |
+| `admin_list_log(limite)` | registro de moderação |
+
+## Estado privado (`private` / `data/users/<id>/state`)
+Além dos salvos, lista de ativos e leituras: `tags` (hashtags seguidas), `tagSeen` (desde quando segue cada uma), `notifOff` (tipos de notificação desligados) e `lang` (idioma: `pt` ou `en`).
 
 ## Por que uma tabela genérica?
 Para a interface do protótipo funcionar quase sem mudanças. Com ~30 pessoas e alguns milhares de documentos, o desempenho é tranquilo. Se a EcoEco crescer muito (milhares de pessoas), vale migrar as coleções mais usadas (posts, comments, likes) para tabelas próprias com índices. Peça isso ao Claude Code quando chegar a hora.
