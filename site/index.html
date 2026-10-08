@@ -1795,13 +1795,13 @@ button.tickrow:hover{background:var(--soft)}
   }
 
   /* ---------- vagas ---------- */
-  const deadlineTxt = (s) => { if (!s) return ""; const t = todayStr(); if (s < t) return "Inscrições encerradas"; const days = Math.round((evDate(s) - evDate(t)) / 864e5); return days === 0 ? "Último dia para se inscrever" : "Inscrições até " + fmtDay(s) + (days <= 7 ? " · faltam " + days + (days === 1 ? " dia" : " dias") : ""); };
+  const deadlineTxt = (s) => { if (!s) return ""; const t = todayStr(); if (s < t) return tr("job.closed"); const days = Math.round((evDate(s) - evDate(t)) / 864e5); return days === 0 ? tr("job.lastDay") : tr("job.until", { date: fmtDay(s) }) + (days <= 7 ? " · " + tr.n("job.daysLeft", days) : ""); };
   function jobRow(j) {
     const saved = isJobSaved(j.id), dl = deadlineTxt(j.deadline), closed = j.deadline && j.deadline < todayStr();
     return '<article class="item' + (closed ? ' dim' : '') + '"><div class="row" style="justify-content:space-between;flex-wrap:nowrap;align-items:flex-start"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><h2><button type="button" class="linkname" style="text-align:left;font-size:17px;line-height:1.3" data-go="job:' + esc(j.id) + '">' + esc(j.title) + '</button></h2><span style="font-weight:500;font-size:14.5px">' + esc(j.company) + '</span></div>' +
-      (loggedIn() ? '<button type="button" class="iconbtn" data-act="savejob" data-id="' + esc(j.id) + '" aria-pressed="' + saved + '" aria-label="' + (saved ? "Remover dos salvos" : "Salvar vaga") + '" style="color:' + (saved ? "var(--accent)" : "var(--ink2)") + '">' + bookmark(saved) + '</button>' : '') + '</div>' +
-      '<div class="row" style="gap:6px"><span class="pill acc">' + esc(j.kind) + '</span><span class="pill">' + esc(j.mode) + '</span>' + (j.city ? '<span class="pill">' + esc(j.city) + '</span>' : '') + (j.area ? '<span class="pill">' + esc(j.area) + '</span>' : '') + '</div>' +
-      '<div class="row muted" style="font-size:12.5px;justify-content:space-between"><span>Divulgada por ' + esc(U(j.author).name) + ' · ' + rel(j.createdAt) + '</span>' + (dl ? '<span' + (closed ? '' : ' style="color:var(--ink)"') + '>' + dl + '</span>' : '') + '</div>' + (j.demo ? '<span class="demo" style="align-self:flex-start">Vaga de demonstração · empresa fictícia</span>' : '') + '</article>';
+      (loggedIn() ? '<button type="button" class="iconbtn" data-act="savejob" data-id="' + esc(j.id) + '" aria-pressed="' + saved + '" aria-label="' + tr(saved ? "post.unsave" : "job.save") + '" style="color:' + (saved ? "var(--accent)" : "var(--ink2)") + '">' + bookmark(saved) + '</button>' : '') + '</div>' +
+      '<div class="row" style="gap:6px"><span class="pill acc">' + esc(optLabel("jobkind", j.kind)) + '</span><span class="pill">' + esc(optLabel("mode", j.mode)) + '</span>' + (j.city ? '<span class="pill">' + esc(j.city) + '</span>' : '') + (j.area ? '<span class="pill">' + esc(j.area) + '</span>' : '') + '</div>' +
+      '<div class="row muted" style="font-size:12.5px;justify-content:space-between"><span>' + tr("job.postedBy", { name: esc(U(j.author).name) }) + ' · ' + rel(j.createdAt) + '</span>' + (dl ? '<span' + (closed ? '' : ' style="color:var(--ink)"') + '>' + dl + '</span>' : '') + '</div>' + (j.demo ? '<span class="demo" style="align-self:flex-start">' + tr("job.demoShort") + '</span>' : '') + '</article>';
   }
   function viewJobs() {
     const f = S.jobF, q = f.q.trim().toLowerCase(), t = todayStr();
@@ -1809,31 +1809,31 @@ button.tickrow:hover{background:var(--soft)}
     const open = (j) => !j.deadline || j.deadline >= t;
     list = list.filter(open).concat(list.filter((j) => !open(j)));
     const chip = (act, id, l, on) => '<button type="button" class="chip" data-act="' + act + '" data-id="' + esc(id) + '" aria-pressed="' + on + '">' + esc(l) + '</button>';
-    const chips = chip("jobk", "all", "Todas", f.kind === "all") + JOB_KINDS.map((k) => chip("jobk", k, k === "Pesquisa" ? "Pesquisa / IC" : k, f.kind === k)).join("") + '<span class="sep" aria-hidden="true"></span>' + MODES.map((m) => chip("jobm", m, m, f.mode === m)).join("") + (loggedIn() ? '<span class="sep" aria-hidden="true"></span>' + chip("jobsaved", "1", "Salvas (" + S.savedJobs.filter((s) => S.jobs.some((j) => j.id === s.job)).length + ")", f.saved) : '');
-    return secHead("Vagas", "Estágios, empregos, trainee e iniciação científica na área de economia.", canAct() ? '<button type="button" class="btn small" data-act="newform" data-id="job">Divulgar vaga</button>' : '',
-      '<label class="search">' + svg(I.search, 18) + '<span class="sr">Buscar vagas</span><input id="jq" type="search" placeholder="Buscar por cargo, empresa, cidade ou área" value="' + esc(f.q) + '"></label><div class="filters">' + chips + '</div>') +
-      (list.length ? list.map(jobRow).join("") : '<p class="empty">' + (f.saved ? "Você ainda não salvou nenhuma vaga. Toque no marcador de uma vaga para guardá-la aqui." : "Nenhuma vaga com esses filtros.") + '</p>');
+    const chips = chip("jobk", "all", tr("job.all"), f.kind === "all") + JOB_KINDS.map((k) => chip("jobk", k, k === "Pesquisa" ? tr("job.research") : optLabel("jobkind", k), f.kind === k)).join("") + '<span class="sep" aria-hidden="true"></span>' + MODES.map((m) => chip("jobm", m, optLabel("mode", m), f.mode === m)).join("") + (loggedIn() ? '<span class="sep" aria-hidden="true"></span>' + chip("jobsaved", "1", tr("job.savedN", { n: S.savedJobs.filter((s) => S.jobs.some((j) => j.id === s.job)).length }), f.saved) : '');
+    return secHead(tr("nav.jobs"), tr("job.sub"), canAct() ? '<button type="button" class="btn small" data-act="newform" data-id="job">' + tr("job.post") + '</button>' : '',
+      '<label class="search">' + svg(I.search, 18) + '<span class="sr">' + tr("job.search") + '</span><input id="jq" type="search" placeholder="' + tr("job.searchPh") + '" value="' + esc(f.q) + '"></label><div class="filters">' + chips + '</div>') +
+      (list.length ? list.map(jobRow).join("") : '<p class="empty">' + tr(f.saved ? "job.noSaved" : "job.none") + '</p>');
   }
   function viewJob(id) {
     const j = S.jobs.find((x) => x.id === id);
-    if (!j) return backHead("jobs", "Vaga") + '<p class="empty">Esta vaga foi removida.</p>';
+    if (!j) return backHead("jobs", tr("job.one")) + '<p class="empty">' + tr("job.gone") + '</p>';
     const saved = isJobSaved(id), link = safeLink(j.link), closed = j.deadline && j.deadline < todayStr();
-    return backHead("jobs", "Vaga", esc(j.company), canDel(j.author) ? '<span style="margin-left:auto">' + delBtn("jobs", id, "Remover vaga") + '</span>' : '') +
-      '<div class="reader" style="gap:12px"><div class="row" style="gap:6px"><span class="pill acc">' + esc(j.kind) + '</span><span class="pill">' + esc(j.mode) + '</span>' + (j.city ? '<span class="pill">' + esc(j.city) + '</span>' : '') + (j.area ? '<span class="pill">' + esc(j.area) + '</span>' : '') + '</div>' +
+    return backHead("jobs", tr("job.one"), esc(j.company), canDel(j.author) ? '<span style="margin-left:auto">' + delBtn("jobs", id, tr("job.remove")) + '</span>' : '') +
+      '<div class="reader" style="gap:12px"><div class="row" style="gap:6px"><span class="pill acc">' + esc(optLabel("jobkind", j.kind)) + '</span><span class="pill">' + esc(optLabel("mode", j.mode)) + '</span>' + (j.city ? '<span class="pill">' + esc(j.city) + '</span>' : '') + (j.area ? '<span class="pill">' + esc(j.area) + '</span>' : '') + '</div>' +
       '<h1 style="font-size:26px">' + esc(j.title) + '</h1><p style="margin:0;font-size:16px;font-weight:500">' + esc(j.company) + '</p>' +
       (j.deadline ? '<p class="muted" style="margin:0">' + deadlineTxt(j.deadline) + '</p>' : '') +
-      '<div class="row">' + (link && !closed ? '<a class="btn" style="display:inline-flex;align-items:center;text-decoration:none" href="' + esc(link) + '" target="_blank" rel="noopener">Candidatar-se ↗</a>' : '') + (loggedIn() ? '<button type="button" class="btn ghost" data-act="savejob" data-id="' + esc(id) + '" aria-pressed="' + saved + '" style="display:inline-flex;align-items:center;gap:6px">' + bookmark(saved) + (saved ? "Salva" : "Salvar vaga") + '</button>' : '') + '</div>' +
-      '<div style="border-top:1px solid var(--line);padding-top:14px"><h3 style="margin:0 0 8px;font-size:15px">Sobre a vaga</h3><div style="white-space:pre-wrap;overflow-wrap:anywhere">' + richText(j.desc || "Sem descrição.") + '</div></div>' +
-      '<p class="muted" style="margin:0;font-size:13px">Divulgada por <button type="button" class="linkname" style="font-weight:500" data-go="profile:' + esc(j.author) + '">' + esc(U(j.author).name) + '</button> · ' + rel(j.createdAt) + '</p>' +
-      (j.demo ? '<span class="demo" style="align-self:flex-start">Vaga de demonstração: a empresa é fictícia e o link não leva a uma candidatura real.</span>' : '<span class="demo" style="align-self:flex-start">Confira sempre a vaga no site oficial da empresa antes de enviar seus dados.</span>') + '</div>';
+      '<div class="row">' + (link && !closed ? '<a class="btn" style="display:inline-flex;align-items:center;text-decoration:none" href="' + esc(link) + '" target="_blank" rel="noopener">' + tr("job.apply") + '</a>' : '') + (loggedIn() ? '<button type="button" class="btn ghost" data-act="savejob" data-id="' + esc(id) + '" aria-pressed="' + saved + '" style="display:inline-flex;align-items:center;gap:6px">' + bookmark(saved) + tr(saved ? "job.saved" : "job.save") + '</button>' : '') + '</div>' +
+      '<div style="border-top:1px solid var(--line);padding-top:14px"><h3 style="margin:0 0 8px;font-size:15px">' + tr("job.about") + '</h3><div style="white-space:pre-wrap;overflow-wrap:anywhere">' + (j.desc ? richText(j.desc) : tr("job.noDesc")) + '</div></div>' +
+      '<p class="muted" style="margin:0;font-size:13px">' + tr("job.postedBy", { name: '<button type="button" class="linkname" style="font-weight:500" data-go="profile:' + esc(j.author) + '">' + esc(U(j.author).name) + '</button>' }) + ' · ' + rel(j.createdAt) + '</p>' +
+      (j.demo ? '<span class="demo" style="align-self:flex-start">' + tr("job.demo") + '</span>' : '<span class="demo" style="align-self:flex-start">' + tr("job.check") + '</span>') + '</div>';
   }
 
   /* ---------- eventos ---------- */
   function evRow(e) {
     const d = evDate(e.date), rs = S.rsvps.filter((r) => r.event === e.id), going = rs.some((r) => r.user === S.meId), past = e.date < todayStr();
-    return '<article class="item" style="flex-direction:row;gap:14px;align-items:flex-start"><div class="datebox"><small>' + MONTHS[d.getMonth()] + '</small><b>' + d.getDate() + '</b></div><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px"><span class="muted" style="font-size:12.5px">' + WEEK[d.getDay()] + (e.time ? ', ' + esc(e.time) : '') + ' · ' + esc(e.format) + (e.place ? ' · ' + esc(e.place) : '') + '</span>' +
-      '<h2><button type="button" class="linkname" style="text-align:left;font-size:17px;line-height:1.3" data-go="event:' + esc(e.id) + '">' + esc(e.title) + '</button></h2>' + (e.org ? '<span class="muted" style="font-size:13.5px">Organização: ' + esc(e.org) + '</span>' : '') +
-      '<div class="row">' + avStack(rs.map((r) => r.user)) + '<span class="muted" style="font-size:13px">' + rs.length + (past ? (rs.length === 1 ? " participou" : " participaram") : (rs.length === 1 ? " vai participar" : " vão participar")) + '</span>' + (canAct() && !past ? '<button type="button" class="btn small' + (going ? ' ghost' : '') + '" style="margin-left:auto" data-act="rsvp" data-id="' + esc(e.id) + '" aria-pressed="' + going + '">' + (going ? "✓ Vou participar" : "Vou participar") + '</button>' : '') + '</div>' + (e.demo ? '<span class="demo" style="align-self:flex-start">Evento de demonstração</span>' : '') + '</div></article>';
+    return '<article class="item" style="flex-direction:row;gap:14px;align-items:flex-start"><div class="datebox"><small>' + MONTHS[d.getMonth()] + '</small><b>' + d.getDate() + '</b></div><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px"><span class="muted" style="font-size:12.5px">' + WEEK[d.getDay()] + (e.time ? ', ' + esc(e.time) : '') + ' · ' + esc(optLabel("evfmt", e.format)) + (e.place ? ' · ' + esc(e.place) : '') + '</span>' +
+      '<h2><button type="button" class="linkname" style="text-align:left;font-size:17px;line-height:1.3" data-go="event:' + esc(e.id) + '">' + esc(e.title) + '</button></h2>' + (e.org ? '<span class="muted" style="font-size:13.5px">' + tr("ev.org") + ' ' + esc(e.org) + '</span>' : '') +
+      '<div class="row">' + avStack(rs.map((r) => r.user)) + '<span class="muted" style="font-size:13px">' + tr.n(past ? "ev.went" : "ev.going", rs.length) + '</span>' + (canAct() && !past ? '<button type="button" class="btn small' + (going ? ' ghost' : '') + '" style="margin-left:auto" data-act="rsvp" data-id="' + esc(e.id) + '" aria-pressed="' + going + '">' + (going ? "✓ " : "") + tr("ev.rsvp") + '</button>' : '') + '</div>' + (e.demo ? '<span class="demo" style="align-self:flex-start">' + tr("ev.demoShort") + '</span>' : '') + '</div></article>';
   }
   function viewEvents() {
     const t = todayStr();
@@ -1841,75 +1841,83 @@ button.tickrow:hover{background:var(--soft)}
     const up = S.events.filter((e) => e.date >= t).sort((a, b) => key(a).localeCompare(key(b)));
     const past = S.events.filter((e) => e.date < t).sort((a, b) => key(b).localeCompare(key(a)));
     const mine = up.filter((e) => S.rsvps.some((r) => r.event === e.id && r.user === S.meId));
-    const tabs = [["upcoming", "Próximos", up.length], ["mine", "Minha agenda", mine.length], ["past", "Anteriores", past.length]].filter((x) => x[0] !== "mine" || loggedIn());
+    const tabs = [["upcoming", tr("ev.upcoming"), up.length], ["mine", tr("ev.mine"), mine.length], ["past", tr("ev.past"), past.length]].filter((x) => x[0] !== "mine" || loggedIn());
     const list = S.evTab === "past" ? past : S.evTab === "mine" ? mine : up;
-    return secHead("Eventos", "Palestras, congressos, webinars e encontros de economia.", canAct() ? '<button type="button" class="btn small" data-act="newform" data-id="event">Divulgar evento</button>' : '',
-      '<div class="tabs" role="tablist" aria-label="Eventos">' + tabs.map(([id, l, n]) => '<button type="button" role="tab" data-act="evtab" data-id="' + id + '" aria-selected="' + (S.evTab === id) + '">' + l + ' (' + n + ')</button>').join("") + '</div>') +
-      (list.length ? list.map(evRow).join("") : '<p class="empty">' + (S.evTab === "mine" ? "Você ainda não confirmou presença em nenhum evento." : "Nenhum evento aqui.") + '</p>');
+    return secHead(tr("nav.events"), tr("ev.sub"), canAct() ? '<button type="button" class="btn small" data-act="newform" data-id="event">' + tr("ev.post") + '</button>' : '',
+      '<div class="tabs" role="tablist" aria-label="' + tr("nav.events") + '">' + tabs.map(([id, l, n]) => '<button type="button" role="tab" data-act="evtab" data-id="' + id + '" aria-selected="' + (S.evTab === id) + '">' + l + ' (' + n + ')</button>').join("") + '</div>') +
+      (list.length ? list.map(evRow).join("") : '<p class="empty">' + tr(S.evTab === "mine" ? "ev.noneMine" : "ev.none") + '</p>');
   }
   function viewEvent(id) {
     const e = S.events.find((x) => x.id === id);
-    if (!e) return backHead("events", "Evento") + '<p class="empty">Este evento foi removido.</p>';
+    if (!e) return backHead("events", tr("ev.one")) + '<p class="empty">' + tr("ev.gone") + '</p>';
     const d = evDate(e.date), rs = S.rsvps.filter((r) => r.event === id).sort(byNew), going = rs.some((r) => r.user === S.meId), past = e.date < todayStr(), link = safeLink(e.link);
-    const when = WEEK[d.getDay()] + ", " + d.getDate() + " de " + d.toLocaleDateString("pt-BR", { month: "long" }) + " de " + d.getFullYear() + (e.time ? " · " + e.time : "");
-    return backHead("events", "Evento", "", canDel(e.author) ? '<span style="margin-left:auto">' + delBtn("events", id, "Remover evento") + '</span>' : '') +
-      '<div class="reader" style="gap:12px"><span class="pill acc" style="align-self:flex-start">' + esc(e.format) + '</span><h1 style="font-size:26px">' + esc(e.title) + '</h1>' +
-      '<div class="evfacts"><span>' + svg(I.cal, 17) + esc(when) + '</span>' + (e.place ? '<span>' + svg(I.pin, 17) + esc(e.place) + '</span>' : '') + (e.org ? '<span>' + svg(I.group, 17) + 'Organização: ' + esc(e.org) + '</span>' : '') + '</div>' +
-      '<div class="row">' + (canAct() && !past ? '<button type="button" class="btn' + (going ? ' ghost' : '') + '" data-act="rsvp" data-id="' + esc(id) + '" aria-pressed="' + going + '">' + (going ? "✓ Vou participar" : "Vou participar") + '</button>' : '') + (link ? '<a class="btn ghost" style="display:inline-flex;align-items:center;text-decoration:none" href="' + esc(link) + '" target="_blank" rel="noopener">Página do evento ↗</a>' : '') + (past ? '<span class="muted">Este evento já aconteceu.</span>' : '') + '</div>' +
-      (e.desc ? '<div style="border-top:1px solid var(--line);padding-top:14px"><h3 style="margin:0 0 8px;font-size:15px">Sobre o evento</h3><div style="white-space:pre-wrap;overflow-wrap:anywhere">' + richText(e.desc) + '</div></div>' : '') +
-      (e.demo ? '<span class="demo" style="align-self:flex-start">Evento de demonstração: ele não vai acontecer de verdade.</span>' : '') + '</div>' +
-      eyebrow((past ? "Participaram" : "Vão participar") + " (" + rs.length + ")") + (rs.length ? rs.map((r) => personRow(r.user)).join("") : '<p class="empty">Ninguém confirmou presença ainda.</p>');
+    const when = L.date(d, { weekday: "long", day: "numeric", month: "long", year: "numeric" }) + (e.time ? " · " + e.time : "");
+    return backHead("events", tr("ev.one"), "", canDel(e.author) ? '<span style="margin-left:auto">' + delBtn("events", id, tr("ev.remove")) + '</span>' : '') +
+      '<div class="reader" style="gap:12px"><span class="pill acc" style="align-self:flex-start">' + esc(optLabel("evfmt", e.format)) + '</span><h1 style="font-size:26px">' + esc(e.title) + '</h1>' +
+      '<div class="evfacts"><span>' + svg(I.cal, 17) + esc(when) + '</span>' + (e.place ? '<span>' + svg(I.pin, 17) + esc(e.place) + '</span>' : '') + (e.org ? '<span>' + svg(I.group, 17) + tr("ev.org") + ' ' + esc(e.org) + '</span>' : '') + '</div>' +
+      '<div class="row">' + (canAct() && !past ? '<button type="button" class="btn' + (going ? ' ghost' : '') + '" data-act="rsvp" data-id="' + esc(id) + '" aria-pressed="' + going + '">' + (going ? "✓ " : "") + tr("ev.rsvp") + '</button>' : '') + (link ? '<a class="btn ghost" style="display:inline-flex;align-items:center;text-decoration:none" href="' + esc(link) + '" target="_blank" rel="noopener">' + tr("ev.page") + '</a>' : '') + (past ? '<span class="muted">' + tr("ev.happened") + '</span>' : '') + '</div>' +
+      (e.desc ? '<div style="border-top:1px solid var(--line);padding-top:14px"><h3 style="margin:0 0 8px;font-size:15px">' + tr("ev.about") + '</h3><div style="white-space:pre-wrap;overflow-wrap:anywhere">' + richText(e.desc) + '</div></div>' : '') +
+      (e.demo ? '<span class="demo" style="align-self:flex-start">' + tr("ev.demo") + '</span>' : '') + '</div>' +
+      eyebrow(tr(past ? "ev.wentTitle" : "ev.goingTitle") + " (" + rs.length + ")") + (rs.length ? rs.map((r) => personRow(r.user)).join("") : '<p class="empty">' + tr("ev.noRsvp") + '</p>');
   }
 
   /* ---------- formulários (modal) ---------- */
   const LIB_KINDS = ["Livro", "Artigo", "Relatório", "Base de dados", "Curso"];
   const LIB_THEMES = ["Introdução", "Microeconomia", "Macroeconomia", "Economia brasileira", "Pensamento econômico", "Economia comportamental", "Finanças", "Econometria e dados", "Desenvolvimento"];
+  // Rótulos e exemplos são chaves do dicionário (form.<tipo>.<campo> e form.<tipo>.<campo>.ph).
+  // Campos de escolha mostram o nome traduzido, mas gravam o valor em português (como sempre).
   const FORMS = {
-    community: { title: "Criar comunidade", submit: "Criar comunidade", fields: [["name", "Nome", "text", 60, "Ex.: Economia Comportamental", true], ["icon", "Sigla (até 3 letras)", "text", 3, "Ex.: EC"], ["desc", "Descrição", "area", 220, "Sobre o que a comunidade conversa?", true], ["rules", "Regras (opcional)", "area", 300, "Ex.: cite fontes; critique ideias, não pessoas"]] },
-    job: { title: "Divulgar vaga", submit: "Publicar vaga", note: "Divulgue só vagas reais e com link oficial. Nunca peça pagamento ou dados bancários de candidatos.", fields: [["title", "Cargo", "text", 90, "Ex.: Estágio em análise de crédito", true], ["company", "Empresa ou instituição", "text", 80, "", true], ["kind", "Tipo", "select", JOB_KINDS], ["mode", "Formato", "select", MODES], ["city", "Cidade", "text", 60, "Ex.: Maringá, PR"], ["area", "Área", "text", 40, "Ex.: Crédito, Macro, Dados"], ["deadline", "Inscrições até (opcional)", "date"], ["link", "Link ou e-mail para se candidatar", "text", 300, "https://…"], ["desc", "Descrição", "area", 3000, "Atividades, requisitos, bolsa ou salário, benefícios", true]] },
-    library: { title: "Indicar material", submit: "Adicionar à biblioteca", note: "Indique materiais reais e, se possível, com link oficial ou de acesso livre. Não compartilhe cópias piratas.", fields: [["title", "Título", "text", 160, "Ex.: Formação Econômica do Brasil", true], ["authors", "Autor(es)", "text", 120, "Ex.: Celso Furtado", true], ["kind", "Tipo", "select", LIB_KINDS], ["theme", "Tema", "select", LIB_THEMES], ["year", "Ano", "text", 4, "Ex.: 1959"], ["link", "Link (opcional)", "text", 300, "https://…"], ["desc", "Por que indicar?", "area", 500, "Para quem é, o que tem de bom", true]] },
-    debate: { title: "Propor debate", submit: "Publicar debate", note: "Faça uma pergunta com dois lados claros. Ex.: “O Banco Central deveria cortar juros mais rápido?”", fields: [["title", "Pergunta do debate", "text", 140, "Ex.: O salário mínimo deveria subir acima da inflação?", true], ["cat", "Tema", "select", DEB_CATS, "", true], ["sideA", "Lado 1", "text", 40, "Ex.: Sim", true], ["sideB", "Lado 2", "text", 40, "Ex.: Não", true], ["desc", "Contexto", "area", 1200, "Dados e fatos que ajudam a entender a discussão"]] },
-    event: { title: "Divulgar evento", submit: "Publicar evento", fields: [["title", "Nome do evento", "text", 120, "Ex.: Semana Acadêmica de Economia", true], ["date", "Data", "date", 0, "", true], ["time", "Horário", "time"], ["format", "Formato", "select", EV_FORMATS, "", true], ["place", "Local ou plataforma", "text", 100, "Ex.: Auditório do bloco C ou YouTube"], ["org", "Organização", "text", 80, "Ex.: Centro Acadêmico de Economia"], ["link", "Link de inscrição ou transmissão", "text", 300, "https://…"], ["desc", "Descrição", "area", 2000, "Programação, palestrantes, público"]] }
+    community: { fields: [["name", "text", 60, true], ["icon", "text", 3], ["desc", "area", 220, true], ["rules", "area", 300]] },
+    job: { note: true, fields: [["title", "text", 90, true], ["company", "text", 80, true], ["kind", "select", JOB_KINDS], ["mode", "select", MODES], ["city", "text", 60], ["area", "text", 40], ["deadline", "date"], ["link", "text", 300], ["desc", "area", 3000, true]] },
+    library: { note: true, fields: [["title", "text", 160, true], ["authors", "text", 120, true], ["kind", "select", LIB_KINDS], ["theme", "select", LIB_THEMES], ["year", "text", 4], ["link", "text", 300], ["desc", "area", 500, true]] },
+    debate: { note: true, fields: [["title", "text", 140, true], ["cat", "select", DEB_CATS, true], ["sideA", "text", 40, true], ["sideB", "text", 40, true], ["desc", "area", 1200]] },
+    event: { fields: [["title", "text", 120, true], ["date", "date", 0, true], ["time", "time"], ["format", "select", EV_FORMATS, true], ["place", "text", 100], ["org", "text", 80], ["link", "text", 300], ["desc", "area", 2000]] }
   };
+  const optGroupOf = (a) => a === JOB_KINDS ? "jobkind" : a === MODES ? "mode" : a === LIB_KINDS ? "libkind" : a === LIB_THEMES ? "libtheme" : a === DEB_CATS ? "debcat" : a === EV_FORMATS ? "evfmt" : "";
+  // Converte para o formato antigo [nome, rótulo, tipo, limite/opções, exemplo, obrigatório]
+  const formFields = (kind) => FORMS[kind].fields.map(([name, type, a, req]) => {
+    const ph = "form." + kind + ".f." + name + ".ph";
+    return [name, tr("form." + kind + ".f." + name), type, a, L.DICT.pt[ph] != null ? tr(ph) : "", !!req];
+  });
   function formModalHtml() {
-    const F = FORMS[S.form.kind], v = S.form.v;
+    const F = FORMS[S.form.kind], v = S.form.v, kind = S.form.kind;
     const fld = ([name, label, type, a, ph, req]) => {
       const id = "f-" + name, val = v[name] == null ? "" : v[name];
-      if (type === "select") return '<label class="field" for="' + id + '">' + label + (req ? " *" : "") + '<select id="' + id + '"' + (req ? ' aria-required="true"' : '') + '>' + (req ? '<option value="" disabled' + (a.includes(val) ? '' : ' selected') + '>Escolha…</option>' : '') + a.map((o) => '<option' + (o === val ? " selected" : "") + '>' + esc(o) + '</option>').join("") + '</select></label>';
+      if (type === "select") return '<label class="field" for="' + id + '">' + label + (req ? " *" : "") + '<select id="' + id + '"' + (req ? ' aria-required="true"' : '') + '>' + (req ? '<option value="" disabled' + (a.includes(val) ? '' : ' selected') + '>' + tr("common.choose") + '</option>' : '') + a.map((o) => '<option value="' + esc(o) + '"' + (o === val ? " selected" : "") + '>' + esc(optLabel(optGroupOf(a), o)) + '</option>').join("") + '</select></label>';
       if (type === "area") return '<label class="field" for="' + id + '">' + label + (req ? " *" : "") + '<textarea id="' + id + '" rows="4" maxlength="' + a + '" placeholder="' + esc(ph || "") + '">' + esc(val) + '</textarea></label>';
       return '<label class="field" for="' + id + '">' + label + (req ? " *" : "") + '<input id="' + id + '" type="' + type + '"' + (a ? ' maxlength="' + a + '"' : '') + ' placeholder="' + esc(ph || "") + '" value="' + esc(val) + '"' + (type === "date" && (name === "date" || name === "deadline") ? ' min="' + todayStr() + '"' : '') + '></label>';
     };
     const pairs = [];
-    F.fields.forEach((f) => { const half = ["select", "date", "time"].includes(f[2]) || ["city", "area", "place", "org", "icon", "sideA", "sideB", "year"].includes(f[0]); const last = pairs[pairs.length - 1]; if (half && last && last.half && last.items.length < 2) last.items.push(f); else pairs.push({ half, items: [f] }); });
-    return '<div class="overlay"><form class="dialog" id="genForm" novalidate role="dialog" aria-modal="true" aria-labelledby="gfT" style="width:min(580px,100%)"><div class="row" style="justify-content:space-between"><h2 id="gfT">' + F.title + '</h2><button type="button" class="iconbtn" data-act="close" aria-label="Fechar">✕</button></div>' +
-      (F.note ? '<p class="muted" style="margin:0;font-size:13px">' + F.note + '</p>' : '') +
+    formFields(kind).forEach((f) => { const half = ["select", "date", "time"].includes(f[2]) || ["city", "area", "place", "org", "icon", "sideA", "sideB", "year"].includes(f[0]); const last = pairs[pairs.length - 1]; if (half && last && last.half && last.items.length < 2) last.items.push(f); else pairs.push({ half, items: [f] }); });
+    return '<div class="overlay"><form class="dialog" id="genForm" novalidate role="dialog" aria-modal="true" aria-labelledby="gfT" style="width:min(580px,100%)"><div class="row" style="justify-content:space-between"><h2 id="gfT">' + tr("form." + kind + ".title") + '</h2><button type="button" class="iconbtn" data-act="close" aria-label="' + tr("common.close") + '">✕</button></div>' +
+      (F.note ? '<p class="muted" style="margin:0;font-size:13px">' + tr("form." + kind + ".note") + '</p>' : '') +
       pairs.map((p) => p.items.length > 1 ? '<div class="row" style="align-items:flex-start;flex-wrap:nowrap">' + p.items.map((f) => '<div style="flex:1;min-width:0">' + fld(f) + '</div>').join("") + '</div>' : fld(p.items[0])).join("") +
-      '<div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-act="close">Cancelar</button><button class="btn" type="submit">' + F.submit + '</button></div></form></div>';
+      '<div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-act="close">' + tr("common.cancel") + '</button><button class="btn" type="submit">' + tr("form." + kind + ".submit") + '</button></div></form></div>';
   }
-  function captureForm() { if (!S.form) return; FORMS[S.form.kind].fields.forEach(([name]) => { const el = document.getElementById("f-" + name); if (el) S.form.v[name] = el.value; }); }
+  function captureForm() { if (!S.form) return; formFields(S.form.kind).forEach(([name]) => { const el = document.getElementById("f-" + name); if (el) S.form.v[name] = el.value; }); }
   async function submitForm() {
     captureForm();
-    const F = FORMS[S.form.kind], v = S.form.v;
+    const F = { fields: formFields(S.form.kind) }, v = S.form.v;
     const miss = F.fields.find((f) => f[5] && !String(v[f[0]] || "").trim());
     const focusF = (name) => { const el = document.getElementById("f-" + name); if (el) el.focus(); };
-    if (miss) { toast((miss[2] === "select" ? "Escolha: " : "Preencha: ") + miss[1] + "."); focusF(miss[0]); return; }
+    if (miss) { toast(tr(miss[2] === "select" ? "form.choose" : "form.fill", { field: miss[1] })); focusF(miss[0]); return; }
     const body = { author: S.meId, createdAt: now() };
     F.fields.forEach(([name, , type, a, , req]) => { let x = String(v[name] == null ? "" : v[name]).trim(); if (type === "select" && !a.includes(x)) x = req ? "" : a[0]; body[name] = typeof a === "number" && a ? x.slice(0, a) : x; });
     const kind = S.form.kind;
     if (kind === "community") { body.icon = (body.icon || initials(body.name)).toUpperCase(); body.hue = Math.floor(Math.random() * HUES.length); }
-    if (kind === "event" && body.date < todayStr()) { toast("A data do evento não pode estar no passado. Escolha uma data de hoje em diante."); focusF("date"); return; }
-    if (kind === "job" && body.deadline && body.deadline < todayStr()) { toast("O prazo de inscrição não pode estar no passado. Escolha uma data de hoje em diante ou deixe em branco."); focusF("deadline"); return; }
+    if (kind === "event" && body.date < todayStr()) { toast(tr("form.pastEvent")); focusF("date"); return; }
+    if (kind === "job" && body.deadline && body.deadline < todayStr()) { toast(tr("form.pastDeadline")); focusF("deadline"); return; }
     if (body.link) {
       const u = safeLink(body.link);
       let ok = false;
       if (/^mailto:/i.test(u)) ok = kind === "job" && /^mailto:[^\s@]+@[^\s@]+\.[^\s@]+$/i.test(u);
       else { try { const p = new URL(u); ok = /^https?:$/.test(p.protocol) && p.hostname.includes(".") && !/\s/.test(body.link); } catch (e) { ok = false; } }
-      if (!ok) { toast(kind === "job" ? "O link para se candidatar não é válido. Use um endereço que comece com https:// ou um e-mail (ex.: vagas@empresa.com.br)." : "O link não é válido. Use um endereço que comece com http:// ou https://."); focusF("link"); return; }
+      if (!ok) { toast(tr(kind === "job" ? "form.badJobLink" : "form.badLink")); focusF("link"); return; }
       body.link = u;
     }
     const colName = { community: "communities", job: "jobs", event: "events", debate: "debates", library: "library" }[kind];
     let newId = null;
-    const ok = await write(async () => { const ref = await col(colName).add(body); newId = ref && ref.id; if (kind === "community" && newId) await col("members").doc(newId + "__" + S.meId).set({ comm: newId, user: S.meId, createdAt: now() }); }, { community: "Comunidade criada", job: "Vaga publicada", event: "Evento publicado", debate: "Debate publicado", library: "Material adicionado à biblioteca" }[kind]);
+    const ok = await write(async () => { const ref = await col(colName).add(body); newId = ref && ref.id; if (kind === "community" && newId) await col("members").doc(newId + "__" + S.meId).set({ comm: newId, user: S.meId, createdAt: now() }); }, tr("form." + kind + ".done"));
     if (ok) { S.form = null; renderModal(); if (kind === "library") { go("library"); return; } if (newId) go((kind === "community" ? "community:" : kind + ":") + newId); else render(); }
   }
 
