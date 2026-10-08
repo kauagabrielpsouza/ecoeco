@@ -185,22 +185,58 @@ const user = Object.freeze({
 /* ---------------------------------------------------------------------
  * Arquivos (imita o "assets" do protótipo) -> Supabase Storage
  * ------------------------------------------------------------------- */
+const uploadError = (msg) => {
+  const e = new Error(msg || "Erro no envio");
+  e.code = /size|large|413/i.test(msg) ? "too_large" : /mime|type/i.test(msg) ? "unsupported_type" : "upstream_error";
+  return e;
+};
+
+// Envio direto pela API do Storage, para poder informar o progresso (0 a 1)
+async function uploadWithProgress(path, blob, contentType, onProgress) {
+  const { data } = await sb.auth.getSession();
+  const token = data.session ? data.session.access_token : SUPABASE_ANON_KEY;
+  await new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", SUPABASE_URL + "/storage/v1/object/media/" + path.split("/").map(encodeURIComponent).join("/"));
+    xhr.setRequestHeader("apikey", SUPABASE_ANON_KEY);
+    xhr.setRequestHeader("Authorization", "Bearer " + token);
+    xhr.setRequestHeader("Content-Type", contentType);
+    xhr.setRequestHeader("x-upsert", "false");
+    xhr.upload.onprogress = (ev) => { if (ev.lengthComputable) onProgress(ev.loaded / ev.total); };
+    xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(uploadError(xhr.status + " " + xhr.responseText)));
+    xhr.onerror = () => reject(uploadError("Falha de rede"));
+    xhr.send(blob);
+  });
+}
+
+const PUBLIC_MEDIA = SUPABASE_URL + "/storage/v1/object/public/media/";
+
 const assets = Object.freeze({
+  // opts: { type, onProgress(fração) } — ambos opcionais
   async upload(blob, opts) {
     const name = (blob.name || "arquivo").normalize("NFD").replace(/[^\w.-]+/g, "_").slice(-60);
     const path = me.id + "/" + Date.now() + "-" + name;
     const contentType = (opts && opts.type) || blob.type || "application/octet-stream";
-    const { error } = await sb.storage.from("media").upload(path, blob, { contentType, upsert: false });
-    if (error) {
-      const e = new Error(error.message);
-      e.code = /size|large/i.test(error.message) ? "too_large" : /mime|type/i.test(error.message) ? "unsupported_type" : "upstream_error";
-      throw e;
+    if (opts && typeof opts.onProgress === "function") {
+      await uploadWithProgress(path, blob, contentType, opts.onProgress);
+    } else {
+      const { error } = await sb.storage.from("media").upload(path, blob, { contentType, upsert: false });
+      if (error) throw uploadError(error.message);
     }
     const url = sb.storage.from("media").getPublicUrl(path).data.publicUrl;
     return { id: url, url, sizeBytes: blob.size, contentType };
   },
   async list() { return { assets: [], usage: { files: 0, bytes: 0, maxFiles: 0, maxBytes: 0 } }; },
-  async delete() { return { deleted: false }; }
+  // Apaga um arquivo do bucket "media" a partir do endereço público dele.
+  // As regras do Storage só deixam apagar arquivos da própria pasta (ou admin).
+  async delete(url) {
+    url = String(url || "");
+    if (!url.startsWith(PUBLIC_MEDIA)) return { deleted: false };
+    const path = decodeURIComponent(url.slice(PUBLIC_MEDIA.length).split("?")[0]);
+    const { data, error } = await sb.storage.from("media").remove([path]);
+    if (error) throw mapError(error);
+    return { deleted: !!(data && data.length) };
+  }
 });
 
 /* ---------------------------------------------------------------------
