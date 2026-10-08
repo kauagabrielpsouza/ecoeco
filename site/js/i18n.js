@@ -1233,4 +1233,13 @@
   add({
     "ncat.Empresas": ["Empresas", "Companies"]
   });
+
+  // -------------------------------------------------------------------
+  // Quadro "Notícias agora" (coluna da direita)
+  // -------------------------------------------------------------------
+  add({
+    "newsnow.title": ["Notícias agora", "News now"],
+    "newsnow.all": ["Ver todas →", "See all →"],
+    "time.ago": ["há {t}", "{t} ago"]
+  });
 })();

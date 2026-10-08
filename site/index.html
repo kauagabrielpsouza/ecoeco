@@ -483,6 +483,12 @@ body.compact .brand .wm{display:none}
 .chip.votebtn{flex:1;min-width:0;height:auto;min-height:40px;padding:8px 12px;font-size:14px;line-height:1.3;white-space:normal}
 /* abas que rolam para o lado: esmaece a borda quando há mais abas escondidas */
 .tabs.more{-webkit-mask-image:linear-gradient(90deg,#000 82%,transparent);mask-image:linear-gradient(90deg,#000 82%,transparent)}
+/* quadro "Notícias agora" (coluna da direita) */
+.newsnow{display:flex;flex-direction:column;gap:12px}
+.newsnow .nn-item{display:flex;flex-direction:column;gap:3px;text-decoration:none;color:var(--ink)}
+.newsnow .nn-title{font-family:var(--serif);font-size:14.5px;line-height:1.35;font-weight:600}
+.newsnow .nn-item:hover .nn-title,.newsnow .nn-item:focus-visible .nn-title{color:var(--accent);text-decoration:underline}
+.newsnow .nn-meta{font-family:var(--sans);font-size:12px;color:var(--ink2)}
 /* janelinha do sininho */
 .bellpop{position:fixed;z-index:70;width:min(380px,calc(100vw - 24px));max-height:min(70vh,540px);overflow:auto;background:var(--surface);border:1px solid var(--line2);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.28);display:flex;flex-direction:column}
 .bellpop .bp-head{justify-content:space-between;flex-wrap:nowrap;padding:12px 14px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--surface);z-index:1}
@@ -2218,17 +2224,31 @@ button.tickrow:hover{background:var(--soft)}
     DATA.DOLAR = [IND.dolar.display, "Atualizado em " + IND.asOf + " · " + (IND.dolar.change || "")];
     DATA.IBOV = [IND.ibov.display + " pts", "Atualizado em " + IND.asOf + " · " + (IND.ibov.change || "")];
     if (live && Array.isArray(live.news) && live.news.length) {
-      NEWS.splice(0, NEWS.length, ...live.news.map((n) => ({ src: n.source, cat: n.category || "Brasil", date: new Date(n.published_at).toLocaleDateString("pt-BR", { day: "numeric", month: "numeric" }), title: n.title, prev: n.summary || "", href: n.url })));
+      NEWS.splice(0, NEWS.length, ...live.news.map((n) => ({ src: n.source, cat: n.category || "Brasil", date: new Date(n.published_at).toLocaleDateString("pt-BR", { day: "numeric", month: "numeric" }), ts: Date.parse(n.published_at) || 0, title: n.title, prev: n.summary || "", href: n.url })));
     }
     render();
   };
 
   /* ---------- rail ---------- */
+  // "Há quanto tempo": "agora", "há 2 h", "há 3 d"; mais antigo mostra a data
+  const ago = (t) => { const s = (now() - t) / 1000; if (s < 60) return tr("time.now"); if (s < 7 * 86400) return tr("time.ago", { t: rel(t) }); return rel(t); };
+  // Quadro "Notícias agora": as 3 mais recentes da tabela news_items, de fontes diferentes quando possível
+  function newsNowCard() {
+    const live = NEWS.filter((n) => n.ts && n.href).sort((a, b) => b.ts - a.ts);
+    if (!live.length) return '';
+    const pick = [], used = new Set();
+    live.forEach((n) => { if (pick.length < 3 && !used.has(n.src)) { pick.push(n); used.add(n.src); } });
+    live.forEach((n) => { if (pick.length < 3 && !pick.includes(n)) pick.push(n); });
+    pick.sort((a, b) => b.ts - a.ts);
+    return '<section class="card newsnow" aria-labelledby="nnT"><h2 id="nnT" style="margin:0">' + tr("newsnow.title") + '</h2>' +
+      pick.map((n) => '<a class="nn-item" href="' + esc(safeLink(n.href)) + '" target="_blank" rel="noopener"><span class="nn-title clamp2">' + esc(n.title) + '</span><span class="nn-meta">' + esc(n.src) + ' · ' + esc(ago(n.ts)) + '</span></a>').join("") +
+      '<button type="button" class="linkname" style="color:var(--accent);text-align:left;font-size:13.5px" data-go="news">' + tr("newsnow.all") + '</button></section>';
+  }
   function renderRail() {
     const fol = following();
     const sug = Object.keys(S.users).filter((id) => id !== S.meId && !fol.has(id) && !isHidden(id)).slice(0, 4);
     $("#rail").innerHTML =
-      indicatorsCard() +
+      indicatorsCard() + newsNowCard() +
       (() => { const d = topDebates(1)[0] || S.debates.slice().sort(byNew)[0]; if (!d) return ''; const st = debateStats(d.id); return '<section class="card" style="display:flex;flex-direction:column;gap:10px"><span class="eyebrow">' + tr("rail.debate") + '</span><h2 style="font-family:var(--serif);font-size:18px;margin:0">' + esc(d.title) + '</h2>' + debBar(st, d) + '<div class="row muted" style="justify-content:space-between;font-size:13px"><span>' + esc(d.sideA) + ' · ' + st.pa + '%</span><span>' + esc(d.sideB) + ' · ' + (100 - st.pa) + '%</span></div><div class="row" style="justify-content:space-between"><button type="button" class="linkname" style="color:var(--accent);text-align:left" data-go="debate:' + esc(d.id) + '">' + tr("deb.enter") + '</button><button type="button" class="linkname muted" style="font-weight:400;font-size:13px" data-go="debates">' + tr("common.seeAll") + '</button></div></section>'; })() +
       (trendingTags().length ? '<section class="card" style="display:flex;flex-direction:column;gap:8px"><h2 style="margin:0">' + tr("rail.trending") + '</h2>' + trendingTags().map(([t, n]) => '<button type="button" class="linkname" style="display:flex;justify-content:space-between;font-weight:500;text-align:left" data-go="tag:' + esc(t) + '"><span>#' + esc(t) + '</span><span class="muted" style="font-weight:400;font-size:13px">' + tr.n("post.count", n) + '</span></button>').join("") + '</section>' : '') +
       (() => { const t = todayStr(); const up = S.events.filter((e) => e.date >= t).sort((a, b) => (a.date + (a.time || "")).localeCompare(b.date + (b.time || ""))).slice(0, 2); return up.length ? '<section class="card" style="display:flex;flex-direction:column;gap:12px"><h2 style="margin:0">' + tr("rail.events") + '</h2>' + up.map((e) => { const d = evDate(e.date); return '<button type="button" class="evmini" data-go="event:' + esc(e.id) + '"><span class="datebox"><small>' + MONTHS[d.getMonth()] + '</small><b>' + d.getDate() + '</b></span><span style="display:flex;flex-direction:column;min-width:0;line-height:1.3"><b style="font-size:14px">' + esc(e.title) + '</b><small class="muted">' + esc(optLabel("evfmt", e.format)) + (e.time ? ' · ' + esc(e.time) : '') + '</small></span></button>'; }).join("") + '<button type="button" class="linkname" style="color:var(--accent);text-align:left" data-go="events">' + tr("rail.calendar") + '</button></section>' : ''; })() +
