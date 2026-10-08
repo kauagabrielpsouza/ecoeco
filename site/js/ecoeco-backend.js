@@ -287,8 +287,8 @@ function authScreen() {
         '<h2 style="margin:0;font-size:30px">' + t(login ? "auth.signIn" : "auth.signUp") + '</h2>' +
         '<p class="muted" style="margin:0">' + t(login ? "auth.signInHint" : "auth.signUpHint") + '</p>' +
         '<label class="field" for="au-user">' + t("auth.username") + '<input id="au-user" autocomplete="username" maxlength="24" placeholder="' + t("auth.usernamePh") + '" required></label>' +
-        '<label class="field" for="au-pass">' + t("auth.password") + '<input id="au-pass" type="password" autocomplete="' + (login ? "current-password" : "new-password") + '" minlength="8" required></label>' +
-        (!login ? '<label class="field" for="au-pass2">' + t("auth.password2") + '<input id="au-pass2" type="password" autocomplete="new-password" minlength="8" required></label>' +
+        '<label class="field" for="au-pass">' + t("auth.password") + '<input id="au-pass" type="password" autocomplete="' + (login ? "current-password" : "new-password") + '" minlength="6" required></label>' +
+        (!login ? '<label class="field" for="au-pass2">' + t("auth.password2") + '<input id="au-pass2" type="password" autocomplete="new-password" minlength="6" required></label>' +
           (REQUIRE_INVITE ? '<label class="field" for="au-invite">' + t("auth.invite") + '<input id="au-invite" autocomplete="off" placeholder="' + t("auth.invitePh") + '" required></label>' : '') +
           '<label style="display:flex;gap:8px;align-items:flex-start;font-size:13.5px"><input type="checkbox" id="au-terms" style="margin-top:3px"> <span>' + t("auth.terms") + '</span></label>' : '') +
         (msg ? '<p role="alert" style="margin:0;color:var(--down);font-weight:600;font-size:14px">' + esc(t(msg)) + '</p>' : '') +
@@ -308,7 +308,7 @@ function authScreen() {
         const u = cleanUser(box.querySelector("#au-user").value);
         const p = box.querySelector("#au-pass").value;
         if (!validUser(u)) return draw("auth.err.username");
-        if (p.length < 8) return draw("auth.err.short");
+        if (p.length < 6) return draw("auth.err.short");
         btn.disabled = true; btn.textContent = t("auth.wait");
         try {
           if (mode === "login") {
@@ -364,7 +364,7 @@ async function start() {
 window.EcoBackend = {
   async signOut() { await sb.auth.signOut(); location.reload(); },
   async changePassword(newPass) {
-    if (!newPass || newPass.length < 8) throw new Error(t("auth.err.short"));
+    if (!newPass || newPass.length < 6) throw new Error(t("auth.err.short"));
     const { error } = await sb.auth.updateUser({ password: newPass });
     if (error) throw new Error(error.message);
   },

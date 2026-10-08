@@ -99,7 +99,7 @@ Funções (todas conferem `is_admin()`, menos `my_sanction`):
 | `admin_set_sanction(conta, tipo, dias, motivo)` / `admin_lift_sanction(conta)` | suspender/banir e desfazer (não vale para si mesmo) |
 | `admin_list_users()` | contas com usuário, cadastro, último acesso, status |
 | `admin_list_invites()`, `admin_create_invite(código, usos)`, `admin_set_invite_active(código, ativo)` | convites |
-| `admin_set_password(conta, senha)` | senha temporária (mín. 8 caracteres) |
+| `admin_set_password(conta, senha)` | senha temporária (mín. 6 caracteres) |
 | `admin_list_log(limite)` | registro de moderação |
 
 ## Estado privado (`private` / `data/users/<id>/state`)

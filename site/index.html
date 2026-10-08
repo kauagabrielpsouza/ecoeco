@@ -1958,7 +1958,7 @@ button.tickrow:hover{background:var(--soft)}
         '<p style="margin:0;font-size:14px;line-height:1.55">' + tr("set.privText") + '</p>') +
       (S.isAdmin ? sec(tr("set.moderation"), tr("set.moderationDesc"), '<button type="button" class="btn ghost small" data-go="moderation" style="align-self:flex-start">' + tr("set.openModeration") + (pendRep ? ' · ' + pendRep : '') + '</button>') : '') +
       sec(tr("set.about"), "", '<div class="row" style="gap:8px">' + Object.keys(PAGES).map((k) => '<button type="button" class="btn ghost small" data-go="page:' + k + '">' + tr("page." + k + ".title") + '</button>').join("") + '</div>') +
-      (loggedIn() ? sec(tr("set.password"), tr("set.passwordDesc"), '<form id="pwForm" class="row" style="align-items:flex-end"><label class="field" for="pw1" style="flex:1;min-width:180px">' + tr("set.newPassword") + '<input id="pw1" type="password" autocomplete="new-password" minlength="8"></label><label class="field" for="pw2" style="flex:1;min-width:180px">' + tr("set.repeatPassword") + '<input id="pw2" type="password" autocomplete="new-password" minlength="8"></label><button type="submit" class="btn small" style="height:42px">' + tr("set.changePassword") + '</button></form>') : '') +
+      (loggedIn() ? sec(tr("set.password"), tr("set.passwordDesc"), '<form id="pwForm" class="row" style="align-items:flex-end"><label class="field" for="pw1" style="flex:1;min-width:180px">' + tr("set.newPassword") + '<input id="pw1" type="password" autocomplete="new-password" minlength="6"></label><label class="field" for="pw2" style="flex:1;min-width:180px">' + tr("set.repeatPassword") + '<input id="pw2" type="password" autocomplete="new-password" minlength="6"></label><button type="submit" class="btn small" style="height:42px">' + tr("set.changePassword") + '</button></form>') : '') +
       (loggedIn() ? sec(tr("set.session"), "", '<button type="button" class="btn danger" data-act="signout" style="align-self:flex-start">' + tr("acct.signOut") + '</button>') : '') +
       '<p class="muted" style="margin:0;padding:8px 20px 0;font-size:12.5px">' + tr("set.footer") + '</p>' +
       '<p class="credits" style="margin:0;padding:2px 20px 28px;font-family:var(--sans);font-size:12px;color:var(--ink2)">' + tr("set.credits") + '</p>';
@@ -2070,7 +2070,7 @@ button.tickrow:hover{background:var(--soft)}
       const open = f && f.user === u.user_id;
       const form = !open ? '' : '<div class="banner" style="margin:0;border-radius:10px;display:flex;flex-direction:column;gap:10px">' +
         (f.kind === "pw"
-          ? '<label class="field" for="adm-pw">' + tr("adm.pwLabel") + '<input id="adm-pw" type="text" autocomplete="off" minlength="8"></label><span class="muted" style="font-size:12.5px">' + tr("adm.pwHint") + '</span>'
+          ? '<label class="field" for="adm-pw">' + tr("adm.pwLabel") + '<input id="adm-pw" type="text" autocomplete="off" minlength="6"></label><span class="muted" style="font-size:12.5px">' + tr("adm.pwHint") + '</span>'
           : (f.kind === "suspend" ? '<label class="field" for="adm-days">' + tr("adm.days") + '<input id="adm-days" type="number" min="1" max="3650" value="7" inputmode="numeric"></label>' : '<span style="font-size:13.5px">' + tr("adm.banNote") + '</span>') +
             '<label class="field" for="adm-reason">' + tr("adm.reasonLabel") + '<input id="adm-reason" maxlength="300" autocomplete="off"></label>') +
         '<span class="row" style="justify-content:flex-end;gap:6px"><button type="button" class="btn ghost small" data-act="admcancel">' + tr("common.cancel") + '</button><button type="button" class="btn ' + (f.kind === "pw" ? "" : "danger ") + 'small" data-act="admsubmit">' + tr(f.kind === "pw" ? "adm.setPw" : f.kind === "suspend" ? "adm.confirmSuspend" : "adm.confirmBan") + '</button></span></div>';
@@ -2453,7 +2453,7 @@ button.tickrow:hover{background:var(--soft)}
       case "admcancel": S.adm.form = null; render(); return;
       case "admsubmit": {
         const fm = S.adm.form; if (!fm) return;
-        if (fm.kind === "pw") { const pw = ($("#adm-pw") || {}).value || ""; if (pw.length < 8) { toast(tr("auth.err.short")); return; } await admCall("admin_set_password", { p_user: fm.user, p_password: pw }, tr("adm.pwDone"), "accounts"); return; }
+        if (fm.kind === "pw") { const pw = ($("#adm-pw") || {}).value || ""; if (pw.length < 6) { toast(tr("auth.err.short")); return; } await admCall("admin_set_password", { p_user: fm.user, p_password: pw }, tr("adm.pwDone"), "accounts"); return; }
         const reason = (($("#adm-reason") || {}).value || "").trim(); if (!reason) { toast(tr("adm.needReason")); const el = $("#adm-reason"); if (el) el.focus(); return; }
         if (fm.user === S.meId) { toast(tr("adm.notSelf")); return; }
         const days = parseInt(($("#adm-days") || {}).value, 10);
@@ -2687,7 +2687,7 @@ if (ev.target.id === "libtheme") { S.libF.theme = ev.target.value; render(); ret
       if (await write(() => col("posts").doc(p.id).update({ text: text.slice(0, 1000), editedAt: now() }), tr("h.postEdited"))) { S.editing = null; render(); }
     } else if (f === "pwForm") {
       const p1 = ($("#pw1") || {}).value || "", p2 = ($("#pw2") || {}).value || "";
-      if (p1.length < 8) { toast(tr("auth.err.short")); return; }
+      if (p1.length < 6) { toast(tr("auth.err.short")); return; }
       if (p1 !== p2) { toast(tr("auth.err.mismatch")); return; }
       try { await window.EcoBackend.changePassword(p1); toast(tr("h.pwChanged")); $("#pw1").value = ""; $("#pw2").value = ""; } catch (e) { toast(tr("h.pwErr")); }
     } else if (f === "watchForm") {

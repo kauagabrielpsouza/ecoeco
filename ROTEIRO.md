@@ -91,7 +91,7 @@ curtir, comentar, entrar num debate e argumentar. Se aparecer erro, investigue e
 **Você faz**
 1. Crie a sua conta no site local (usuário e senha, convite `ECOECO2026`).
 2. No Supabase → SQL Editor, abra `supabase/04_tornar_admin.sql`, troque `seu_usuario` pelo seu usuário e rode. Isso libera o painel de **Moderação** para você.
-   Depois rode, nesta ordem, `supabase/05_limpeza_em_cascata.sql`, `supabase/06_privacidade_perfil.sql` e `supabase/07_moderacao_admin.sql`.
+   Depois rode, nesta ordem, `supabase/05_limpeza_em_cascata.sql`, `supabase/06_privacidade_perfil.sql`, `supabase/07_moderacao_admin.sql` e `supabase/08_senha_minima.sql`.
 3. Recarregue o site: em Configurações deve aparecer "Moderação".
 
 **Deu certo se…** você consegue publicar, sair da conta e entrar de novo, e o post continua lá.

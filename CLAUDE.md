@@ -22,7 +22,7 @@ Rede social de economia (feed, debates, comunidades, artigos, vagas, eventos, bi
 3. Notícias: de grandes portais, só **título e link**. Resumo só de fontes com licença aberta (Agência Brasil, CC BY). Nunca copie o texto das matérias.
 4. Mercado: nada de recomendação de investimento. Mostre a data/hora de atualização dos números.
 5. Mantenha o design system (`docs/design-system.md`): Manrope na interface, Lora só em conteúdo editorial, verde como cor principal, dourado só em detalhes (5–10%).
-6. Toda mudança de banco vira um novo arquivo SQL numerado (o próximo é `08_...sql`), nunca edite o que já foi rodado em produção sem avisar.
+6. Toda mudança de banco vira um novo arquivo SQL numerado (o próximo é `09_...sql`), nunca edite o que já foi rodado em produção sem avisar.
 7. Ao terminar uma etapa, rode os testes e explique como o Kauã confere que funcionou.
 8. Textos da interface ficam **só** em `site/js/i18n.js` (português e inglês). No código use `tr("chave")` ou `tr.n("chave", n)`; nunca escreva texto fixo. Valores gravados no banco (categorias, tipos) continuam em português e são traduzidos na exibição (`optLabel`).
 9. Commits deste projeto **não** levam linha de coautoria do Claude.

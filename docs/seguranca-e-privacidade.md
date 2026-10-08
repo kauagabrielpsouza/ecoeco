@@ -28,7 +28,7 @@
 Essas regras foram testadas num Postgres local simulando o Supabase (cadastro com convite errado recusado, usuário duplicado recusado, tentativa de editar/apagar post alheio recusada, mensagens invisíveis para terceiros). Repita os testes da Etapa 7 do ROTEIRO no Supabase de verdade.
 
 ## Dados pessoais (LGPD)
-- Não coletamos e-mail, telefone, CPF ou documentos. A conta é usuário + senha (senha guardada criptografada pelo Supabase; ninguém consegue ler).
+- Não coletamos e-mail, telefone, CPF ou documentos. A conta é usuário + senha (senha guardada criptografada pelo Supabase; ninguém consegue ler). A única regra de senha é ter pelo menos 6 caracteres, o mínimo do Supabase.
 - O que a pessoa escreve no perfil é opcional e público para quem tem conta.
 - Pedido de exclusão de conta: apague no Supabase (Authentication → Users → excluir) e rode `delete from public.docs where owner = '<id>';`.
 - Termos de uso e Política de privacidade estão como **rascunho** nas páginas institucionais. Revise com um advogado antes de abrir ao público.
