@@ -39,12 +39,32 @@ async function sgs(code, n) {
   }
 }
 
+// Pedido por intervalo de datas (dd/mm/aaaa). A opção "ultimos/{n}" aceita no máximo 20 valores
+// e, na série da Selic, devolve também datas futuras (até a próxima reunião do Copom).
+const brDate = (d) => String(d.getUTCDate()).padStart(2, "0") + "/" + String(d.getUTCMonth() + 1).padStart(2, "0") + "/" + d.getUTCFullYear();
+async function sgsRange(code, days) {
+  if (FIX) return fixture(code, days);
+  const fim = new Date(), ini = new Date(Date.now() - days * 864e5);
+  const url = `https://api.bcb.gov.br/dados/serie/bcdata.sgs.${code}/dados?formato=json&dataInicial=${brDate(ini)}&dataFinal=${brDate(fim)}`;
+  for (let tent = 1; tent <= 3; tent++) {
+    try {
+      const res = await fetch(url, { headers: { Accept: "application/json" } });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const rows = await res.json();
+      return rows.map((r) => ({ date: parseBR(r.data), value: Number(String(r.valor).replace(",", ".")) })).filter((r) => r.date <= fim);
+    } catch (e) {
+      if (tent === 3) throw new Error(`SGS ${code}: ${e.message}`);
+      await new Promise((r) => setTimeout(r, 2000 * tent));
+    }
+  }
+}
+
 const out = [];
 const now = new Date().toISOString();
 const add = (row) => out.push(Object.assign({ updated_at: now }, row));
 
 async function selic() {
-  const rows = await sgs(432, 400);                    // Meta Selic definida pelo Copom (diária)
+  const rows = await sgsRange(432, 400);               // Meta Selic definida pelo Copom (diária), últimos ~400 dias até hoje
   const last = rows[rows.length - 1];
   let since = last.date, prev = null;
   for (let i = rows.length - 2; i >= 0; i--) { if (rows[i].value !== last.value) { prev = rows[i].value; break; } since = rows[i].date; }

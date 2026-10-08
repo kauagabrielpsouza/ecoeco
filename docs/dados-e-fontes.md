@@ -6,6 +6,8 @@ Os robôs rodam no GitHub Actions a cada 30 minutos (`.github/workflows/atualiza
 API SGS do Banco Central, gratuita e sem cadastro:
 `https://api.bcb.gov.br/dados/serie/bcdata.sgs.{código}/dados/ultimos/{n}?formato=json`
 
+Atenção: `ultimos/{n}` aceita **no máximo 20 valores**. Para mais (a Selic usa ~400 dias para saber desde quando está mantida), o robô pede por intervalo de datas: `.../dados?formato=json&dataInicial=dd/mm/aaaa&dataFinal=dd/mm/aaaa`. Na série 432 o Banco Central publica também dias futuros (até o próximo Copom); o robô ignora datas depois de hoje.
+
 | Indicador | Código SGS | Frequência real |
 |---|---|---|
 | Meta Selic (Copom) | 432 | muda nas reuniões do Copom |
