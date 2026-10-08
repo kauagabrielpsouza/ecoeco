@@ -1204,10 +1204,10 @@ button.tickrow:hover{background:var(--soft)}
   }
 
   function viewProfile(id) {
-    if (!id) return '<p class="empty">Entre na sua conta para ter um perfil.</p>';
+    if (!id) return '<p class="empty">' + tr("prof.signIn") + '</p>';
     const u = U(id);
-    if (id !== S.meId && blockedByMe().has(id)) return backHead("feed", esc(u.name), esc(handle(id))) + '<div class="empty" style="display:flex;flex-direction:column;gap:12px;align-items:flex-start"><b style="color:var(--ink);font-size:17px">Você bloqueou ' + esc(u.name) + '.</b><span>Vocês não veem as publicações, comentários e argumentos um do outro e não podem trocar mensagens.</span><button type="button" class="btn" data-act="unblock" data-id="' + esc(id) + '">Desbloquear</button></div>';
-    if (id !== S.meId && blockedMe().has(id)) return backHead("feed", esc(u.name), "") + '<p class="empty">Este perfil não está disponível para você.</p>';
+    if (id !== S.meId && blockedByMe().has(id)) return backHead("feed", esc(u.name), esc(handle(id))) + '<div class="empty" style="display:flex;flex-direction:column;gap:12px;align-items:flex-start"><b style="color:var(--ink);font-size:17px">' + tr("prof.youBlocked", { name: esc(u.name) }) + '</b><span>' + tr("prof.blockedText") + '</span><button type="button" class="btn" data-act="unblock" data-id="' + esc(id) + '">' + tr("set.unblock") + '</button></div>';
+    if (id !== S.meId && blockedMe().has(id)) return backHead("feed", esc(u.name), "") + '<p class="empty">' + tr("prof.unavailable") + '</p>';
     const own = id === S.meId && loggedIn();
     const fol = following().has(id);
     const [bg, fg] = hueOf(id);
@@ -1221,41 +1221,41 @@ button.tickrow:hover{background:var(--soft)}
     let body = "";
     if (tab === "about") {
       const block = (t, v) => v ? '<div><h3>' + t + '</h3><p>' + esc(v) + '</p></div>' : "";
-      const inner = block("Sobre", u.bio) + block("Cargo ou ocupação", u.role) + block("Formação", u.education) + block("Experiência", u.experience) + block("Instituição", u.school) + block("Cidade", u.city);
-      body = '<div class="about">' + (inner || '<p class="muted">' + (own ? "Complete as informações em “Editar perfil”." : "Nenhuma informação adicional.") + '</p>') + '</div>';
+      const inner = block(tr("prof.about"), u.bio) + block(tr("prof.role"), u.role) + block(tr("prof.education"), u.education) + block(tr("prof.experience"), u.experience) + block(tr("prof.school"), u.school) + block(tr("prof.city"), u.city);
+      body = '<div class="about">' + (inner || '<p class="muted">' + tr(own ? "prof.aboutEmptyOwn" : "prof.aboutEmpty") + '</p>') + '</div>';
     } else if (tab === "articles") {
       const arts = S.articles.filter((a) => a.author === id).sort(byNew);
-      body = arts.length ? arts.map(articleRow).join("") : '<p class="empty">' + (own ? 'Você ainda não publicou textos. <button type="button" class="linkname" style="color:var(--accent)" data-go="write">Escrever o primeiro</button>' : "Nenhum texto publicado ainda.") + '</p>';
+      body = arts.length ? arts.map(articleRow).join("") : '<p class="empty">' + (own ? tr("prof.noArticlesOwn") + ' <button type="button" class="linkname" style="color:var(--accent)" data-go="write">' + tr("prof.writeFirst") + '</button>' : tr("prof.noArticles")) + '</p>';
     } else if (tab === "debates" && showDebs) {
       // Debates que a pessoa propôs ou em que argumentou (o lado em que votou nunca aparece)
       const ids = new Set(S.debates.filter((d) => d.author === id).map((d) => d.id));
       S.args.forEach((a) => { if (a.author === id) ids.add(debOf(a)); });
       const debs = S.debates.filter((d) => ids.has(d.id)).sort(byNew);
-      body = (own && u.showDebates === false ? '<p class="muted" style="margin:0;padding:12px 20px 0;font-size:13px">Só você vê esta aba. Para mostrar, ligue a opção em Configurações › Privacidade.</p>' : '') +
-        (debs.length ? debs.map((d) => debateCard(d)).join("") : '<p class="empty">' + (own ? "Você ainda não propôs nem argumentou em debates." : "Nenhum debate por aqui ainda.") + '</p>');
+      body = (own && u.showDebates === false ? '<p class="muted" style="margin:0;padding:12px 20px 0;font-size:13px">' + tr("prof.onlyYouTab") + '</p>' : '') +
+        (debs.length ? debs.map((d) => debateCard(d)).join("") : '<p class="empty">' + tr(own ? "prof.noDebatesOwn" : "prof.noDebates") + '</p>');
     } else if (tab === "communities" && showComms) {
       const comms = S.communities.filter((c) => S.members.some((m) => m.comm === c.id && m.user === id));
-      body = (own && u.showCommunities === false ? '<p class="muted" style="margin:0;padding:12px 20px 0;font-size:13px">Só você vê esta aba. Para mostrar, ligue a opção em Configurações › Privacidade.</p>' : '') +
-        (comms.length ? comms.map((c) => '<button type="button" class="conv" data-go="community:' + esc(c.id) + '">' + commIcon(c) + '<span style="flex:1;min-width:0;display:flex;flex-direction:column;text-align:left"><b>' + esc(c.name) + '</b><span class="muted clamp1" style="font-size:13px">' + esc(c.desc || "") + '</span><span class="muted" style="font-size:12.5px">' + plural(memberCount(c.id), "membro", "membros") + '</span></span></button>').join("") : '<p class="empty">' + (own ? "Você ainda não participa de comunidades." : "Nenhuma comunidade por aqui ainda.") + '</p>');
+      body = (own && u.showCommunities === false ? '<p class="muted" style="margin:0;padding:12px 20px 0;font-size:13px">' + tr("prof.onlyYouTab") + '</p>' : '') +
+        (comms.length ? comms.map((c) => '<button type="button" class="conv" data-go="community:' + esc(c.id) + '">' + commIcon(c) + '<span style="flex:1;min-width:0;display:flex;flex-direction:column;text-align:left"><b>' + esc(c.name) + '</b><span class="muted clamp1" style="font-size:13px">' + esc(c.desc || "") + '</span><span class="muted" style="font-size:12.5px">' + tr.n("comm.members", memberCount(c.id)) + '</span></span></button>').join("") : '<p class="empty">' + tr(own ? "prof.noCommsOwn" : "prof.noComms") + '</p>');
     } else if (tab === "saved" && own) {
       const list = S.saved.slice().sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).map((s) => S.posts.find((p) => p.id === s.id)).filter(Boolean);
-      body = '<p class="muted" style="margin:0;padding:12px 20px 0;font-size:13px">Só você vê seus salvos.</p>' + (list.length ? list.map((p) => postCard(p)).join("") : '<p class="empty">Nada salvo ainda. Use o menu “⋯” de uma publicação e escolha “Salvar publicação”.</p>');
+      body = '<p class="muted" style="margin:0;padding:12px 20px 0;font-size:13px">' + tr("prof.savedOnlyYou") + '</p>' + (list.length ? list.map((p) => postCard(p)).join("") : '<p class="empty">' + tr("prof.savedEmpty") + '</p>');
     } else {
       const pin = tab === "posts" && u.pinned ? posts.find((x) => x.id === u.pinned) : null;
       const list = tab === "reposts" ? reps : (pin ? [pin].concat(posts.filter((x) => x !== pin)) : posts);
-      body = list.length ? list.map((p) => postCard(p, p === pin ? { pinned: true } : undefined)).join("") : '<p class="empty">' + (tab === "reposts" ? "Nenhuma republicação ainda." : "Nenhuma publicação ainda.") + '</p>';
+      body = list.length ? list.map((p) => postCard(p, p === pin ? { pinned: true } : undefined)).join("") : '<p class="empty">' + tr(tab === "reposts" ? "prof.noReposts" : "prof.noPosts") + '</p>';
     }
-    return '<div class="cover' + (u.cover ? '' : ' brandcover') + '" style="' + coverStyle + '"><button type="button" class="back" data-go="feed" aria-label="Voltar ao início">' + svg(I.back, 18) + '</button></div>' +
+    return '<div class="cover' + (u.cover ? '' : ' brandcover') + '" style="' + coverStyle + '"><button type="button" class="back" data-go="feed" aria-label="' + tr("prof.backHome") + '">' + svg(I.back, 18) + '</button></div>' +
       '<div class="pbox"><div class="top"><span class="av s104" style="background:' + bg + ';color:' + fg + '">' + avInner(id) + '</span><span class="row">' +
-      (own ? '<button type="button" class="btn ghost" data-act="edit">Editar perfil</button><button type="button" class="btn ghost" data-go="settings" aria-label="Configurações" title="Configurações" style="padding:0 12px;display:inline-flex;align-items:center">' + svg(I.gear, 18) + '</button>' :
-        (canAct() ? '<span style="position:relative;display:inline-flex"><button type="button" class="btn ghost" data-act="menu" data-id="prof:' + esc(id) + '" aria-haspopup="menu" aria-expanded="' + (S.menu === "prof:" + id) + '" aria-label="Mais opções" style="padding:0 10px;display:inline-flex;align-items:center">' + dots + '</button>' + (S.menu === "prof:" + id ? '<div class="menu" role="menu" style="top:46px">' + (S.muted.includes(id) ? '<button type="button" role="menuitem" data-act="unmute" data-id="' + esc(id) + '">Reativar no feed</button>' : '<button type="button" role="menuitem" data-act="mute" data-id="' + esc(id) + '">' + tr("post.mute", { name: esc(u.name) }) + '</button>') + '<button type="button" role="menuitem" class="red" data-act="block" data-id="' + esc(id) + '">' + tr("post.block", { name: esc(u.name) }) + '</button></div>' : '') + '</span><button type="button" class="btn ghost" data-go="messages:' + esc(id) + '">Mensagem</button><button type="button" class="btn' + (fol ? ' ghost' : '') + '" data-act="follow" data-id="' + esc(id) + '" aria-pressed="' + fol + '">' + (fol ? "Seguindo" : "Seguir") + '</button>' : '')) + '</span></div>' +
+      (own ? '<button type="button" class="btn ghost" data-act="edit">' + tr("set.editProfile") + '</button><button type="button" class="btn ghost" data-go="settings" aria-label="' + tr("set.title") + '" title="' + tr("set.title") + '" style="padding:0 12px;display:inline-flex;align-items:center">' + svg(I.gear, 18) + '</button>' :
+        (canAct() ? '<span style="position:relative;display:inline-flex"><button type="button" class="btn ghost" data-act="menu" data-id="prof:' + esc(id) + '" aria-haspopup="menu" aria-expanded="' + (S.menu === "prof:" + id) + '" aria-label="' + tr("common.moreOptions") + '" style="padding:0 10px;display:inline-flex;align-items:center">' + dots + '</button>' + (S.menu === "prof:" + id ? '<div class="menu" role="menu" style="top:46px">' + (S.muted.includes(id) ? '<button type="button" role="menuitem" data-act="unmute" data-id="' + esc(id) + '">' + tr("prof.unmute") + '</button>' : '<button type="button" role="menuitem" data-act="mute" data-id="' + esc(id) + '">' + tr("post.mute", { name: esc(u.name) }) + '</button>') + '<button type="button" role="menuitem" class="red" data-act="block" data-id="' + esc(id) + '">' + tr("post.block", { name: esc(u.name) }) + '</button></div>' : '') + '</span><button type="button" class="btn ghost" data-go="messages:' + esc(id) + '">' + tr("prof.message") + '</button><button type="button" class="btn' + (fol ? ' ghost' : '') + '" data-act="follow" data-id="' + esc(id) + '" aria-pressed="' + fol + '">' + tr(fol ? "follow.following" : "follow.follow") + '</button>' : '')) + '</span></div>' +
       '<div style="display:flex;flex-direction:column;gap:2px"><h1>' + esc(u.name) + '</h1>' + (u.username ? '<span class="muted">@' + esc(u.username) + '</span>' : '') + '</div>' +
-      (u.headline ? '<p style="margin:0;font-weight:500">' + esc(u.headline) + '</p>' : (own ? '<p class="muted" style="margin:0">Adicione um título ao seu perfil em “Editar perfil”.</p>' : '')) +
+      (u.headline ? '<p style="margin:0;font-weight:500">' + esc(u.headline) + '</p>' : (own ? '<p class="muted" style="margin:0">' + tr("prof.addHeadline") + '</p>' : '')) +
       (u.bio ? '<p style="margin:0;white-space:pre-wrap">' + esc(u.bio) + '</p>' : '') +
       (meta.length ? '<div class="row muted" style="font-size:13.5px;gap:14px">' + meta.map((m) => '<span class="row" style="gap:5px">' + m + '</span>').join("") + '</div>' : '') +
-      '<div class="stats"><button type="button" class="statbtn" data-go="follows:' + esc(id) + ':following"><b>' + followingCount(id) + '</b> <span class="muted">seguindo</span></button><button type="button" class="statbtn" data-go="follows:' + esc(id) + ':followers"><b>' + followerCount(id) + '</b> <span class="muted">' + (followerCount(id) === 1 ? "seguidor" : "seguidores") + '</span></button><span><b>' + posts.length + '</b> <span class="muted">' + (posts.length === 1 ? "publicação" : "publicações") + '</span></span></div>' +
-      (u.fake ? '<span class="demo">Perfil de demonstração: esta pessoa não existe e não responde mensagens.</span>' : '') + '</div>' +
-      '<div class="head" style="position:static;padding-top:12px"><div class="tabs" role="tablist" aria-label="Conteúdo do perfil">' + [["posts", "Publicações"], ["reposts", "Republicações"], ["articles", "Artigos"]].concat(showDebs ? [["debates", "Debates"]] : []).concat(showComms ? [["communities", "Comunidades"]] : []).concat(own ? [["saved", "Salvos"]] : []).concat([["about", "Sobre"]]).map(([t, l]) => '<button type="button" role="tab" data-ptab="' + t + '" aria-selected="' + (tab === t) + '">' + l + '</button>').join("") + '</div></div>' + body;
+      '<div class="stats"><button type="button" class="statbtn" data-go="follows:' + esc(id) + ':following"><b>' + followingCount(id) + '</b> <span class="muted">' + tr("prof.followingLbl") + '</span></button><button type="button" class="statbtn" data-go="follows:' + esc(id) + ':followers"><b>' + followerCount(id) + '</b> <span class="muted">' + tr(followerCount(id) === 1 ? "prof.follower" : "prof.followers") + '</span></button><span><b>' + posts.length + '</b> <span class="muted">' + tr(posts.length === 1 ? "prof.post" : "prof.posts") + '</span></span></div>' +
+      (u.fake ? '<span class="demo">' + tr("prof.demo") + '</span>' : '') + '</div>' +
+      '<div class="head" style="position:static;padding-top:12px"><div class="tabs" role="tablist" aria-label="' + tr("prof.tabs") + '">' + [["posts", tr("prof.tab.posts")], ["reposts", tr("prof.tab.reposts")], ["articles", tr("prof.tab.articles")]].concat(showDebs ? [["debates", tr("prof.tab.debates")]] : []).concat(showComms ? [["communities", tr("prof.tab.communities")]] : []).concat(own ? [["saved", tr("prof.tab.saved")]] : []).concat([["about", tr("prof.tab.about")]]).map(([t, l]) => '<button type="button" role="tab" data-ptab="' + t + '" aria-selected="' + (tab === t) + '">' + l + '</button>').join("") + '</div></div>' + body;
   }
 
   // Uma notificação (página completa e janelinha do sininho)
@@ -1998,10 +1998,10 @@ button.tickrow:hover{background:var(--soft)}
     const u = U(id);
     const ids = which === "followers" ? S.follows.filter((f) => f.to === id).map((f) => f.from) : S.follows.filter((f) => f.from === id).map((f) => f.to);
     const uniq = [...new Set(ids)].filter((x) => S.users[x] && !isHidden(x));
-    const tabs = [["followers", "Seguidores", followerCount(id)], ["following", "Seguindo", followingCount(id)]];
+    const tabs = [["followers", tr("prof.tab.followers"), followerCount(id)], ["following", tr("follow.following"), followingCount(id)]];
     return backHead("profile:" + id, esc(u.name), esc(handle(id))) +
-      '<div class="head" style="position:static;padding-top:10px"><div class="tabs" role="tablist" aria-label="Conexões">' + tabs.map(([k, l, n]) => '<button type="button" role="tab" data-go="follows:' + esc(id) + ':' + k + '" aria-selected="' + (which === k) + '">' + l + ' (' + n + ')</button>').join("") + '</div></div>' +
-      (uniq.length ? uniq.map(personRow).join("") : '<p class="empty">' + (which === "followers" ? "Ninguém segue este perfil ainda." : "Este perfil ainda não segue ninguém.") + '</p>');
+      '<div class="head" style="position:static;padding-top:10px"><div class="tabs" role="tablist" aria-label="' + tr("prof.connections") + '">' + tabs.map(([k, l, n]) => '<button type="button" role="tab" data-go="follows:' + esc(id) + ':' + k + '" aria-selected="' + (which === k) + '">' + l + ' (' + n + ')</button>').join("") + '</div></div>' +
+      (uniq.length ? uniq.map(personRow).join("") : '<p class="empty">' + tr(which === "followers" ? "prof.noFollowers" : "prof.noFollowing") + '</p>');
   }
 
   /* ---------- notificações: tipos ---------- */
@@ -2218,12 +2218,12 @@ button.tickrow:hover{background:var(--soft)}
     const m = $("#modal");
     if (S.onb) {
       const o = S.onb;
-      m.innerHTML = '<div class="overlay"><form class="dialog" id="onbForm" role="dialog" aria-modal="true" aria-labelledby="onbT"><span class="eyebrow">Bem-vindo(a) à EcoEco</span><h2 id="onbT">Crie seu perfil</h2>' +
-        '<div class="editav"><span class="av s104" style="width:80px;height:80px;font-size:28px;background:' + hueOf(S.meId)[0] + ';color:' + hueOf(S.meId)[1] + '">' + (o.photo ? '<img src="' + esc(o.photo) + '" alt="">' : esc(initials(o.name))) + '</span><span class="row"><button type="button" class="mini" data-act="pick-photo">' + (o.photo ? "Trocar foto" : "Adicionar foto") + '</button>' + (o.photo ? '<button type="button" class="mini" data-act="rm-photo">Remover</button>' : '') + '</span></div>' +
-        '<label class="field" for="o-name">Nome<input id="o-name" required maxlength="60" value="' + esc(o.name) + '"></label>' +
-        '<label class="field" for="o-username">Nome de usuário<input id="o-username" maxlength="24" placeholder="ex.: kaua.economia" value="' + esc(o.username) + '"></label>' +
-        '<label class="field" for="o-headline">Título do perfil<input id="o-headline" maxlength="80" placeholder="Ex.: Estudante de Economia na UEM" value="' + esc(o.headline) + '"></label>' +
-        '<button class="btn" type="submit">Entrar na rede</button><p class="muted" style="margin:0;font-size:12.5px">Você pode completar o resto do perfil depois, em “Editar perfil”. Seu perfil fica visível para quem tem conta na EcoEco.</p></form></div>';
+      m.innerHTML = '<div class="overlay"><form class="dialog" id="onbForm" role="dialog" aria-modal="true" aria-labelledby="onbT"><span class="eyebrow">' + tr("onb.welcome") + '</span><h2 id="onbT">' + tr("onb.title") + '</h2>' +
+        '<div class="editav"><span class="av s104" style="width:80px;height:80px;font-size:28px;background:' + hueOf(S.meId)[0] + ';color:' + hueOf(S.meId)[1] + '">' + (o.photo ? '<img src="' + esc(o.photo) + '" alt="">' : esc(initials(o.name))) + '</span><span class="row"><button type="button" class="mini" data-act="pick-photo">' + tr(o.photo ? "edit.changePhoto" : "edit.addPhoto") + '</button>' + (o.photo ? '<button type="button" class="mini" data-act="rm-photo">' + tr("common.remove") + '</button>' : '') + '</span></div>' +
+        '<label class="field" for="o-name">' + tr("edit.name") + '<input id="o-name" required maxlength="60" value="' + esc(o.name) + '"></label>' +
+        '<label class="field" for="o-username">' + tr("auth.username") + '<input id="o-username" maxlength="24" placeholder="' + tr("auth.usernamePh") + '" value="' + esc(o.username) + '"></label>' +
+        '<label class="field" for="o-headline">' + tr("edit.headline") + '<input id="o-headline" maxlength="80" placeholder="' + tr("edit.headlinePh") + '" value="' + esc(o.headline) + '"></label>' +
+        '<button class="btn" type="submit">' + tr("onb.enter") + '</button><p class="muted" style="margin:0;font-size:12.5px">' + tr("onb.note") + '</p></form></div>';
       return;
     }
     if (S.edit) {
@@ -2231,42 +2231,42 @@ button.tickrow:hover{background:var(--soft)}
       const [bg, fg] = hueOf(S.meId);
       const field = (id, label, val, max, ph) => '<label class="field" for="e-' + id + '">' + label + '<input id="e-' + id + '" maxlength="' + max + '" placeholder="' + esc(ph || "") + '" value="' + esc(val || "") + '"></label>';
       const area = (id, label, val, max, ph) => '<label class="field" for="e-' + id + '">' + label + '<textarea id="e-' + id + '" rows="3" maxlength="' + max + '" placeholder="' + esc(ph || "") + '">' + esc(val || "") + '</textarea></label>';
-      m.innerHTML = '<div class="overlay"><form class="dialog" id="editForm" role="dialog" aria-modal="true" aria-labelledby="edT" style="width:min(600px,100%)"><div class="row" style="justify-content:space-between"><h2 id="edT">Editar perfil</h2><button type="button" class="iconbtn" data-act="close" aria-label="Fechar">✕</button></div>' +
-        '<div class="editcover" style="' + (e.cover ? 'background-image:url(' + esc(e.cover) + ')' : 'background-color:' + fg) + '"><button type="button" class="mini oncover" data-act="pick-cover">' + (e.cover ? "Trocar capa" : "Adicionar capa") + '</button>' + (e.cover ? '<button type="button" class="mini oncover" data-act="rm-cover">Remover capa</button>' : '') + '</div>' +
-        '<div class="editav"><span class="av s104" style="width:80px;height:80px;font-size:28px;background:' + bg + ';color:' + fg + '">' + (e.photo ? '<img src="' + esc(e.photo) + '" alt="">' : esc(initials(e.name))) + '</span><span class="row"><button type="button" class="mini" data-act="pick-photo">' + (e.photo ? "Trocar foto" : "Adicionar foto") + '</button>' + (e.photo ? '<button type="button" class="mini" data-act="rm-photo">Remover foto</button>' : '') + '</span></div>' +
-        field("name", "Nome", e.name, 60) + field("username", "Nome de usuário", e.username, 24, "ex.: kaua.economia") + field("headline", "Título do perfil", e.headline, 80, "Ex.: Estudante de Economia na UEM") +
-        area("bio", "Bio", e.bio, 280, "Conte um pouco sobre você e o que te interessa em economia") +
-        '<div class="row" style="align-items:flex-start">' + '<div style="flex:1;min-width:200px">' + field("role", "Cargo ou ocupação", e.role, 80, "Ex.: Estagiário em análise de crédito") + '</div><div style="flex:1;min-width:200px">' + field("school", "Instituição", e.school, 80, "Ex.: Universidade Estadual de Maringá") + '</div></div>' +
-        '<div class="row" style="align-items:flex-start">' + '<div style="flex:1;min-width:200px">' + field("city", "Cidade", e.city, 60, "Ex.: Maringá, PR") + '</div><div style="flex:1;min-width:200px">' + field("link", "Site ou link", e.link, 120, "Ex.: linkedin.com/in/seu-nome") + '</div></div>' +
-        area("education", "Formação", e.education, 400, "Ex.: Ciências Econômicas · UEM · 2026 – em andamento") +
-        area("experience", "Experiência", e.experience, 600, "Um item por linha") +
-        '<div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-act="close">Cancelar</button><button class="btn" type="submit">Salvar</button></div></form></div>';
+      m.innerHTML = '<div class="overlay"><form class="dialog" id="editForm" role="dialog" aria-modal="true" aria-labelledby="edT" style="width:min(600px,100%)"><div class="row" style="justify-content:space-between"><h2 id="edT">' + tr("set.editProfile") + '</h2><button type="button" class="iconbtn" data-act="close" aria-label="' + tr("common.close") + '">✕</button></div>' +
+        '<div class="editcover" style="' + (e.cover ? 'background-image:url(' + esc(e.cover) + ')' : 'background-color:' + fg) + '"><button type="button" class="mini oncover" data-act="pick-cover">' + tr(e.cover ? "edit.changeCover" : "edit.addCover") + '</button>' + (e.cover ? '<button type="button" class="mini oncover" data-act="rm-cover">' + tr("edit.rmCover") + '</button>' : '') + '</div>' +
+        '<div class="editav"><span class="av s104" style="width:80px;height:80px;font-size:28px;background:' + bg + ';color:' + fg + '">' + (e.photo ? '<img src="' + esc(e.photo) + '" alt="">' : esc(initials(e.name))) + '</span><span class="row"><button type="button" class="mini" data-act="pick-photo">' + tr(e.photo ? "edit.changePhoto" : "edit.addPhoto") + '</button>' + (e.photo ? '<button type="button" class="mini" data-act="rm-photo">' + tr("edit.rmPhoto") + '</button>' : '') + '</span></div>' +
+        field("name", tr("edit.name"), e.name, 60) + field("username", tr("auth.username"), e.username, 24, tr("auth.usernamePh")) + field("headline", tr("edit.headline"), e.headline, 80, tr("edit.headlinePh")) +
+        area("bio", tr("edit.bio"), e.bio, 280, tr("edit.bioPh")) +
+        '<div class="row" style="align-items:flex-start">' + '<div style="flex:1;min-width:200px">' + field("role", tr("prof.role"), e.role, 80, tr("edit.rolePh")) + '</div><div style="flex:1;min-width:200px">' + field("school", tr("prof.school"), e.school, 80, tr("edit.schoolPh")) + '</div></div>' +
+        '<div class="row" style="align-items:flex-start">' + '<div style="flex:1;min-width:200px">' + field("city", tr("prof.city"), e.city, 60, tr("edit.cityPh")) + '</div><div style="flex:1;min-width:200px">' + field("link", tr("edit.link"), e.link, 120, tr("edit.linkPh")) + '</div></div>' +
+        area("education", tr("prof.education"), e.education, 400, tr("edit.educationPh")) +
+        area("experience", tr("prof.experience"), e.experience, 600, tr("edit.experiencePh")) +
+        '<div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-act="close">' + tr("common.cancel") + '</button><button class="btn" type="submit">' + tr("common.save") + '</button></div></form></div>';
       return;
     }
     if (S.chartModal) {
       const c = S.chartModal;
       const preview = chartSvg(c.spec());
-      m.innerHTML = '<div class="overlay"><form class="dialog" id="chartForm" role="dialog" aria-modal="true" aria-labelledby="chT" style="width:min(620px,100%)"><div class="row" style="justify-content:space-between"><h2 id="chT">Criar gráfico</h2><button type="button" class="iconbtn" data-act="close" aria-label="Fechar">✕</button></div>' +
-        '<div class="row"><span class="muted" style="font-size:13px">Começar com:</span><button type="button" class="chip" data-act="preset" data-id="ipca">IPCA mensal</button><button type="button" class="chip" data-act="preset" data-id="desemprego">Desemprego</button><button type="button" class="chip" data-act="preset" data-id="blank">Meus dados</button></div>' +
-        '<label class="field" for="c-title">Título<input id="c-title" maxlength="80" value="' + esc(c.title) + '"></label>' +
-        '<div class="row"><span class="muted" style="font-size:13px">Tipo:</span><button type="button" class="chip" data-act="ckind" data-id="bar" aria-pressed="' + (c.kind === "bar") + '">Barras</button><button type="button" class="chip" data-act="ckind" data-id="line" aria-pressed="' + (c.kind === "line") + '">Linha</button><label class="field" for="c-unit" style="flex-direction:row;align-items:center;gap:6px;margin-left:auto">Unidade<input id="c-unit" maxlength="6" value="' + esc(c.unit) + '" style="width:70px;height:32px"></label></div>' +
-        '<label class="field" for="c-rows">Dados (um por linha: rótulo; valor)<textarea id="c-rows" rows="6" placeholder="jan; 0,33&#10;fev; 0,70">' + esc(c.rows) + '</textarea></label>' +
-        '<label class="field" for="c-src">Fonte (opcional)<input id="c-src" maxlength="60" value="' + esc(c.source) + '"></label>' +
-        '<div id="chartPrev">' + (preview || '<p class="muted" style="margin:0">A prévia aparece quando houver dados válidos.</p>') + '</div>' +
-        '<div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-act="close">Cancelar</button><button class="btn" type="submit">Adicionar ao post</button></div></form></div>';
+      m.innerHTML = '<div class="overlay"><form class="dialog" id="chartForm" role="dialog" aria-modal="true" aria-labelledby="chT" style="width:min(620px,100%)"><div class="row" style="justify-content:space-between"><h2 id="chT">' + tr("chart.create") + '</h2><button type="button" class="iconbtn" data-act="close" aria-label="' + tr("common.close") + '">✕</button></div>' +
+        '<div class="row"><span class="muted" style="font-size:13px">' + tr("chart.startWith") + '</span><button type="button" class="chip" data-act="preset" data-id="ipca">' + tr("chart.ipca") + '</button><button type="button" class="chip" data-act="preset" data-id="desemprego">' + tr("chart.unemployment") + '</button><button type="button" class="chip" data-act="preset" data-id="blank">' + tr("chart.myData") + '</button></div>' +
+        '<label class="field" for="c-title">' + tr("chart.title") + '<input id="c-title" maxlength="80" value="' + esc(c.title) + '"></label>' +
+        '<div class="row"><span class="muted" style="font-size:13px">' + tr("chart.type") + '</span><button type="button" class="chip" data-act="ckind" data-id="bar" aria-pressed="' + (c.kind === "bar") + '">' + tr("chart.bars") + '</button><button type="button" class="chip" data-act="ckind" data-id="line" aria-pressed="' + (c.kind === "line") + '">' + tr("chart.line") + '</button><label class="field" for="c-unit" style="flex-direction:row;align-items:center;gap:6px;margin-left:auto">' + tr("chart.unit") + '<input id="c-unit" maxlength="6" value="' + esc(c.unit) + '" style="width:70px;height:32px"></label></div>' +
+        '<label class="field" for="c-rows">' + tr("chart.rows") + '<textarea id="c-rows" rows="6" placeholder="' + tr("chart.rowsPh") + '">' + esc(c.rows) + '</textarea></label>' +
+        '<label class="field" for="c-src">' + tr("chart.source") + '<input id="c-src" maxlength="60" value="' + esc(c.source) + '"></label>' +
+        '<div id="chartPrev">' + (preview || '<p class="muted" style="margin:0">' + tr("chart.previewHint") + '</p>') + '</div>' +
+        '<div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-act="close">' + tr("common.cancel") + '</button><button class="btn" type="submit">' + tr("chart.add") + '</button></div></form></div>';
       return;
     }
     if (S.onb2) { m.innerHTML = onbStep2Html(); return; }
     if (S.form) { m.innerHTML = formModalHtml(); return; }
     if (S.blockAsk) {
       const bu = U(S.blockAsk);
-      m.innerHTML = '<div class="overlay"><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="blT"><h2 id="blT">Bloquear ' + esc(bu.name) + '?</h2><ul class="muted" style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:14px"><li>Vocês deixam de ver as publicações, comentários e argumentos um do outro.</li><li>Não podem trocar mensagens.</li><li>Se vocês se seguem, deixam de se seguir.</li><li>' + esc(bu.name) + ' não recebe aviso. Você pode desbloquear quando quiser em Configurações.</li></ul><div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-act="close">Cancelar</button><button type="button" class="btn danger" data-act="doblock">Bloquear</button></div></div></div>';
+      m.innerHTML = '<div class="overlay"><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="blT"><h2 id="blT">' + tr("block.title", { name: esc(bu.name) }) + '</h2><ul class="muted" style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:14px"><li>' + tr("block.l1") + '</li><li>' + tr("block.l2") + '</li><li>' + tr("block.l3") + '</li><li>' + tr("block.l4", { name: esc(bu.name) }) + '</li></ul><div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-act="close">' + tr("common.cancel") + '</button><button type="button" class="btn danger" data-act="doblock">' + tr("block.confirm") + '</button></div></div></div>';
       return;
     }
     if (S.report) {
-      m.innerHTML = '<div class="overlay"><form class="dialog" id="repForm" role="dialog" aria-modal="true" aria-labelledby="rpT"><h2 id="rpT">Denunciar publicação</h2><p class="muted" style="margin:0">Opinião e crítica a ideias são livres. Denuncie quando a publicação quebrar as regras da comunidade.</p>' +
-        REASONS.map((r, i) => '<label class="opt"><input type="radio" name="reason" value="' + i + '"' + (i === 0 ? " checked" : "") + '>' + esc(r) + '</label>').join("") +
-        '<div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-act="close">Cancelar</button><button class="btn danger" type="submit">Enviar denúncia</button></div></form></div>';
+      m.innerHTML = '<div class="overlay"><form class="dialog" id="repForm" role="dialog" aria-modal="true" aria-labelledby="rpT"><h2 id="rpT">' + tr("post.report") + '</h2><p class="muted" style="margin:0">' + tr("report.intro") + '</p>' +
+        REASONS.map((r, i) => '<label class="opt"><input type="radio" name="reason" value="' + i + '"' + (i === 0 ? " checked" : "") + '>' + esc(tr("report.r" + i)) + '</label>').join("") +
+        '<div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-act="close">' + tr("common.cancel") + '</button><button class="btn danger" type="submit">' + tr("report.send") + '</button></div></form></div>';
       return;
     }
     m.innerHTML = "";
