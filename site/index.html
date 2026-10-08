@@ -1123,12 +1123,12 @@ button.tickrow:hover{background:var(--soft)}
     const nq = norm(ql), has = (...xs) => xs.some((x) => norm(x).includes(nq));
     const arts = S.articles.filter((a) => has(a.title, a.summary, a.body, a.kind, U(a.author).name)).sort(byNew);
     const debs = S.debates.filter((d) => has(d.title, d.desc, d.cat, d.sideA, d.sideB)).sort(byNew);
-    const comms = S.communities.filter((c) => has(c.name, c.desc, c.rules)).sort((a, b) => commMembers(b.id).length - commMembers(a.id).length);
+    const comms = S.communities.filter((c) => has(c.name, c.desc, c.rules)).sort((a, b) => memberCount(b.id) - memberCount(a.id));
     const jobs = S.jobs.filter((j) => has(j.title, j.company, j.kind, j.mode, j.city, j.area, j.desc)).sort(byNew);
     const evs = S.events.filter((e) => has(e.title, e.org, e.place, e.format, e.desc)).sort((a, b) => (a.date || "").localeCompare(b.date || ""));
     const libs = S.library.filter((m) => has(m.title, m.authors, m.kind, m.theme, m.desc)).sort(byNew);
     const news = NEWS.map((n, i) => ({ n, i })).filter(({ n }) => has(n.title, n.prev, n.src, n.cat));
-    const commRow = (c) => { const n = commMembers(c.id).length; return '<button type="button" class="conv" data-go="community:' + esc(c.id) + '">' + commIcon(c) + '<span style="flex:1;min-width:0;display:flex;flex-direction:column;text-align:left"><b>' + esc(c.name) + '</b><span class="muted clamp1" style="font-size:13px">' + esc(c.desc || "") + '</span><span class="muted" style="font-size:12.5px">' + plural(n, "membro", "membros") + '</span></span></button>'; };
+    const commRow = (c) => { const n = memberCount(c.id); return '<button type="button" class="conv" data-go="community:' + esc(c.id) + '">' + commIcon(c) + '<span style="flex:1;min-width:0;display:flex;flex-direction:column;text-align:left"><b>' + esc(c.name) + '</b><span class="muted clamp1" style="font-size:13px">' + esc(c.desc || "") + '</span><span class="muted" style="font-size:12.5px">' + plural(n, "membro", "membros") + '</span></span></button>'; };
     const newsRow = ({ n }) => '<article class="news"><div class="row muted" style="font-size:12.5px;flex-wrap:nowrap"><b style="color:var(--ink)">' + esc(n.src) + '</b>·<span>' + esc(n.cat) + '</span>' + (n.date ? '·<span>' + esc(n.date) + '</span>' : '') + '</div><h2>' + esc(n.title) + '</h2><a href="' + esc(n.href) + '" target="_blank" rel="noopener" style="font-weight:700;text-decoration:none;font-size:13.5px">Ler no site ↗</a></article>';
     const tagRow = ([t, n]) => '<button type="button" class="conv" data-go="tag:' + esc(t) + '"><span class="av s42" style="background:var(--accent-soft);color:var(--accent);font-size:18px">#</span><span style="display:flex;flex-direction:column"><b>#' + esc(t) + '</b><span class="muted" style="font-size:13px">' + plural(n, "publicação", "publicações") + '</span></span></button>';
     const groups = [
@@ -1191,7 +1191,9 @@ button.tickrow:hover{background:var(--soft)}
     const [bg, fg] = hueOf(id);
     const posts = S.posts.filter((p) => p.author === id).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     const reps = S.reposts.filter((r) => r.user === id && postAuthor(r.post) !== id).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).map((r) => S.posts.find((p) => p.id === r.post)).filter(Boolean);
-    const tab = S.ptab;
+    // Abas "Debates" e "Comunidades": a própria pessoa sempre vê; os outros, só se ela deixar
+    const showDebs = own || u.showDebates !== false, showComms = own || u.showCommunities !== false;
+    const tab = (S.ptab === "debates" && !showDebs) || (S.ptab === "communities" && !showComms) ? "posts" : S.ptab;
     const coverStyle = u.cover ? 'background:var(--brand) url(' + esc(u.cover) + ') center/cover no-repeat' : '';
     const meta = [u.role ? svg(I.work, 15) + esc(u.role) : "", u.school ? svg(I.school, 15) + esc(u.school) : "", u.city ? svg(I.pin, 15) + esc(u.city) : "", u.link ? svg(I.link, 15) + '<a href="' + esc(/^https?:\/\//i.test(u.link) ? u.link : "https://" + u.link) + '" target="_blank" rel="noopener">' + esc(u.link.replace(/^https?:\/\//i, "")) + '</a>' : ""].filter(Boolean);
     let body = "";
@@ -1202,6 +1204,17 @@ button.tickrow:hover{background:var(--soft)}
     } else if (tab === "articles") {
       const arts = S.articles.filter((a) => a.author === id).sort(byNew);
       body = arts.length ? arts.map(articleRow).join("") : '<p class="empty">' + (own ? 'Você ainda não publicou textos. <button type="button" class="linkname" style="color:var(--accent)" data-go="write">Escrever o primeiro</button>' : "Nenhum texto publicado ainda.") + '</p>';
+    } else if (tab === "debates" && showDebs) {
+      // Debates que a pessoa propôs ou em que argumentou (o lado em que votou nunca aparece)
+      const ids = new Set(S.debates.filter((d) => d.author === id).map((d) => d.id));
+      S.args.forEach((a) => { if (a.author === id) ids.add(debOf(a)); });
+      const debs = S.debates.filter((d) => ids.has(d.id)).sort(byNew);
+      body = (own && u.showDebates === false ? '<p class="muted" style="margin:0;padding:12px 20px 0;font-size:13px">Só você vê esta aba. Para mostrar, ligue a opção em Configurações › Privacidade.</p>' : '') +
+        (debs.length ? debs.map((d) => debateCard(d)).join("") : '<p class="empty">' + (own ? "Você ainda não propôs nem argumentou em debates." : "Nenhum debate por aqui ainda.") + '</p>');
+    } else if (tab === "communities" && showComms) {
+      const comms = S.communities.filter((c) => S.members.some((m) => m.comm === c.id && m.user === id));
+      body = (own && u.showCommunities === false ? '<p class="muted" style="margin:0;padding:12px 20px 0;font-size:13px">Só você vê esta aba. Para mostrar, ligue a opção em Configurações › Privacidade.</p>' : '') +
+        (comms.length ? comms.map((c) => '<button type="button" class="conv" data-go="community:' + esc(c.id) + '">' + commIcon(c) + '<span style="flex:1;min-width:0;display:flex;flex-direction:column;text-align:left"><b>' + esc(c.name) + '</b><span class="muted clamp1" style="font-size:13px">' + esc(c.desc || "") + '</span><span class="muted" style="font-size:12.5px">' + plural(memberCount(c.id), "membro", "membros") + '</span></span></button>').join("") : '<p class="empty">' + (own ? "Você ainda não participa de comunidades." : "Nenhuma comunidade por aqui ainda.") + '</p>');
     } else if (tab === "saved" && own) {
       const list = S.saved.slice().sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).map((s) => S.posts.find((p) => p.id === s.id)).filter(Boolean);
       body = '<p class="muted" style="margin:0;padding:12px 20px 0;font-size:13px">Só você vê seus salvos.</p>' + (list.length ? list.map((p) => postCard(p)).join("") : '<p class="empty">Nada salvo ainda. Use o menu “⋯” de uma publicação e escolha “Salvar publicação”.</p>');
@@ -1220,7 +1233,7 @@ button.tickrow:hover{background:var(--soft)}
       (meta.length ? '<div class="row muted" style="font-size:13.5px;gap:14px">' + meta.map((m) => '<span class="row" style="gap:5px">' + m + '</span>').join("") + '</div>' : '') +
       '<div class="stats"><button type="button" class="statbtn" data-go="follows:' + esc(id) + ':following"><b>' + followingCount(id) + '</b> <span class="muted">seguindo</span></button><button type="button" class="statbtn" data-go="follows:' + esc(id) + ':followers"><b>' + followerCount(id) + '</b> <span class="muted">' + (followerCount(id) === 1 ? "seguidor" : "seguidores") + '</span></button><span><b>' + posts.length + '</b> <span class="muted">' + (posts.length === 1 ? "publicação" : "publicações") + '</span></span></div>' +
       (u.fake ? '<span class="demo">Perfil de demonstração: esta pessoa não existe e não responde mensagens.</span>' : '') + '</div>' +
-      '<div class="head" style="position:static;padding-top:12px"><div class="tabs" role="tablist" aria-label="Conteúdo do perfil">' + [["posts", "Publicações"], ["reposts", "Republicações"], ["articles", "Artigos"]].concat(own ? [["saved", "Salvos"]] : []).concat([["about", "Sobre"]]).map(([t, l]) => '<button type="button" role="tab" data-ptab="' + t + '" aria-selected="' + (tab === t) + '">' + l + '</button>').join("") + '</div></div>' + body;
+      '<div class="head" style="position:static;padding-top:12px"><div class="tabs" role="tablist" aria-label="Conteúdo do perfil">' + [["posts", "Publicações"], ["reposts", "Republicações"], ["articles", "Artigos"]].concat(showDebs ? [["debates", "Debates"]] : []).concat(showComms ? [["communities", "Comunidades"]] : []).concat(own ? [["saved", "Salvos"]] : []).concat([["about", "Sobre"]]).map(([t, l]) => '<button type="button" role="tab" data-ptab="' + t + '" aria-selected="' + (tab === t) + '">' + l + '</button>').join("") + '</div></div>' + body;
   }
 
   // Uma notificação (página completa e janelinha do sininho)
@@ -1282,16 +1295,19 @@ button.tickrow:hover{background:var(--soft)}
   const sideLabel = (d, sd) => sd === "A" ? d.sideA : sd === "B" ? d.sideB : "Depende";
   const argScore = (x) => S.ups.filter((u) => u.arg === x.id).length * 2 + S.argComments.filter((c) => c.arg === x.id).length;
   const myVote = (did) => loggedIn() ? debVotes(did).find((v) => (v.user || v.id) === S.meId) : null;
+  // Com o SQL 06, cada pessoa só lê o próprio voto; os totais vêm da função debate_vote_stats.
   function debateStats(did) {
-    const vs = debVotes(did);
-    const a = vs.filter((v) => v.side === "A").length, b = vs.filter((v) => v.side === "B").length;
+    let a, b;
+    if (S.voteStats) { const st = S.voteStats[did]; a = st ? st.a : 0; b = st ? st.b : 0; }
+    else { const vs = debVotes(did); a = vs.filter((v) => v.side === "A").length; b = vs.filter((v) => v.side === "B").length; }
     const tot = a + b; const pa = tot ? Math.round(a / tot * 100) : 50;
     return { a, b, tot, pa };
   }
   function weekScore(d) {
     const since = now() - WEEK_MS, recent = (x) => (x.createdAt || 0) >= since;
     const argIds = new Set(debArgs(d.id).map((a) => a.id));
-    return debVotes(d.id).filter(recent).length + 2 * debArgs(d.id).filter(recent).length + debComments(d.id).filter(recent).length +
+    const recentVotes = S.voteStats ? ((S.voteStats[d.id] || {}).recent || 0) : debVotes(d.id).filter(recent).length;
+    return recentVotes + 2 * debArgs(d.id).filter(recent).length + debComments(d.id).filter(recent).length +
       S.ups.filter((u) => argIds.has(u.arg) && recent(u)).length + S.argComments.filter((c) => argIds.has(c.arg) && recent(c)).length + (recent(d) ? 3 : 0);
   }
   const topDebates = (n) => S.debates.map((d) => ({ d, s: weekScore(d) })).filter((x) => x.s > 0).sort((a, b) => b.s - a.s).slice(0, n).map((x) => x.d);
@@ -1409,7 +1425,22 @@ button.tickrow:hover{background:var(--soft)}
   const wc = (t) => (String(t || "").trim().match(/\S+/g) || []).length;
   const readMin = (t) => Math.max(1, Math.round(wc(t) / 200));
   const isMember = (cid) => S.members.some((m) => m.comm === cid && m.user === S.meId);
-  const commMembers = (cid) => S.members.filter((m) => m.comm === cid);
+  const commMembers = (cid) => S.members.filter((m) => m.comm === cid);   // só os membros visíveis
+  const memberCount = (cid) => S.memberStats ? (S.memberStats[cid] || 0) : commMembers(cid).length;
+  // Totais públicos de votos e membros (SQL 06). Sem o SQL, conta pelas linhas visíveis.
+  async function loadStats() {
+    const rpc = window.EcoBackend && window.EcoBackend.rpc;
+    if (!rpc || !S.meId) return;
+    try {
+      const [v, m] = await Promise.all([rpc("debate_vote_stats"), rpc("community_member_counts")]);
+      const vs = {}; (v || []).forEach((r) => { vs[r.debate] = { a: r.side_a || 0, b: r.side_b || 0, recent: r.recent || 0 }; });
+      const ms = {}; (m || []).forEach((r) => { ms[r.comm] = r.members || 0; });
+      S.voteStats = vs; S.memberStats = ms; render();
+    } catch (e) { S.voteStats = null; S.memberStats = null; }
+  }
+  let statsTimer = null;
+  const loadStatsSoon = () => { clearTimeout(statsTimer); statsTimer = setTimeout(loadStats, 400); };
+  setInterval(() => { if (!document.hidden) loadStats(); }, 60000);
   const isJobSaved = (jid) => S.savedJobs.some((s) => s.job === jid);
   const safeLink = (l) => { l = String(l || "").trim(); if (!l) return ""; if (/^mailto:/i.test(l)) return l; if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(l)) return "mailto:" + l; return /^https?:\/\//i.test(l) ? l : "https://" + l; };
   const bookmark = (on) => '<svg width="18" height="18" viewBox="0 0 24 24" fill="' + (on ? "currentColor" : "none") + '" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg>';
@@ -1453,11 +1484,11 @@ button.tickrow:hover{background:var(--soft)}
   }
   const joinBtn = (cid) => { const m = isMember(cid); return '<button type="button" class="btn small' + (m ? ' ghost' : '') + '" data-act="join" data-id="' + esc(cid) + '" aria-pressed="' + m + '">' + (m ? "Participando" : "Participar") + '</button>'; };
   function viewCommunities() {
-    const list = S.communities.slice().sort((a, b) => commMembers(b.id).length - commMembers(a.id).length);
+    const list = S.communities.slice().sort((a, b) => memberCount(b.id) - memberCount(a.id));
     const mine = loggedIn() ? list.filter((c) => isMember(c.id)) : [];
     const other = list.filter((c) => !mine.includes(c));
     const row = (c) => {
-      const n = commMembers(c.id).length, t = S.topics.filter((x) => x.comm === c.id).length;
+      const n = memberCount(c.id), t = S.topics.filter((x) => x.comm === c.id).length;
       return '<div class="conv">' + commIcon(c) + '<button type="button" data-go="community:' + esc(c.id) + '" style="flex:1;min-width:0;display:flex;flex-direction:column;border:0;background:none;padding:0;text-align:left"><b>' + esc(c.name) + '</b><span class="muted clamp1" style="font-size:13px">' + esc(c.desc || "") + '</span><span class="muted" style="font-size:12.5px">' + n + (n === 1 ? " membro" : " membros") + ' · ' + t + (t === 1 ? " tópico" : " tópicos") + '</span></button>' + (canAct() ? joinBtn(c.id) : '') + '</div>';
     };
     return secHead("Comunidades", "Grupos por tema, cada um com seu fórum. Entre nos que combinam com você.", canAct() ? '<button type="button" class="btn small" data-act="newform" data-id="community">Criar comunidade</button>' : '') +
@@ -1470,7 +1501,7 @@ button.tickrow:hover{background:var(--soft)}
     const mem = commMembers(id), member = isMember(id);
     const last = (t) => Math.max(t.createdAt || 0, ...S.topicReplies.filter((r) => r.topic === t.id).map((r) => r.createdAt || 0));
     const topics = S.topics.filter((t) => t.comm === id).sort((a, b) => last(b) - last(a));
-    return backHead("communities", esc(c.name), mem.length + (mem.length === 1 ? " membro" : " membros"), c.author === S.meId && canAct() ? '<span style="margin-left:auto">' + delBtn("communities", id, "Excluir") + '</span>' : '') +
+    return backHead("communities", esc(c.name), plural(memberCount(id), "membro", "membros"), c.author === S.meId && canAct() ? '<span style="margin-left:auto">' + delBtn("communities", id, "Excluir") + '</span>' : '') +
       '<div style="padding:18px 20px;border-bottom:1px solid var(--line);display:flex;gap:14px;align-items:flex-start">' + commIcon(c, 64) + '<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px"><p style="margin:0">' + esc(c.desc || "") + '</p>' + (c.rules ? '<p class="muted" style="margin:0;font-size:13px"><b>Regras:</b> ' + esc(c.rules) + '</p>' : '') + '<div class="row">' + avStack(mem.map((m) => m.user)) + (canAct() ? joinBtn(id) : '') + '</div></div></div>' +
       (canAct() ? (member ? '<form id="topicForm" class="stack-form"><label class="sr" for="tt">Título do tópico</label><input class="input" id="tt" maxlength="120" autocomplete="off" placeholder="Abra um tópico: qual é a pergunta ou o tema?" value="' + esc(S.topicDraft.title) + '"><label class="sr" for="tx">Texto do tópico</label><textarea id="tx" rows="3" maxlength="2000" placeholder="Explique o contexto (opcional)">' + esc(S.topicDraft.text) + '</textarea><button type="submit" class="btn small" style="align-self:flex-end">Abrir tópico</button></form>' : '<div class="banner">Participe da comunidade para abrir tópicos e responder.</div>') : '') +
       eyebrow("Tópicos (" + topics.length + ")") +
@@ -1868,7 +1899,11 @@ button.tickrow:hover{background:var(--soft)}
       sec("Pessoas silenciadas", "As publicações delas não aparecem no seu feed. Elas não são avisadas.", muted.length ? muted.map((id) => '<div class="row" style="flex-wrap:nowrap">' + avatar(id, 36) + '<span style="flex:1;min-width:0"><b>' + esc(U(id).name) + '</b></span><button type="button" class="btn ghost small" data-act="unmute" data-id="' + esc(id) + '">Reativar</button></div>').join("") : '<p class="muted" style="margin:0;font-size:14px">Ninguém silenciado.</p>') +
       (loggedIn() ? sec("Notificações", "Escolha o que aparece no sininho e na aba Notificações.", '<div style="display:flex;flex-direction:column;gap:10px">' + NOTIF_KINDS.map(([k, l]) => '<label class="switch"><input type="checkbox" data-act="notiftoggle" data-id="' + k + '"' + (notifOff().includes(k) ? '' : ' checked') + '><span class="track" aria-hidden="true"></span><span>' + l + '</span></label>').join("") + '</div>') : '') +
       (loggedIn() ? sec("Hashtags que sigo", "As publicações com essas hashtags aparecem na aba Seguindo do feed. Só você vê esta lista.", followedTags().length ? followedTags().map((t) => '<div class="row" style="flex-wrap:nowrap"><button type="button" class="linkname" style="flex:1;min-width:0;text-align:left" data-go="tag:' + esc(t) + '">#' + esc(t) + '</button><button type="button" class="btn ghost small" data-act="tagfollow" data-id="' + esc(t) + '">Deixar de seguir</button></div>').join("") : '<p class="muted" style="margin:0;font-size:13.5px">Você ainda não segue nenhuma hashtag. Abra uma # e toque em “Seguir”.</p>') : '') +
-      sec("Privacidade", "", '<p style="margin:0;font-size:14px;line-height:1.55">Seu perfil, publicações, argumentos e comentários ficam visíveis para quem tem conta na EcoEco. Mensagens aparecem só para você e a outra pessoa na tela, e publicações salvas e vagas salvas são privadas.</p>') +
+      sec("Privacidade", "", (loggedIn() ? '<div style="display:flex;flex-direction:column;gap:10px">' +
+        '<label class="switch"><input type="checkbox" data-act="privtoggle" data-id="showDebates"' + (u.showDebates === false ? '' : ' checked') + '><span class="track" aria-hidden="true"></span><span>Mostrar meus debates no perfil</span></label>' +
+        '<label class="switch"><input type="checkbox" data-act="privtoggle" data-id="showCommunities"' + (u.showCommunities === false ? '' : ' checked') + '><span class="track" aria-hidden="true"></span><span>Mostrar minhas comunidades no perfil</span></label>' +
+        '<p class="muted" style="margin:0;font-size:12.5px;line-height:1.5">O lado em que você vota nos debates nunca aparece para outras pessoas. Debates que você propõe e argumentos que você publica continuam visíveis nas páginas dos debates.</p></div>' : '') +
+        '<p style="margin:0;font-size:14px;line-height:1.55">Seu perfil, publicações, argumentos e comentários ficam visíveis para quem tem conta na EcoEco. Mensagens aparecem só para você e a outra pessoa na tela, e publicações salvas e vagas salvas são privadas.</p>') +
       (S.isAdmin ? sec("Moderação", "Você administra a EcoEco beta.", '<button type="button" class="btn ghost small" data-go="moderation" style="align-self:flex-start">Abrir painel de denúncias' + (S.reports.filter((r) => (r.status || "pendente") === "pendente").length ? ' · ' + S.reports.filter((r) => (r.status || "pendente") === "pendente").length : '') + '</button>') : '') +
       sec("Sobre a EcoEco", "", '<div class="row" style="gap:8px">' + Object.keys(PAGES).map((k) => '<button type="button" class="btn ghost small" data-go="page:' + k + '">' + PAGES[k].title + '</button>').join("") + '</div>') +
       (loggedIn() ? sec("Senha", "Escolha uma senha com pelo menos 8 caracteres.", '<form id="pwForm" class="row" style="align-items:flex-end"><label class="field" for="pw1" style="flex:1;min-width:180px">Nova senha<input id="pw1" type="password" autocomplete="new-password" minlength="8"></label><label class="field" for="pw2" style="flex:1;min-width:180px">Repita a senha<input id="pw2" type="password" autocomplete="new-password" minlength="8"></label><button type="submit" class="btn small" style="height:42px">Trocar senha</button></form>') : '') +
@@ -2065,7 +2100,7 @@ button.tickrow:hover{background:var(--soft)}
   /* ---------- primeiro acesso: passo 2 ---------- */
   function onbStep2Html() {
     const o = S.onb2;
-    const comms = S.communities.slice().sort((a, b) => commMembers(b.id).length - commMembers(a.id).length);
+    const comms = S.communities.slice().sort((a, b) => memberCount(b.id) - memberCount(a.id));
     const people = Object.keys(S.users).filter((id) => id !== S.meId && !isHidden(id)).slice(0, 6);
     return '<div class="overlay"><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="ob2T" style="width:min(600px,100%)"><span class="eyebrow">Passo 2 de 2</span><h2 id="ob2T">Monte sua EcoEco</h2>' +
       '<p class="muted" style="margin:0">Escolha comunidades para participar e pessoas para seguir. Dá para mudar tudo depois.</p>' +
@@ -2442,6 +2477,12 @@ button.tickrow:hover{background:var(--soft)}
   });
 
   document.addEventListener("change", (ev) => {
+    if (ev.target.dataset && ev.target.dataset.act === "privtoggle") {
+      const k = ev.target.dataset.id, on = ev.target.checked;
+      if (!["showDebates", "showCommunities"].includes(k) || !S.meId) return;
+      write(() => col("users").doc(S.meId).update({ [k]: on }), on ? "Agora aparece no seu perfil." : "Agora só você vê isso no seu perfil.");
+      return;
+    }
     if (ev.target.dataset && ev.target.dataset.act === "notiftoggle") {
       const k = ev.target.dataset.id, off = new Set(notifOff());
       if (ev.target.checked) off.delete(k); else off.add(k);
@@ -2621,6 +2662,7 @@ if (ev.target.id === "libtheme") { S.libF.theme = ev.target.value; render(); ret
         if (c === "users") { const m = {}; arr.forEach((u) => { m[u.id] = u; }); S.users = m; }
         else if (c === "blocks") { S.blocks = arr; applyBlocks(); }
         else { S.raw[c] = arr; S[c] = filterBlocked(c, arr); }
+        if (c === "votes" || c === "members") loadStatsSoon();
         if (c === "users" && S.meId && S.canWrite && !S.signedOut && !S.users[S.meId] && !S.onb && !snap.metadata.fromCache) { S.onb = { name: S.meName, username: cleanUser(S.meName), headline: "", photo: "" }; renderModal(); }
         if (c === "users" && S.users[S.meId] && S.onb) { S.onb = null; renderModal(); }
         render();

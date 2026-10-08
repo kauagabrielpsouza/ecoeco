@@ -356,7 +356,13 @@ window.EcoBackend = {
     const { error } = await sb.auth.updateUser({ password: newPass });
     if (error) throw new Error(error.message);
   },
-  reloadLive: loadLive
+  reloadLive: loadLive,
+  // Chama uma função do banco (SQL). As funções conferem as permissões por dentro.
+  async rpc(name, args) {
+    const { data, error } = await sb.rpc(name, args || {});
+    if (error) throw mapError(error);
+    return data;
+  }
 };
 
 start().then((api) => window.__ecoResolve(api)).catch((e) => {
