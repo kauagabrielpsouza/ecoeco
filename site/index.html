@@ -559,6 +559,7 @@ body.compact .brand .wm{display:none}
 .chart{background:var(--surface);box-shadow:var(--shadow-sm)}
 .chart h3{font-weight:700}
 .chart svg text{font-family:var(--sans);font-weight:500}
+.chart svg text.endval{fill:var(--ink);font-weight:700;font-size:12px}
 .datebox small{background:var(--brand);color:#fff;letter-spacing:.08em}
 .datebox b{font-weight:800}
 /* entrada */
@@ -692,6 +693,8 @@ button.tickrow:hover{background:var(--soft)}
     return L.date(t, { day: "numeric", month: "short" });
   };
   const fmtNum = (v) => L.num(v);
+  // Número com casas decimais fixas no formato do idioma ("1,0" / "1.0"), com sinal de menos tipográfico
+  const fmtFixed = (v, d) => Number(v).toLocaleString(L.lang === "en" ? "en-US" : "pt-BR", { minimumFractionDigits: d, maximumFractionDigits: d }).replace("-", "−");
   const fmtSize = (b) => b > 1048576 ? L.num(b / 1048576, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " MB" : Math.max(1, Math.round(b / 1024)) + " KB";
   const store = { get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
   const I = {
@@ -1042,28 +1045,47 @@ button.tickrow:hover{background:var(--soft)}
     const vals = (c.values || []).map(Number).filter((v) => isFinite(v));
     const labels = c.labels || [];
     if (!vals.length) return "";
-    const W = 560, H = 220, L = 42, R = 14, T = 16, B = 30;
-    let lo = Math.min(0, ...vals), hi = Math.max(0, ...vals);
-    if (hi === lo) hi = lo + 1;
-    const pad = (hi - lo) * 0.12; hi += pad; if (lo < 0) lo -= pad;
+    // No celular o desenho é mais estreito, para os textos não ficarem minúsculos
+    // (o gráfico é esticado até a largura da tela; com menos largura "interna", a letra fica maior).
+    const small = window.innerWidth <= 560;
+    const W = small ? 340 : 560, H = small ? 200 : 220, L = small ? 34 : 42, R = small ? 10 : 14, T = 22, B = 30;
+    // Eixo com valores redondos: escolhe um passo "bonito" (0,1 / 0,2 / 0,25 / 0,5 / 1 / 2 / 2,5 / 5 × 10ⁿ)
+    const vmin = Math.min(0, ...vals), vmax = Math.max(0, ...vals);
+    const span = (vmax - vmin) || 1, mag = Math.pow(10, Math.floor(Math.log10(span / 4)));
+    const tick = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((st) => span / st <= 4.5) || 10 * mag;
+    const lo = Math.floor(vmin / tick + 1e-9) * tick;
+    let hi = Math.ceil(vmax / tick - 1e-9) * tick;
+    if (hi === lo) hi = lo + tick;
+    const dec = Math.max(0, Math.min(4, -Math.floor(Math.log10(tick) + 1e-9) + (/25/.test(String(tick / mag)) ? 1 : 0)));
+    const fmtTick = (t) => (Math.abs(t) < tick / 1000 ? "0" : fmtFixed(t, dec));
+    const ticks = []; for (let t = lo; t <= hi + tick / 1000; t += tick) ticks.push(Math.round(t / tick) * tick);
     const y = (v) => T + (hi - v) / (hi - lo) * (H - T - B);
     const n = vals.length, bw = (W - L - R) / n;
     const x = (i) => L + bw * i + bw / 2;
-    const ticks = [lo, (lo + hi) / 2, hi].map((t) => Math.round(t * 100) / 100);
-    let g = ticks.map((t) => '<line class="grid" x1="' + L + '" x2="' + (W - R) + '" y1="' + y(t) + '" y2="' + y(t) + '"/><text x="' + (L - 6) + '" y="' + (y(t) + 4) + '" text-anchor="end">' + esc(fmtNum(t)) + '</text>').join("");
+    let g = ticks.map((t) => '<line class="grid" x1="' + L + '" x2="' + (W - R) + '" y1="' + y(t) + '" y2="' + y(t) + '"/><text x="' + (L - 6) + '" y="' + (y(t) + 4) + '" text-anchor="end">' + esc(fmtTick(t)) + '</text>').join("");
     g += '<line class="zero" x1="' + L + '" x2="' + (W - R) + '" y1="' + y(0) + '" y2="' + y(0) + '"/>';
-    const step = n > 8 ? 2 : 1;
-    const lab = labels.map((l, i) => (i % step === 0 || i === n - 1) ? '<text x="' + x(i) + '" y="' + (H - 10) + '" text-anchor="middle">' + esc(String(l).slice(0, 14)) + '</text>' : "").join("");
+    const step = Math.max(1, Math.ceil(n / (small ? 4 : 6)));
+    // rótulos do eixo de baixo: de trás para a frente, para o último mês sempre aparecer
+    const lab = labels.map((l, i) => ((n - 1 - i) % step === 0) ? '<text x="' + x(i) + '" y="' + (H - 10) + '" text-anchor="middle">' + esc(String(l).slice(0, 14)) + '</text>' : "").join("");
     let marks = "";
     if (c.kind === "line") {
       const pts = vals.map((v, i) => x(i) + "," + y(v)).join(" ");
       marks = '<polyline points="' + pts + '" fill="none" stroke="var(--accent)" stroke-width="2"/>' + vals.map((v, i) => '<circle cx="' + x(i) + '" cy="' + y(v) + '" r="' + (i === n - 1 ? 5.5 : 3.5) + '" fill="' + (i === n - 1 ? "var(--gold)" : "var(--accent)") + '" stroke="var(--surface)" stroke-width="2"><title>' + esc(labels[i] || "") + ': ' + esc(fmtNum(v)) + (c.unit ? esc(c.unit) : "") + '</title></circle>').join("");
     } else {
-      const w = Math.max(4, bw - 8);
-      marks = vals.map((v, i) => { const y0 = y(0), y1 = y(v); return '<rect x="' + (x(i) - w / 2) + '" y="' + Math.min(y0, y1) + '" width="' + w + '" height="' + Math.max(1, Math.abs(y1 - y0)) + '" rx="3" fill="' + (v < 0 ? "var(--down)" : "var(--accent)") + '"><title>' + esc(labels[i] || "") + ': ' + esc(fmtNum(v)) + (c.unit ? esc(c.unit) : "") + '</title></rect>'; }).join("");
+      const w = Math.max(4, bw - (small ? 5 : 8));
+      marks = vals.map((v, i) => { const y0 = y(0), y1 = y(v); return '<rect x="' + (x(i) - w / 2) + '" y="' + Math.min(y0, y1) + '" width="' + w + '" height="' + Math.max(1, Math.abs(y1 - y0)) + '" rx="3" fill="' + (v < 0 ? "var(--num-down)" : "var(--accent)") + '"><title>' + esc(labels[i] || "") + ': ' + esc(fmtNum(v)) + (c.unit ? esc(c.unit) : "") + '</title></rect>'; }).join("");
     }
+    // Valor escrito só no último ponto, centralizado em cima dele (ou embaixo, se for negativo).
+    // Se o texto for mais largo que a barra, ele encosta na borda direita em vez de invadir a barra vizinha
+    // mais alta: nesse caso sobe para cima da mais alta das duas.
     const last = vals[n - 1];
-    const endLabel = '<text x="' + Math.min(W - R, x(n - 1)) + '" y="' + (y(last) + (last < 0 ? 16 : -8)) + '" text-anchor="end" style="fill:var(--ink);font-weight:600">' + esc(fmtNum(last)) + (c.unit ? esc(c.unit) : "") + '</text>';
+    const lastTxt = fmtNum(last) + (c.unit || "");
+    const txtW = lastTxt.length * 6.6;
+    const lx = Math.min(x(n - 1), W - R - txtW / 2 + 4);
+    const overNeighbor = n > 1 && lx - txtW / 2 < x(n - 2) + bw / 2 - 2 && c.kind !== "line";
+    const topV = overNeighbor && last >= 0 ? Math.max(last, vals[n - 2]) : last;
+    const ly = last < 0 ? y(overNeighbor ? Math.min(last, vals[n - 2]) : last) + 15 : y(topV) - (c.kind === "line" ? 10 : 6);
+    const endLabel = '<text class="endval" x="' + lx + '" y="' + ly + '" text-anchor="middle">' + esc(lastTxt) + '</text>';
     return '<div class="chart"><h3>' + esc(c.title || tr("comp.chart")) + '</h3><svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(c.title || tr("comp.chart")) + '">' + g + marks + endLabel + lab + '</svg>' + (c.source ? '<p class="muted" style="margin:4px 0 0;font-size:12px">Fonte: ' + esc(c.source) + '</p>' : '') + '</div>';
   }
 
