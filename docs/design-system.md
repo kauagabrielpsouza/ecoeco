@@ -16,9 +16,14 @@ Conceitos da marca: **crescimento** (árvore, folhas), **união** (pessoas forma
 | Texto (`--ink`) | `#17231F` | `#F1F5F2` | texto principal |
 | Texto secundário (`--ink2`) | `#66736D` | `#A7B5AE` | metadados, datas, contagens |
 | Borda (`--line`) | `#DDE4DF` | derivada | bordas discretas |
-| Erro (`--down`) | `#C83E3E` | clareado | queda, excluir |
+| Erro (`--down`) | `#C83E3E` | clareado | erros, excluir, ações destrutivas |
 | Aviso (`--warn`) | `#C98A20` | `#E8C866` | avisos |
-| Sucesso (`--ok`) | `#2E7D55` | clareado | alta, sucesso |
+| Sucesso (`--ok`) | `#2E7D55` | clareado | mensagens de sucesso |
+| Alta (`--num-up`) | `#1E8A5A` | clareado | **só números**: variação positiva (▲) |
+| Queda (`--num-down`) | `#D14343` | clareado | **só números**: variação negativa (▼), barras negativas dos gráficos |
+| Segunda série (`--series-2`) | `#2F6F8F` | clareado | segunda série em gráficos com duas séries |
+
+Alta e queda têm cores próprias, separadas da cor da marca: o verde da marca (`--accent`) é para botões, links e a primeira série dos gráficos; `--num-up` e `--num-down` aparecem **apenas em números** (variações dos indicadores e barras negativas). Não use `--num-up`/`--num-down` em botões, textos ou avisos, nem `--accent`/`--down` para indicar alta ou queda. Em gráficos com duas séries, a primeira usa `--accent` e a segunda `--series-2` (azul petróleo), nunca dourado nem vermelho.
 
 Proporção: ~70% neutros, ~20% verdes, 5–10% dourado. Texto dourado em fundo claro usa `--gold-ink` (dourado escurecido) para ter contraste.
 
@@ -31,7 +36,9 @@ Proporção: ~70% neutros, ~20% verdes, 5–10% dourado. Texto dourado em fundo 
 - Botão principal: verde sólido, texto branco, raio 8px. Secundário: fundo branco, borda, texto verde profundo. Dourado só em casos especiais.
 - Cards: brancos, borda sutil, sombra quase invisível, raio 10–14px.
 - Ícones: estilo Lucide (traço 1,75px).
-- Variações econômicas: seta + texto + cor (▲ alta, ▼ queda, • estável).
+- Variações econômicas: seta + texto + cor (▲ alta em `--num-up`, ▼ queda em `--num-down`, • estável em cinza). A cor nunca é o único sinal: a seta sempre acompanha.
+- Gráficos: eixo com valores redondos, valor escrito só no último ponto, textos legíveis no celular (o desenho usa uma largura interna menor em telas estreitas).
+- Menu lateral: letras normais (sem caixa alta).
 - Árvore/ramificações: só como metáfora sutil (capa padrão do perfil, cartão da Selic, tela de entrada).
 
 ## Textos e idiomas
