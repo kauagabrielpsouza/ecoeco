@@ -1,7 +1,10 @@
 // Escrita no Supabase usando a chave de serviço (só no robô do GitHub, nunca no site).
 const URL = process.env.SUPABASE_URL;
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-export const DRY = !!process.env.DRY_RUN;
+// Modo de teste: "node robo.mjs --teste" (ou as variáveis DRY_RUN/FIXTURES) não grava nada
+// no banco e usa dados de exemplo. O argumento funciona igual no Windows, Mac e Linux.
+export const TESTE = process.argv.includes("--teste");
+export const DRY = !!process.env.DRY_RUN || TESTE;
 
 function headers(extra) {
   // Chave antiga (service_role, formato JWT "eyJ...") vai também no Authorization.
@@ -30,4 +33,12 @@ export async function remove(table, filter) {
   if (DRY) { console.log(`[teste] delete ${table} where ${filter}`); return; }
   const res = await fetch(`${URL}/rest/v1/${table}?${filter}`, { method: "DELETE", headers: headers() });
   if (!res.ok) throw new Error(`Supabase delete ${table}: ${res.status} ${await res.text()}`);
+}
+
+// Leitura (usada pelo robô de notícias para revisar o que já está gravado)
+export async function select(table, query) {
+  if (!URL || !KEY) { if (DRY) return []; throw new Error("Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY"); }
+  const res = await fetch(`${URL}/rest/v1/${table}?${query}`, { headers: headers() });
+  if (!res.ok) throw new Error(`Supabase select ${table}: ${res.status} ${await res.text()}`);
+  return res.json();
 }

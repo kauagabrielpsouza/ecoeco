@@ -1,8 +1,10 @@
 {
   "copom": ["2026-11-04", "2026-12-09"],
   "noticias": [
-    { "nome": "Agência Brasil", "url": "https://agenciabrasil.ebc.com.br/rss/economia/feed.xml", "resumo": true, "filtrar": false },
-    { "nome": "InfoMoney", "url": "https://www.infomoney.com.br/feed/", "resumo": false, "filtrar": true }
+    {"nome": "Agência Brasil", "url": "https://agenciabrasil.ebc.com.br/rss/economia/feed.xml", "resumo": true, "filtrar": false},
+    {"nome": "InfoMoney", "url": "https://www.infomoney.com.br/feed/", "resumo": false, "filtrar": true}
   ],
-  "palavras_economia": ["juro", "selic", "inflação", "ipca", "dólar", "câmbio", "bolsa", "ibovespa", "ações", "economia", "pib", "fiscal", "banco", "copom", "petróleo", "safra", "soja", "milho", "agro", "mercado", "investimento", "lucro", "balanço", "exporta", "importa", "emprego", "desemprego", "imposto", "tribut", "crédito", "renda", "dívida", "tesouro", "fed", "china", "commodit", "indústria", "varejo", "salário", "orçamento"]
+  "ignorar_url": ["/esportes/", "/esporte/", "/entretenimento/", "/lifestyle/", "/turismo/", "/celebridades/", "/gastronomia/"],
+  "ignorar_titulo": ["onde assistir", "escalações", "escalação", "futebol", "campeonato", "novela", "reality show", "horóscopo"],
+  "palavras_economia": ["juro*", "selic", "copom", "inflação", "ipca", "inpc", "dólar", "câmbio", "bolsa", "bolsas", "ibovespa", "ações", "econom*", "pib", "fiscal", "fiscais", "banco", "bancos", "bc", "petróleo", "safra*", "soja", "milho", "agro*", "mercado", "mercados", "investi*", "lucro", "prejuízo", "balanço", "balanços", "dividendo*", "export*", "import*", "emprego", "desemprego", "imposto*", "tribut*", "crédito*", "minidólar", "nasdaq", "dow", "renda", "dívida", "dívidas", "tesouro", "fed", "china", "commodit*", "indústria", "industrial", "varejo", "salário*", "orçamento", "tarifa*", "cripto*", "bitcoin", "payroll", "superávit", "déficit"]
 }

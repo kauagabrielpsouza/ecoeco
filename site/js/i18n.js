@@ -991,6 +991,8 @@
     "ncat.Internacional": ["Internacional", "International"],
     "ncat.Agronegócio": ["Agronegócio", "Agribusiness"],
     "ncat.Economia": ["Economia", "Economy"],
+    "ncat.Economia brasileira": ["Economia brasileira", "Brazilian economy"],
+    "ncat.Empresas": ["Empresas", "Companies"],
     "ncat.Política": ["Política", "Politics"],
 
     "msg.signIn": ["Entre na sua conta para mandar mensagens.", "Sign in to send messages."],

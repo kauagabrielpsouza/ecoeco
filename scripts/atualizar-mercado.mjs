@@ -5,10 +5,10 @@
 // Roda sozinho pelo GitHub Actions (.github/workflows/atualizar-dados.yml).
 // =====================================================================
 import { readFileSync } from "node:fs";
-import { upsert, DRY } from "./lib/supabase.mjs";
+import { upsert, DRY, TESTE } from "./lib/supabase.mjs";
 
 const cfg = JSON.parse(readFileSync(new URL("./fontes.json", import.meta.url)));
-const FIX = !!process.env.FIXTURES;
+const FIX = !!process.env.FIXTURES || TESTE;
 const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
 const nf = (v, d = 2) => new Intl.NumberFormat("pt-BR", { minimumFractionDigits: d, maximumFractionDigits: d }).format(v);
