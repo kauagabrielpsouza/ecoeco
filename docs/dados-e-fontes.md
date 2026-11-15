@@ -18,7 +18,7 @@ Atenção: `ultimos/{n}` aceita **no máximo 20 valores**. Para mais (a Selic us
 
 Ibovespa: **brapi.dev** (`GET https://brapi.dev/api/quote/%5EBVSP`, token no cabeçalho `Authorization: Bearer`). Plano grátis: 15 mil requisições/mês e atualização a cada 30 min. A cobertura do índice no plano grátis precisa ser confirmada na Etapa 6; alternativa: ETF BOVA11 como aproximação.
 
-Calendário do Copom (para "próximo Copom"): `scripts/fontes.json` → `copom`. Datas de 2026: 3–4/11 e 8–9/12. Atualize no fim do ano com o calendário de 2027 publicado pelo Banco Central.
+Calendário do Copom (para "próximo Copom"): `scripts/fontes.json` → `copom`. Datas de 2026: 3–4/11 e 8–9/12. **As datas de 2027 ainda não foram incluídas** (ver "Lembretes de manutenção" no `ROTEIRO.md`): atualize com o calendário publicado pelo Banco Central. Sem data futura na lista, o robô registra um aviso e o site deixa de mostrar "próximo Copom".
 
 ## Notícias (`scripts/atualizar-noticias.mjs`)
 | Fonte | Feed | O que guardamos |

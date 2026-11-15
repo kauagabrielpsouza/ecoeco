@@ -173,7 +173,15 @@ Investigue a causa, corrija e me explique o que mudou.
 **Situações comuns**
 - *Alguém esqueceu a senha*: em Configurações → Moderação → Contas, use "Senha temporária" (precisa do SQL 07). Também dá pelo comando no fim de `supabase/04_tornar_admin.sql`.
 - *Site parou de carregar depois de dias sem uso*: o Supabase gratuito pausa o projeto após 1 semana parado. Entre no painel e clique em **Restore**.
-- *Robô parou*: o GitHub desliga agendamentos de repositórios sem nenhum commit por 60 dias. Faça qualquer commit ou rode o workflow manualmente.
+- *Robô parou*: o GitHub desliga agendamentos de repositórios sem nenhum commit por 60 dias. Faça qualquer commit ou rode o workflow manualmente. Veja "Lembretes de manutenção" logo abaixo.
+- *O site mostra "sem atualização desde…"*: o robô não grava há mais de 24 horas. Abra a aba **Actions** do GitHub, veja se o workflow "Atualizar mercado e notícias" está rodando e, se preciso, clique em **Run workflow**.
+
+### Lembretes de manutenção
+
+- **Agendamento do GitHub (a cada 60 dias)**: o GitHub desliga os agendamentos de um repositório que fica 60 dias sem commit. Antes dos ajustes de novembro/2026, o último commit era de 8/10/2026, então o robô seria desligado por volta de 7/12/2026. Os commits da branch `ajustes-novembro` renovam o prazo **a partir do dia em que forem publicados na `main`**. Regra prática: se passar mais de 50 dias sem publicar nada, faça um commit qualquer (por exemplo, uma linha neste arquivo) ou reative o workflow na aba Actions (botão **Enable workflow**).
+- **Horário do robô**: o agendamento usa os minutos 7 e 37 de cada hora. Em minuto redondo (0 e 30) o GitHub atrasa ou descarta execuções; entre 7/11 e 15/11/2026 o robô rodou só 3 ou 4 vezes por dia por causa disso. Mesmo assim o agendamento do GitHub não tem garantia de horário.
+- **Calendário do Copom (ATUALIZAR TODO FIM DE ANO)**: a lista `copom` em `scripts/fontes.json` só tem as reuniões de 2026 (a última é 9/12/2026). Em 15/11/2026 não foi possível confirmar as datas de 2027 direto no site do Banco Central, então elas **não foram incluídas**. Depois de 9/12/2026 o site deixa de mostrar "próximo Copom" e o robô escreve um aviso no registro da execução. Para atualizar: abra a página "Calendário das reuniões do Copom" em bcb.gov.br, pegue o **segundo dia** de cada reunião de 2027 e acrescente na lista no formato `"2027-01-27"` (ano-mês-dia). Peça ao Claude Code: `Atualize o calendário do Copom em scripts/fontes.json com as datas de 2027 publicadas pelo Banco Central.`
+- **Debate inicial sobre juros**: o texto antigo citava Selic, inflação e desemprego do dia em que foi escrito. O arquivo `supabase/10_debate_juros.sql` troca por um texto sem números. Evite números do dia em textos fixos; os números atuais ficam no quadro de Indicadores.
 
 ---
 
