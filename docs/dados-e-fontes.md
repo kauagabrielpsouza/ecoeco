@@ -34,7 +34,7 @@ Categorias automáticas: Agronegócio, Mercado, Internacional, Empresas, Brasil 
 Os textos gerados pelos robôs (ex.: "0,55% no dia", "mantida desde 16/9") são gravados em português. Em inglês, o site troca só o formato dos números e das datas; as palavras continuam em português. Para traduzir também essas frases, os robôs precisariam gravar valores separados (número, variação, data) em vez de frases prontas.
 
 ## Limites e cuidados
-- O GitHub pode atrasar execuções agendadas em alguns minutos em horários de pico.
+- O GitHub pode atrasar (ou até pular) execuções agendadas em horários de pico, principalmente em minuto redondo. Por isso o agendamento usa os minutos 7 e 37 de cada hora.
 - Repositórios sem commits por 60 dias têm os agendamentos pausados.
 - Dados oficiais podem ser revisados pelas fontes; o site mostra sempre a data/hora da última atualização.
 - Conteúdo educativo: nada é recomendação de investimento.
