@@ -485,7 +485,11 @@ body.compact .brand .wm{display:none}
 .chip.pos.pN[aria-pressed="true"]{background:var(--ink2);border-color:var(--ink2);color:var(--surface)}
 .chip.votebtn{flex:1;min-width:0;height:auto;min-height:40px;padding:8px 12px;font-size:14px;line-height:1.3;white-space:normal}
 /* abas que rolam para o lado: esmaece a borda quando há mais abas escondidas */
-.tabs.more{-webkit-mask-image:linear-gradient(90deg,#000 82%,transparent);mask-image:linear-gradient(90deg,#000 82%,transparent)}
+.tabs{min-width:0;max-width:100%;scrollbar-width:thin}
+.tabs.hasmore{-webkit-mask-image:linear-gradient(90deg,#000 82%,transparent);mask-image:linear-gradient(90deg,#000 82%,transparent)}
+/* abas do perfil: mais compactas, para caberem na coluna do meio */
+.tabs.ptabs{gap:16px}
+.tabs.ptabs button{font-size:12px;letter-spacing:.04em}
 /* quadro "Notícias agora" (coluna da direita) */
 .newsnow{display:flex;flex-direction:column;gap:12px}
 .newsnow .nn-item{display:flex;flex-direction:column;gap:3px;text-decoration:none;color:var(--ink)}
@@ -657,7 +661,7 @@ button.tickrow:hover{background:var(--soft)}
   // Textos da interface: dicionário em js/i18n.js (tr = traduz; tr.n = com plural)
   const L = window.I18N, tr = L.t;
   // Abas com mais itens do que cabem: marca para esmaecer a borda (some ao rolar até o fim)
-  const tabsMore = (el) => el.classList.toggle("more", el.scrollWidth - el.clientWidth - el.scrollLeft > 4);
+  const tabsMore = (el) => el.classList.toggle("hasmore", el.scrollWidth - el.clientWidth - el.scrollLeft > 4);
   function markScrollableTabs() { document.querySelectorAll("#view .tabs").forEach((el) => { tabsMore(el); el.onscroll = () => tabsMore(el); }); }
   addEventListener("resize", () => markScrollableTabs());
   // Textos fixos do HTML da página (rótulos de acessibilidade)
@@ -1282,7 +1286,7 @@ button.tickrow:hover{background:var(--soft)}
       (meta.length ? '<div class="row muted" style="font-size:13.5px;gap:14px">' + meta.map((m) => '<span class="row" style="gap:5px">' + m + '</span>').join("") + '</div>' : '') +
       '<div class="stats"><button type="button" class="statbtn" data-go="follows:' + esc(id) + ':following"><b>' + followingCount(id) + '</b> <span class="muted">' + tr("prof.followingLbl") + '</span></button><button type="button" class="statbtn" data-go="follows:' + esc(id) + ':followers"><b>' + followerCount(id) + '</b> <span class="muted">' + tr(followerCount(id) === 1 ? "prof.follower" : "prof.followers") + '</span></button><span><b>' + posts.length + '</b> <span class="muted">' + tr(posts.length === 1 ? "prof.post" : "prof.posts") + '</span></span></div>' +
       (u.fake ? '<span class="demo">' + tr("prof.demo") + '</span>' : '') + '</div>' +
-      '<div class="head" style="position:static;padding-top:12px"><div class="tabs" role="tablist" aria-label="' + tr("prof.tabs") + '">' + [["posts", tr("prof.tab.posts")], ["reposts", tr("prof.tab.reposts")], ["articles", tr("prof.tab.articles")]].concat(showDebs ? [["debates", tr("prof.tab.debates")]] : []).concat(showComms ? [["communities", tr("prof.tab.communities")]] : []).concat(own ? [["saved", tr("prof.tab.saved")]] : []).concat([["about", tr("prof.tab.about")]]).map(([t, l]) => '<button type="button" role="tab" data-ptab="' + t + '" aria-selected="' + (tab === t) + '">' + l + '</button>').join("") + '</div></div>' + body;
+      '<div class="head" style="position:static;padding-top:12px"><div class="tabs ptabs" role="tablist" aria-label="' + tr("prof.tabs") + '">' + [["posts", tr("prof.tab.posts")], ["reposts", tr("prof.tab.reposts")], ["articles", tr("prof.tab.articles")]].concat(showDebs ? [["debates", tr("prof.tab.debates")]] : []).concat(showComms ? [["communities", tr("prof.tab.communities")]] : []).concat(own ? [["saved", tr("prof.tab.saved")]] : []).concat([["about", tr("prof.tab.about")]]).map(([t, l]) => '<button type="button" role="tab" data-ptab="' + t + '" aria-selected="' + (tab === t) + '">' + l + '</button>').join("") + '</div></div>' + body;
   }
 
   // Uma notificação (página completa e janelinha do sininho)
