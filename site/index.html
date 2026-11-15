@@ -566,9 +566,13 @@ body.compact .brand .wm{display:none}
 .login .logo-lg b .g{color:var(--gold-2)}
 .login .logo-lg small{display:block;font-size:10.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;opacity:.85;margin-top:6px}
 .login .box h2{font-family:var(--sans)!important;font-weight:800;letter-spacing:-.02em}
-/* marca no modo escuro */
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) body:not([data-eco="light"]) .brand .mark{background:#F7F8F5;border-radius:10px;padding:3px}}
-:root[data-theme="dark"] body:not([data-eco="light"]) .brand .mark,body[data-eco="dark"] .brand .mark{background:#F7F8F5;border-radius:10px;padding:3px}
+/* marca no modo escuro: a logo já tem fundo transparente e fica direto sobre o fundo.
+   Um contorno claro bem fino mantém o tronco e as figuras (verde-escuros) visíveis,
+   sem mudar as cores da árvore. */
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) body:not([data-eco="light"]) :is(.brand .mark,.mbrand img,.login .logo-lg img){filter:drop-shadow(0 0 .6px rgba(232,240,236,.9)) drop-shadow(0 0 5px rgba(232,240,236,.22))}
+:root:not([data-theme="light"]) body:not([data-eco="light"]) .login .logo-lg .tile{background:transparent;padding:0}}
+:root[data-theme="dark"] body:not([data-eco="light"]) :is(.brand .mark,.mbrand img,.login .logo-lg img),body[data-eco="dark"] :is(.brand .mark,.mbrand img,.login .logo-lg img){filter:drop-shadow(0 0 .6px rgba(232,240,236,.9)) drop-shadow(0 0 5px rgba(232,240,236,.22))}
+:root[data-theme="dark"] body:not([data-eco="light"]) .login .logo-lg .tile,body[data-eco="dark"] .login .logo-lg .tile{background:transparent;padding:0}
 /* celular */
 @media (max-width:760px){
   .head h1{font-size:21px}
@@ -588,8 +592,6 @@ body.compact .brand .wm{display:none}
   .mbrand b .g{color:var(--gold-ink)}
   .mtop .iconbtn{width:40px;height:40px}
 }
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) body:not([data-eco="light"]) .mbrand img{background:#F7F8F5;border-radius:8px;padding:2px}}
-body[data-eco="dark"] .mbrand img{background:#F7F8F5;border-radius:8px;padding:2px}
 .brand .wm b .g,.mbrand b .g{background:linear-gradient(180deg,var(--gold-2),var(--gold) 55%,color-mix(in srgb,var(--gold) 75%,#17231F));-webkit-background-clip:text;background-clip:text;color:transparent}
 .statbtn{border:0;background:none;padding:0;color:inherit;font:inherit;border-radius:6px}
 .statbtn:hover .muted{text-decoration:underline}
