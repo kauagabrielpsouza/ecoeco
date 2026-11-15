@@ -53,6 +53,18 @@ function realCollection(path) {
   return path;
 }
 
+// Hora do servidor: o campo createdAt gravado pelo site vem do relógio do aparelho de
+// quem enviou, e os relógios diferem entre aparelhos (mensagens e comentários saíam
+// da ordem). Para tudo que foi criado por uma pessoa (owner preenchido), entregamos
+// ao site a hora em que o banco recebeu a linha (coluna created_at). O conteúdo
+// inicial (owner vazio) mantém a data que foi escolhida para ele.
+function withServerTime(row) {
+  const data = row.data || {};
+  if (!row.owner || !row.created_at || typeof data.createdAt !== "number") return data;
+  const ts = Date.parse(row.created_at);
+  return ts && ts !== data.createdAt ? Object.assign({}, data, { createdAt: ts }) : data;
+}
+
 function snapshotOf(map) {
   const docs = [...map.entries()].map(([id, data]) => ({ id, exists: true, data: () => data }));
   return { docs, size: docs.length, empty: docs.length === 0, metadata: { fromCache: false } };
@@ -84,7 +96,7 @@ function ensureChannel() {
       const row = payload.new && payload.new.collection ? payload.new : payload.old;
       if (!row || !row.collection) return;
       if (payload.eventType === "DELETE") applyLocal(row.collection, row.id, null);
-      else applyLocal(row.collection, row.id, payload.new.data || {});
+      else applyLocal(row.collection, row.id, withServerTime(payload.new));
     })
     .subscribe();
 }
@@ -93,12 +105,21 @@ async function fetchAll(col) {
   const map = new Map();
   const PAGE = 1000;
   for (let from = 0; ; from += PAGE) {
-    const { data, error } = await sb.from("docs").select("id,data").eq("collection", col).range(from, from + PAGE - 1);
+    const { data, error } = await sb.from("docs").select("id,data,owner,created_at").eq("collection", col).range(from, from + PAGE - 1);
     if (error) throw mapError(error);
-    data.forEach((r) => map.set(r.id, r.data || {}));
+    data.forEach((r) => map.set(r.id, withServerTime(r)));
     if (data.length < PAGE) break;
   }
   return map;
+}
+
+// Depois de criar um documento, troca a hora do aparelho pela hora do servidor
+// (sem travar a tela: se a consulta falhar, o aviso em tempo real corrige depois).
+function syncServerTime(col, id) {
+  sb.from("docs").select("id,data,owner,created_at").eq("collection", col).eq("id", id).maybeSingle().then(({ data: row }) => {
+    const map = caches.get(col);
+    if (row && map && map.has(id)) applyLocal(col, id, withServerTime(row));
+  }, () => {});
 }
 
 function newId() {
@@ -127,20 +148,22 @@ function collection(path) {
       const { error } = await sb.from("docs").insert({ collection: col, id, data });
       if (error) throw mapError(error);
       applyLocal(col, id, data);
+      syncServerTime(col, id);
       return { id };
     },
     doc(id) {
       return {
         id,
         async get() {
-          const { data, error } = await sb.from("docs").select("data").eq("collection", col).eq("id", id).maybeSingle();
+          const { data, error } = await sb.from("docs").select("data,owner,created_at").eq("collection", col).eq("id", id).maybeSingle();
           if (error) throw mapError(error);
-          return { id, exists: !!data, data: () => (data ? data.data : undefined) };
+          return { id, exists: !!data, data: () => (data ? withServerTime(data) : undefined) };
         },
         async set(data) {
           const { error } = await sb.from("docs").upsert({ collection: col, id, data }, { onConflict: "collection,id" });
           if (error) throw mapError(error);
           applyLocal(col, id, data);
+          if (data && typeof data.createdAt === "number") syncServerTime(col, id);
         },
         async update(patch) {
           let cur = caches.has(col) ? caches.get(col).get(id) : undefined;
