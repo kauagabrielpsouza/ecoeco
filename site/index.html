@@ -461,6 +461,9 @@ body.compact .brand .wm{display:none}
 /* feed */
 .post{transition:background .15s}
 .post:hover{background:color-mix(in srgb,var(--surface2) 70%,var(--surface))}
+.post.openable{cursor:pointer}
+.post.openable:focus-visible{outline:3px solid var(--focus);outline-offset:-3px}
+.post.openable .text{user-select:text}
 .meta .linkname{font-weight:700}
 .actions button:hover{color:var(--accent)}
 .actions button.like:hover{color:var(--down)}
@@ -520,7 +523,13 @@ body.compact .brand .wm{display:none}
 .filecard.pdf{flex-wrap:wrap}
 .filecard .acts{display:flex;gap:6px;margin-left:auto}
 .lightbox{flex-direction:column;gap:10px;cursor:zoom-out;background:rgba(10,12,16,.88)}
-.lightbox img{max-width:100%;max-height:calc(100vh - 120px);border-radius:8px;object-fit:contain}
+.lightbox img{max-width:100%;max-height:calc(100vh - 120px);border-radius:8px;object-fit:contain;cursor:default}
+@media (max-width:560px){.lightbox{padding:0}.lightbox img{max-width:100vw;max-height:100vh;border-radius:0}.lightbox p{position:absolute;bottom:16px;left:16px;right:16px;background:rgba(0,0,0,.55);padding:8px 10px;border-radius:8px}}
+/* foto de perfil e capa que abrem ampliadas */
+.coverzoom{position:absolute;inset:0;border:0;padding:0;background:transparent;cursor:zoom-in}
+.cover .back{z-index:1}
+.av.avzoom{padding:0;cursor:zoom-in}
+.av.avzoom:focus-visible,.coverzoom:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
 .lightbox p{margin:0;color:#fff;font-size:14px;text-align:center;max-width:640px}
 .lightbox .close{position:absolute;top:12px;right:12px;color:#fff;background:rgba(255,255,255,.14);border:0;border-radius:999px;width:40px;height:40px;font-size:18px}
 .debcard.big{background:linear-gradient(180deg,var(--accent-soft),var(--surface))}
@@ -1070,6 +1079,10 @@ button.tickrow:hover{background:var(--soft)}
       return '<button type="button" class="pollopt' + (isMine ? " mine" : "") + '" data-act="pollvote" data-id="' + esc(p.id) + '" data-opt="' + i + '"' + (canAct() ? "" : " disabled") + ' aria-pressed="' + !!isMine + '">' + (showRes ? '<span class="fill" style="width:' + pct + '%"></span>' : '') + '<span>' + esc(o) + (isMine ? " ✓" : "") + '</span>' + (showRes ? '<span class="pct">' + pct + '%</span>' : '') + '</button>';
     }).join("") + '<span class="muted" style="font-size:12.5px">' + tr.n("poll.votes", total) + " · " + tr(mine ? "poll.change" : canAct() ? "poll.voteToSee" : "poll.signInToVote") + '</span></div>';
   }
+  // Partes da publicação que mantêm o próprio comportamento (não abrem a publicação):
+  // botões, links, @menções/#hashtags/$ativos, nome e foto do autor, votação, imagens,
+  // vídeos, gráficos, cartões de artigo/debate/anexo, menu e o formulário de edição.
+  const POST_SKIP = "button, a, input, textarea, select, label, form, img, video, svg, [data-go], [data-act], .media, .chart, .poll, .filecard, .debembed, .menu";
   function postCard(p, opts) {
     const u = U(p.author);
     const liked = likesOf(p.id).some((l) => l.user === S.meId);
@@ -1085,8 +1098,10 @@ button.tickrow:hover{background:var(--soft)}
     const editing = S.editing === p.id;
     const textHtml = editing
       ? '<form class="editpost" id="editPostForm" style="display:flex;flex-direction:column;gap:8px"><label class="sr" for="ept">' + tr("post.edit") + '</label><textarea id="ept" rows="4" maxlength="1000" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line2);background:var(--bg);font-size:15px;resize:vertical">' + esc(S.editDraft) + '</textarea><div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost small" data-act="edit-cancel">' + tr("common.cancel") + '</button><button type="submit" class="btn small">' + tr("common.saveChanges") + '</button></div></form>'
-      : (p.text ? (opts && opts.full ? '<p class="text">' + richText(p.text) + '</p>' : '<div class="text" data-go="post:' + esc(p.id) + '" style="cursor:pointer">' + richText(p.text) + '</div>') : '');
-    return '<article class="post">' + avatar(p.author, 42) +
+      : (p.text ? (opts && opts.full ? '<p class="text">' + richText(p.text) + '</p>' : '<div class="text">' + richText(p.text) + '</div>') : '');
+    // Fora da página da própria publicação, clicar em qualquer parte do cartão abre a publicação
+    const openable = !(opts && opts.full);
+    return '<article class="post' + (openable ? ' openable' : '') + '"' + (openable ? ' data-open="post:' + esc(p.id) + '" tabindex="0" aria-label="' + tr("post.openLabel", { name: esc(u.name) }) + '"' : '') + '>' + avatar(p.author, 42) +
       '<div class="body">' +
       (opts && opts.pinned ? '<span class="repostline" style="color:var(--gold-ink)">' + svg(I.pin2, 14) + tr("post.pinned") + '</span>' : '') +
       (reposter ? '<span class="repostline">' + svg(I.repost, 14) + (reposter.user === S.meId ? tr("post.youReposted") : tr("post.reposted", { name: esc(U(reposter.user).name) })) + '</span>' : "") +
@@ -1257,8 +1272,8 @@ button.tickrow:hover{background:var(--soft)}
       const list = tab === "reposts" ? reps : (pin ? [pin].concat(posts.filter((x) => x !== pin)) : posts);
       body = list.length ? list.map((p) => postCard(p, p === pin ? { pinned: true } : undefined)).join("") : '<p class="empty">' + tr(tab === "reposts" ? "prof.noReposts" : "prof.noPosts") + '</p>';
     }
-    return '<div class="cover' + (u.cover ? '' : ' brandcover') + '" style="' + coverStyle + '"><button type="button" class="back" data-go="feed" aria-label="' + tr("prof.backHome") + '">' + svg(I.back, 18) + '</button></div>' +
-      '<div class="pbox"><div class="top"><span class="av s104" style="background:' + bg + ';color:' + fg + '">' + avInner(id) + '</span><span class="row">' +
+    return '<div class="cover' + (u.cover ? '' : ' brandcover') + '" style="' + coverStyle + '">' + (u.cover ? '<button type="button" class="coverzoom" data-act="lightbox" data-src="' + esc(u.cover) + '" data-cap="" aria-label="' + tr("prof.viewCover", { name: esc(u.name) }) + '"></button>' : '') + '<button type="button" class="back" data-go="feed" aria-label="' + tr("prof.backHome") + '">' + svg(I.back, 18) + '</button></div>' +
+      '<div class="pbox"><div class="top">' + (u.photo ? '<button type="button" class="av s104 avzoom" data-act="lightbox" data-src="' + esc(u.photo) + '" data-cap="" aria-label="' + tr("prof.viewPhoto", { name: esc(u.name) }) + '" style="background:' + bg + ';color:' + fg + '">' + avInner(id) + '</button>' : '<span class="av s104" style="background:' + bg + ';color:' + fg + '">' + avInner(id) + '</span>') + '<span class="row">' +
       (own ? '<button type="button" class="btn ghost" data-act="edit">' + tr("set.editProfile") + '</button><button type="button" class="btn ghost" data-go="settings" aria-label="' + tr("set.title") + '" title="' + tr("set.title") + '" style="padding:0 12px;display:inline-flex;align-items:center">' + svg(I.gear, 18) + '</button>' :
         (canAct() ? '<span style="position:relative;display:inline-flex"><button type="button" class="btn ghost" data-act="menu" data-id="prof:' + esc(id) + '" aria-haspopup="menu" aria-expanded="' + (S.menu === "prof:" + id) + '" aria-label="' + tr("common.moreOptions") + '" style="padding:0 10px;display:inline-flex;align-items:center">' + dots + '</button>' + (S.menu === "prof:" + id ? '<div class="menu" role="menu" style="top:46px">' + (S.muted.includes(id) ? '<button type="button" role="menuitem" data-act="unmute" data-id="' + esc(id) + '">' + tr("prof.unmute") + '</button>' : '<button type="button" role="menuitem" data-act="mute" data-id="' + esc(id) + '">' + tr("post.mute", { name: esc(u.name) }) + '</button>') + '<button type="button" role="menuitem" class="red" data-act="block" data-id="' + esc(id) + '">' + tr("post.block", { name: esc(u.name) }) + '</button></div>' : '') + '</span><button type="button" class="btn ghost" data-go="messages:' + esc(id) + '">' + tr("prof.message") + '</button><button type="button" class="btn' + (fol ? ' ghost' : '') + '" data-act="follow" data-id="' + esc(id) + '" aria-pressed="' + fol + '">' + tr(fol ? "follow.following" : "follow.follow") + '</button>' : '')) + '</span></div>' +
       '<div style="display:flex;flex-direction:column;gap:2px"><h1>' + esc(u.name) + '</h1>' + (u.username ? '<span class="muted">@' + esc(u.username) + '</span>' : '') + '</div>' +
@@ -1608,7 +1623,8 @@ button.tickrow:hover{background:var(--soft)}
     box.setAttribute("role", "dialog"); box.setAttribute("aria-modal", "true"); box.setAttribute("aria-label", cap || tr("art.zoomed"));
     box.innerHTML = '<button type="button" class="close" aria-label="' + tr("art.closeImg") + '">✕</button><img src="' + esc(src) + '" alt="' + esc(cap || tr("art.zoomed")) + '">' + (cap ? '<p>' + esc(cap) + '</p>' : '');
     box._back = back;
-    box.addEventListener("click", closeLightbox);
+    // Fecha no X, clicando fora da imagem ou com Esc (clicar na própria imagem não fecha)
+    box.addEventListener("click", (e) => { if (e.target.tagName !== "IMG") closeLightbox(); });
     document.body.appendChild(box);
     box.querySelector(".close").focus();
   }
@@ -1641,8 +1657,10 @@ button.tickrow:hover{background:var(--soft)}
   }
 
   // Contador da tela de escrever: "0 palavras · mínimo 30 palavras" até chegar a 30
-  const ART_MIN_WORDS = 30;
-  const wordInfo = (body) => { const n = wc(body); return tr.n("art.words", n) + " · " + (n < ART_MIN_WORDS ? tr("art.minWords", { n: ART_MIN_WORDS }) : tr("art.readMin", { n: readMin(body) })); };
+  // Contador da tela de escrever: só informa (não há tamanho mínimo para publicar)
+  const wordInfo = (body) => { const n = wc(body); return tr.n("art.words", n) + (n ? " · " + tr("art.readMin", { n: readMin(body) }) : ""); };
+  // Tempo de leitura; artigo sem texto (só anexos) mostra "só anexos"
+  const readInfo = (body) => (wc(body) ? tr("art.readMin", { n: readMin(body) }) : tr("art.attOnly"));
   const uploadingCount = (d) => d.atts.filter((x) => x.status === "uploading").length;
   // Numera as imagens só entre imagens (links e PDFs não contam), na ordem da lista,
   // e atualiza os marcadores [imagem N] do texto para acompanhar.
@@ -1723,7 +1741,8 @@ button.tickrow:hover{background:var(--soft)}
     const d = S.artDraft;
     if (uploadingCount(d)) { toast(tr("art.waitUpload")); return; }
     if (!d.title.trim()) { toast(tr("art.needTitle")); if (d.preview) { d.preview = false; render(); } const el = $("#a-title"); if (el) el.focus(); return; }
-    if (wc(d.body) < 30) { toast(tr("art.tooShort")); if (d.preview) { d.preview = false; render(); } return; }
+    // Sem tamanho mínimo: basta ter algum texto OU pelo menos um anexo
+    if (!d.body.trim() && !cleanAtts(d.atts).length) { toast(tr("art.empty")); if (d.preview) { d.preview = false; render(); } const el = $("#a-body"); if (el) el.focus(); return; }
     const body = { kind: ART_KINDS.includes(d.kind) ? d.kind : "Artigo", title: d.title.trim().slice(0, 140), summary: d.summary.trim().slice(0, 300), body: d.body.trim().slice(0, 20000), attachments: cleanAtts(d.atts) };
     if (d.id) {
       if (await write(() => col("articles").doc(d.id).update(Object.assign(body, { editedAt: now() })), tr("art.updated"))) { const id = d.id; delFiles(d.removed.map((url) => ({ type: "file", url }))); S.artDraft = blankArt(); go("article:" + id); }
@@ -1754,7 +1773,7 @@ button.tickrow:hover{background:var(--soft)}
 
   function articleRow(a) {
     const likes = S.articleLikes.filter((l) => l.article === a.id).length, cm = S.articleComments.filter((c) => c.article === a.id).length, na = attsOf(a).length;
-    return '<article class="item"><div class="row muted" style="font-size:12.5px;gap:6px"><span class="pill acc">' + esc(optLabel("artkind", a.kind || "Artigo")) + '</span>' + avatar(a.author, 24, false) + '<button type="button" class="linkname" style="font-weight:500;font-size:13px" data-go="profile:' + esc(a.author) + '">' + esc(U(a.author).name) + '</button><span>· ' + rel(a.createdAt) + ' · ' + tr("art.readMin", { n: readMin(a.body) }) + '</span></div>' +
+    return '<article class="item"><div class="row muted" style="font-size:12.5px;gap:6px"><span class="pill acc">' + esc(optLabel("artkind", a.kind || "Artigo")) + '</span>' + avatar(a.author, 24, false) + '<button type="button" class="linkname" style="font-weight:500;font-size:13px" data-go="profile:' + esc(a.author) + '">' + esc(U(a.author).name) + '</button><span>· ' + rel(a.createdAt) + ' · ' + readInfo(a.body) + '</span></div>' +
       '<h2><button type="button" class="linkname" style="font-family:var(--serif);font-size:19px;text-align:left;line-height:1.3" data-go="article:' + esc(a.id) + '">' + esc(a.title) + '</button></h2>' + (a.summary ? '<p class="muted clamp2" style="margin:0;font-size:14.5px">' + esc(a.summary) + '</p>' : '') +
       '<div class="row muted" style="font-size:13px;gap:14px"><span class="row" style="gap:4px">' + svg(I.heart, 15) + likes + '</span><span class="row" style="gap:4px">' + svg(I.comment, 15) + cm + '</span>' + (na ? '<span class="row" style="gap:4px">' + svg(I.clip, 15) + tr.n("art.attCount", na) + '</span>' : '') + '<button type="button" class="linkname" style="color:var(--accent);margin-left:auto" data-go="article:' + esc(a.id) + '">' + tr("art.read") + '</button></div></article>';
   }
@@ -1773,7 +1792,7 @@ button.tickrow:hover{background:var(--soft)}
     const mine = a.author === S.meId && canAct();
     return backHead("articles", tr("search.articles"), "", (mine || canDel(a.author)) ? '<span class="row" style="margin-left:auto;flex-wrap:nowrap">' + (mine ? '<button type="button" class="btn ghost small" data-act="editart" data-id="' + esc(id) + '">' + tr("common.edit") + '</button>' : '') + delBtn("articles", id) + '</span>' : '') +
       '<article class="reader"><span class="pill acc" style="align-self:flex-start">' + esc(optLabel("artkind", a.kind || "Artigo")) + '</span><h1>' + esc(a.title) + '</h1>' + (a.summary ? '<p class="lede">' + esc(a.summary) + '</p>' : '') +
-      '<div class="row byline">' + avatar(a.author, 36) + '<span style="display:flex;flex-direction:column;line-height:1.3;min-width:0"><button type="button" class="linkname" style="text-align:left" data-go="profile:' + esc(a.author) + '">' + esc(U(a.author).name) + '</button><span class="muted" style="font-size:12.5px">' + esc([U(a.author).headline, fmtDate(a.createdAt) + (a.editedAt ? " · " + tr("post.edited") : ""), tr("art.readMin", { n: readMin(a.body) })].filter(Boolean).join(" · ")) + '</span></span></div>' +
+      '<div class="row byline">' + avatar(a.author, 36) + '<span style="display:flex;flex-direction:column;line-height:1.3;min-width:0"><button type="button" class="linkname" style="text-align:left" data-go="profile:' + esc(a.author) + '">' + esc(U(a.author).name) + '</button><span class="muted" style="font-size:12.5px">' + esc([U(a.author).headline, fmtDate(a.createdAt) + (a.editedAt ? " · " + tr("post.edited") : ""), readInfo(a.body)].filter(Boolean).join(" · ")) + '</span></span></div>' +
       '<div class="bodytext">' + articleBody(a.body, attsOf(a)) + '</div>' + attSection(attsOf(a), a.body) +
       '<div class="actions"><button type="button" class="like" data-act="alike" data-id="' + esc(id) + '" aria-pressed="' + liked + '"' + (canAct() ? '' : ' disabled') + '>' + svg(I.heart, 18, liked ? "currentColor" : "none") + tr.n("art.likes", likes.length) + '</button>' + (canAct() ? '<button type="button" data-act="shareart" data-id="' + esc(id) + '">' + svg(I.repost, 18) + tr("art.share") + '</button>' : '') + '</div></article>' +
       (canAct() ? '<form class="inline-form" id="acForm" style="border-top:1px solid var(--line)">' + avatar(S.meId, 36) + '<label class="sr" for="acin">' + tr("art.commentLbl") + '</label><input class="input" id="acin" autocomplete="off" placeholder="' + tr("art.commentPh") + '" value="' + esc(S.acDraft) + '"><button class="btn" type="submit">' + tr("post.comment") + '</button></form>' : '') +
@@ -1789,7 +1808,7 @@ button.tickrow:hover{background:var(--soft)}
       const atts = d.atts.filter((x) => x.status !== "uploading").map((x) => Object.assign(cleanAtts([x])[0], { previewUrl: x.previewUrl }));
       return backHead(d.id ? "article:" + d.id : "articles", tr("art.preview"), tr("art.previewSub")) +
         '<article class="reader"><span class="pill acc" style="align-self:flex-start">' + esc(optLabel("artkind", d.kind || "Artigo")) + '</span><h1>' + esc(d.title || tr("art.untitled")) + '</h1>' + (d.summary ? '<p class="lede">' + esc(d.summary) + '</p>' : '') +
-        '<div class="row byline">' + avatar(S.meId, 36) + '<span style="display:flex;flex-direction:column;line-height:1.3;min-width:0"><b>' + esc(U(S.meId).name) + '</b><span class="muted" style="font-size:12.5px">' + tr("art.readMin", { n: readMin(d.body) }) + '</span></span></div>' +
+        '<div class="row byline">' + avatar(S.meId, 36) + '<span style="display:flex;flex-direction:column;line-height:1.3;min-width:0"><b>' + esc(U(S.meId).name) + '</b><span class="muted" style="font-size:12.5px">' + readInfo(d.body) + '</span></span></div>' +
         '<div class="bodytext">' + articleBody(d.body, atts) + '</div>' + attSection(atts, d.body) + '</article>' +
         '<div class="row" style="justify-content:flex-end;padding:0 20px 24px"><button type="button" class="btn ghost" data-act="artedit">' + tr("art.backEdit") + '</button><button type="button" class="btn" data-act="artpublish"' + (busy ? ' disabled' : '') + '>' + pubLabel + '</button></div>';
     }
@@ -1806,7 +1825,7 @@ button.tickrow:hover{background:var(--soft)}
   function articleEmbed(aid) {
     const a = S.articles.find((x) => x.id === aid);
     if (!a) return '<span class="demo">' + tr("art.unavailable") + '</span>';
-    return '<button type="button" class="filecard" data-go="article:' + esc(aid) + '" style="text-align:left;width:100%"><span class="ext">' + svg(I.doc, 20) + '</span><span style="display:flex;flex-direction:column;min-width:0"><b style="font-family:var(--serif);font-size:15.5px">' + esc(a.title) + '</b><span class="muted" style="font-size:12.5px">' + esc(optLabel("artkind", a.kind || "Artigo")) + ' · ' + esc(U(a.author).name) + ' · ' + tr("art.readMin", { n: readMin(a.body) }) + '</span></span></button>';
+    return '<button type="button" class="filecard" data-go="article:' + esc(aid) + '" style="text-align:left;width:100%"><span class="ext">' + svg(I.doc, 20) + '</span><span style="display:flex;flex-direction:column;min-width:0"><b style="font-family:var(--serif);font-size:15.5px">' + esc(a.title) + '</b><span class="muted" style="font-size:12.5px">' + esc(optLabel("artkind", a.kind || "Artigo")) + ' · ' + esc(U(a.author).name) + ' · ' + readInfo(a.body) + '</span></span></button>';
   }
 
   /* ---------- vagas ---------- */
@@ -2422,6 +2441,9 @@ button.tickrow:hover{background:var(--soft)}
   /* ---------- events ---------- */
   document.addEventListener("click", async (ev) => {
     const t = ev.target.closest("button, [data-go]");
+    // Publicação clicável em qualquer parte (menos botões, links, menções, mídia, gráficos, votação e cartões)
+    const card = ev.target.closest("article.post[data-open]");
+    if (card && !ev.target.closest(POST_SKIP) && !(window.getSelection && String(window.getSelection()).trim())) { ev.preventDefault(); go(card.dataset.open); return; }
     if (S.bell && !ev.target.closest("#bellpop") && !ev.target.closest('[data-act="bell"]')) { S.bell = false; renderNav(); }
     if (!t && S.acct && !ev.target.closest("#mewrap")) { S.acct = false; renderNav(); }
     if (!t) { if (S.menu || S.dataMenu) { S.menu = null; S.dataMenu = false; render(); } return; }
@@ -2771,6 +2793,7 @@ if (ev.target.id === "libtheme") { S.libF.theme = ev.target.value; render(); ret
   document.addEventListener("selectionchange", () => { const a = document.activeElement; if (a && a.id === "a-body") S.artDraft.caret = a.selectionStart; });
   document.addEventListener("keydown", (ev) => {
     if (ev.key === "Escape" && $("#lightbox")) { closeLightbox(); return; }
+    if (ev.key === "Enter" && ev.target.matches && ev.target.matches("article.post[data-open]")) { ev.preventDefault(); go(ev.target.dataset.open); return; }
     if (ev.key === "Escape" && S.bell) { closeBell(true); return; }
     if (ev.key === "Escape" && S.acct) { S.acct = false; renderNav(); $("#mecard").focus(); return; }
     if (ev.key === "Escape") { if (S.edit || S.report || S.chartModal || S.form || S.blockAsk) { S.edit = null; S.report = null; S.chartModal = null; S.form = null; S.blockAsk = null; renderModal(); } else if (S.menu || S.dataMenu) { S.menu = null; S.dataMenu = false; render(); } }

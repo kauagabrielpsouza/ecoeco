@@ -783,10 +783,9 @@
     "art.sendingFiles_other": ["Enviando {n} arquivos. Espere terminar para publicar.", "Uploading {n} files. Wait for them to finish before publishing."],
     "art.words_one": ["1 palavra", "1 word"],
     "art.words_other": ["{n} palavras", "{n} words"],
-    "art.minWords": ["mínimo {n} palavras", "minimum {n} words"],
     "art.waitUpload": ["Espere os arquivos terminarem de enviar para publicar.", "Wait for the files to finish uploading before publishing."],
     "art.needTitle": ["Dê um título ao texto.", "Give your piece a title."],
-    "art.tooShort": ["O texto está muito curto. Para textos curtos, use uma publicação no feed.", "The piece is too short. For short texts, post in the feed."],
+    "art.empty": ["Escreva algum texto ou adicione pelo menos um anexo para publicar.", "Write some text or add at least one attachment to publish."],
     "art.updated": ["Texto atualizado", "Piece updated"],
     "art.published": ["Texto publicado", "Piece published"],
     "art.atts": ["Anexos", "Attachments"],
@@ -1241,5 +1240,18 @@
     "newsnow.title": ["Notícias agora", "News now"],
     "newsnow.all": ["Ver todas →", "See all →"],
     "time.ago": ["há {t}", "{t} ago"]
+  });
+
+  // -------------------------------------------------------------------
+  // Foto/capa ampliadas e publicação clicável
+  // -------------------------------------------------------------------
+  add({
+    "prof.viewPhoto": ["Ver foto de perfil de {name} ampliada", "View {name}'s profile photo enlarged"],
+    "prof.viewCover": ["Ver capa de {name} ampliada", "View {name}'s cover photo enlarged"],
+    "post.openLabel": ["Publicação de {name}. Enter para abrir.", "Post by {name}. Press Enter to open."]
+  });
+
+  add({
+    "art.attOnly": ["só anexos", "attachments only"]
   });
 })();
