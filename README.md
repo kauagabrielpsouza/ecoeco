@@ -33,7 +33,9 @@ ecoeco/
 │   ├── 05_limpeza_em_cascata.sql   ← apagar algo apaga o que depende dele
 │   ├── 06_privacidade_perfil.sql   ← votos secretos e comunidades escondíveis
 │   ├── 07_moderacao_admin.sql      ← suspensão, banimento e painel de admin
-│   └── 08_senha_minima.sql         ← senha mínima de 6 caracteres
+│   ├── 08_senha_minima.sql         ← senha mínima de 6 caracteres
+│   ├── 09_seguranca_funcoes.sql    ← fecha funções para visitantes e acelera as regras
+│   └── 10_debate_juros.sql         ← texto do debate inicial sem números datados
 ├── scripts/                ← robôs que atualizam indicadores e notícias
 │   ├── atualizar-mercado.mjs
 │   ├── atualizar-noticias.mjs
