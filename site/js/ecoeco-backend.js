@@ -377,7 +377,8 @@ async function start() {
     const { data: sc } = await sb.rpc("my_sanction");
     me.sanction = Array.isArray(sc) && sc.length ? sc[0] : null;
   } catch (e) { me.sanction = null; }   // SQL 07 ainda não rodado
-  loadLive().catch(() => {});
+  // Se a leitura falhar, avisa o site mesmo assim (ele mostra "sem atualização desde…")
+  loadLive().catch(() => { if (typeof window.__ecoApplyLive === "function") window.__ecoApplyLive(null); });
   watchLive();
   return {
     use: async (name) => (name === "db" ? db : name === "user" ? user : name === "assets" ? assets : null)

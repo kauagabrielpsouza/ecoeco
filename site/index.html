@@ -553,6 +553,7 @@ body.compact .brand .wm{display:none}
 .kpi .chg{white-space:normal;align-items:baseline;line-height:1.3;min-width:0;overflow-wrap:anywhere}
 .kpi-hero{min-width:0}
 .kpi-hero span{overflow-wrap:anywhere;line-height:1.35}
+.stale{color:var(--gold-ink)}
 .chg.c-up{color:var(--ok)}.chg.c-dn{color:var(--down)}.chg.c-nt{color:var(--ink2)}
 .spark{display:block;width:100%;height:34px;margin-top:6px}
 .chart{background:var(--surface);box-shadow:var(--shadow-sm)}
@@ -736,9 +737,15 @@ button.tickrow:hover{background:var(--soft)}
     IBOV: ["205.835 pts", "Fechamento de 6/10 · queda de 0,52%"]
   };
   const PRESETS = {
-    ipca: { title: "IPCA mensal (%) · set/2025 a ago/2026", kind: "bar", unit: "%", labels: ["set", "out", "nov", "dez", "jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago"], values: [0.48, 0.09, 0.18, 0.33, 0.33, 0.70, 0.88, 0.67, 0.58, 0.16, 0.07, -0.32], source: "IBGE" },
+    ipca: { title: "", kind: "bar", unit: "%", labels: ["set/25", "out/25", "nov/25", "dez/25", "jan/26", "fev/26", "mar/26", "abr/26", "mai/26", "jun/26", "jul/26", "ago/26"], values: [0.48, 0.09, 0.18, 0.33, 0.33, 0.70, 0.88, 0.67, 0.58, 0.16, 0.07, -0.32], source: "IBGE" },
     desemprego: { title: "Taxa de desocupação (%) · trimestres móveis", kind: "line", unit: "%", labels: ["tri até abr/26", "tri até jul/26", "tri até ago/26"], values: [5.8, 5.3, 5.3], source: "IBGE, PNAD Contínua" }
   };
+  // O título do gráfico sai dos próprios dados (primeiro e último mês da série)
+  const ipcaTitle = () => "IPCA mensal (%) · " + PRESETS.ipca.labels[0] + " a " + PRESETS.ipca.labels[PRESETS.ipca.labels.length - 1];
+  PRESETS.ipca.title = ipcaTitle();
+  // Notícias e indicadores reserva (de outubro/2026): só aparecem se o robô nunca tiver
+  // gravado nada, e sempre com o aviso "sem atualização desde…" (ver LIVE, mais abaixo).
+  const RESERVA_DATA = "6/10";
   const NEWS = [
     { src: "Agência Brasil", cat: "Mercado", date: "6/10", title: "Dólar fecha abaixo de R$ 5 pela primeira vez desde maio", prev: "A moeda americana caiu 0,55%, para R$ 4,975, o menor valor desde 12 de maio. O Ibovespa recuou 0,52%, a 205.835 pontos, mas segue acima dos 200 mil.", href: "https://agenciabrasil.ebc.com.br/economia/noticia/2026-10/dolar-fecha-abaixo-de-r-5-pela-primeira-vez-desde-maio" },
     { src: "Agência Brasil", cat: "Brasil", date: "6/10", title: "Balança comercial tem superávit de US$ 7,74 bilhões em setembro", prev: "O saldo foi 146% maior que o de setembro de 2025. As exportações subiram 12,9%, para US$ 34,4 bilhões, e as importações caíram 2,4%.", href: "https://agenciabrasil.ebc.com.br/economia/noticia/2026-10/balanca-comercial-tem-superavit-de-us-774-bilhoes-em-setembro" },
@@ -1341,7 +1348,7 @@ button.tickrow:hover{background:var(--soft)}
     const cats = [...new Set(NEWS.map((n) => n.cat))];
     const isNewsSaved = (i) => S.savedAll.some((x) => x.id === newsKey(i));
     const list = NEWS.map((n, i) => ({ n, i })).filter(({ n, i }) => S.newsF === "all" ? true : S.newsF === "saved" ? isNewsSaved(i) : n.cat === S.newsF);
-    return '<div class="head"><h1>' + tr("nav.news") + '</h1><p class="muted" style="margin:-8px 0 0;font-size:13.5px">' + tr("news.sub") + '</p>' +
+    return '<div class="head"><h1>' + tr("nav.news") + '</h1><p class="muted" style="margin:-8px 0 0;font-size:13.5px">' + tr("news.sub") + '</p>' + (newsStale() ? '<p class="stale" role="status" style="margin:0;font-size:13px;font-weight:700">' + tr("news.stale", { when: esc(newsStaleSince()) }) + '</p>' : '') +
       '<div class="filters">' + [["all", tr("notif.k.all")]].concat(cats.map((c) => [c, newsCat(c)])).map(([k, l]) => '<button type="button" class="chip" data-act="newsf" data-id="' + esc(k) + '" aria-pressed="' + (S.newsF === k) + '">' + esc(l) + '</button>').join("") + (loggedIn() ? '<span class="sep" aria-hidden="true"></span><button type="button" class="chip" data-act="newsf" data-id="saved" aria-pressed="' + (S.newsF === "saved") + '">' + tr("job.savedN", { n: NEWS.filter((_, i) => isNewsSaved(i)).length }) + '</button>' : '') + '</div></div>' +
       (list.length ? list.map(({ n, i }) => { const sv = isNewsSaved(i); return '<article class="news"><div class="row muted" style="font-size:12.5px;flex-wrap:nowrap"><b style="color:var(--ink)">' + esc(n.src) + '</b>·<span>' + esc(newsCat(n.cat)) + '</span>' + (n.date ? '·<span>' + esc(newsDate(n.date)) + '</span>' : '') + (loggedIn() ? '<button type="button" class="iconbtn" style="margin-left:auto;color:' + (sv ? "var(--accent)" : "var(--ink2)") + '" data-act="savenews" data-id="' + i + '" aria-pressed="' + sv + '" aria-label="' + tr(sv ? "post.unsave" : "news.save") + '">' + bookmark(sv) + '</button>' : '') + '</div><h2>' + esc(n.title) + '</h2><p class="muted" style="margin:0;font-size:14.5px">' + esc(n.prev) + '</p><div class="row" style="gap:18px;font-size:13.5px"><a href="' + esc(n.href) + '" target="_blank" rel="noopener" style="font-weight:700;text-decoration:none">' + tr("news.read") + '</a>' + (canAct() ? '<button type="button" class="linkname muted" style="font-weight:500" data-act="discuss" data-id="' + i + '">' + tr("news.discuss") + '</button>' : '') + '</div></article>'; }).join("") : '<p class="empty">' + tr(S.newsF === "saved" ? "news.noSaved" : "news.none") + '</p>');
   }
@@ -1997,8 +2004,19 @@ button.tickrow:hover{background:var(--soft)}
     const W = 240, H = 34, n = vals.length, bw = W / n, lo = Math.min(0, ...vals), hi = Math.max(0, ...vals), y = (v) => (hi - v) / (hi - lo) * (H - 2) + 1;
     return '<svg class="spark" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img" aria-label="IPCA mensal, de ' + labels[0] + ' a ' + labels[n - 1] + '">' + vals.map((v, i) => { const y0 = y(0), y1 = y(v), last = i === n - 1; return '<rect x="' + (i * bw + 1.5) + '" y="' + Math.min(y0, y1) + '" width="' + (bw - 3) + '" height="' + Math.max(1.5, Math.abs(y1 - y0)) + '" rx="1.5" fill="' + (v < 0 ? "var(--down)" : last ? "var(--gold)" : "var(--leaf)") + '"><title>' + labels[i] + ': ' + fmtNum(v) + '%</title></rect>'; }).join("") + '<line x1="0" x2="' + W + '" y1="' + y(0) + '" y2="' + y(0) + '" stroke="var(--line2)" stroke-width="1"/></svg>';
   }
+  // Situação dos dados ao vivo (tabelas indicators e news_items, gravadas pelo robô):
+  // "pending" = ainda carregando; depois guardamos a hora da última gravação do robô.
+  // Se o robô parar, o site avisa "sem atualização desde…" em vez de mostrar números
+  // e notícias antigos como se fossem de hoje.
+  const LIVE = { state: "pending", indAt: 0, newsAt: 0 };
+  const STALE_MS = 24 * 3600 * 1000;
+  const indStale = () => LIVE.state !== "pending" && (!LIVE.indAt || now() - LIVE.indAt > STALE_MS);
+  const newsStale = () => LIVE.state !== "pending" && (!LIVE.newsAt || now() - LIVE.newsAt > STALE_MS);
+  const dayMonth = (ts) => { const d = new Date(ts); return L.lang === "en" ? (d.getMonth() + 1) + "/" + d.getDate() : d.getDate() + "/" + (d.getMonth() + 1); };
+  const newsStaleSince = () => LIVE.newsAt ? dayMonth(LIVE.newsAt) : (L.lang === "en" ? RESERVA_DATA.replace(/^(\d+)\/(\d+)$/, "$2/$1") : RESERVA_DATA);
+  setTimeout(() => { if (LIVE.state === "pending") { LIVE.state = "failed"; render(); } }, 10000);
   const IND = {
-    asOf: "6/10",
+    asOf: RESERVA_DATA,
     selic: { display: "13,75%", note: "ao ano · mantida desde 16/9 · próximo Copom 3–4/11", short: "mantida · Copom 3–4/11", dir: "nt" },
     ipca12: { display: "4,22%", change: "agosto: −0,32%", dir: "dn" },
     dolar: { display: "R$ 4,97", change: "0,55% no dia", dir: "dn" },
@@ -2011,7 +2029,7 @@ button.tickrow:hover{background:var(--soft)}
   const asOfText = () => L.lang === "en" ? String(IND.asOf).replace(/^(\d{1,2})\/(\d{1,2})/, "$2/$1").replace(" às ", " at ") : IND.asOf;
   function indicatorsCard() {
     const ipca = PRESETS.ipca;
-    return '<section class="card" aria-labelledby="indT"><h2 id="indT" style="display:flex;justify-content:space-between;align-items:baseline">' + tr("mkt.indicators") + ' <span class="muted" style="font-size:12px;font-weight:500">' + tr("mkt.updatedAt", { when: esc(asOfText()) }) + '</span></h2>' +
+    return '<section class="card" aria-labelledby="indT"><h2 id="indT" style="display:flex;justify-content:space-between;align-items:baseline">' + tr("mkt.indicators") + ' <span class="' + (indStale() ? 'stale' : 'muted') + '" style="font-size:12px;font-weight:' + (indStale() ? 700 : 500) + '">' + tr(indStale() ? "mkt.staleSince" : "mkt.updatedAt", { when: esc(asOfText()) }) + '</span></h2>' +
       '<div class="kpi-hero"><small>Selic</small><b>' + esc(L.numText(IND.selic.display)) + '</b><span>' + esc(IND.selic.note || "") + '</span></div>' +
       '<div class="kpis">' +
       '<div class="kpi"><small>' + tr("mkt.dollar") + '</small><b>' + esc(L.numText(IND.dolar.display)) + '</b>' + chgHtml(IND.dolar) + '</div>' +
@@ -2206,8 +2224,8 @@ button.tickrow:hover{background:var(--soft)}
       '<div class="kpi"><small>Ibovespa</small><b>' + esc(L.numText(IND.ibov.display)) + '</b>' + chgHtml(IND.ibov) + '</div>' +
       '<div class="kpi"><small>' + tr("chart.unemployment") + '</small><b>' + esc(L.numText(IND.desemprego.display)) + '</b>' + chgHtml(IND.desemprego) + '</div>' +
       '<div class="kpi"><small>' + tr("mkt.realRate") + '</small><b>' + esc(L.numText(IND.juroReal)) + '</b><span class="chg c-nt">' + tr("mkt.simple") + '</span></div>' +
-      '</div><p class="muted" style="margin:8px 0 0;font-size:12px">' + tr("mkt.updated", { when: esc(asOfText()) }) + '</p></section>' +
-      '<section class="mkt-sec">' + chartSvg(Object.assign({}, ipca, { title: tr("mkt.ipcaChart") })) + '</section>' +
+      '</div><p class="' + (indStale() ? 'stale' : 'muted') + '" style="margin:8px 0 0;font-size:12px">' + tr(indStale() ? "mkt.staleLong" : "mkt.updated", { when: esc(asOfText()) }) + '</p></section>' +
+      '<section class="mkt-sec">' + chartSvg(Object.assign({}, ipca, { title: tr("mkt.ipcaChart", { from: esc(ipca.labels[0]), to: esc(ipca.labels[ipca.labels.length - 1]) }) })) + '</section>' +
       '<section class="mkt-sec"><h2>' + tr("mkt.hot") + '</h2><p class="muted" style="margin:0 0 8px;font-size:13px">' + tr("mkt.hotHint") + '</p>' +
       (hot.length ? '<div class="tickers">' + hot.map(([t, n]) => '<button type="button" class="tickrow" data-go="ticker:' + esc(t) + '"><span class="ticker">$' + esc(t) + '</span><span class="muted" style="font-size:13px">' + tr.n("post.count", n) + '</span><span style="margin-left:auto;color:var(--accent);font-weight:700;font-size:13px">' + tr("mkt.see") + '</span></button>').join("") + '</div>' : '<p class="muted" style="margin:0">' + tr("mkt.noHot") + '</p>') + '</section>' +
       '<section class="mkt-sec"><h2>' + tr("mkt.myList") + '</h2><p class="muted" style="margin:0 0 8px;font-size:13px">' + tr("mkt.myListHint") + '</p>' +
@@ -2238,21 +2256,23 @@ button.tickrow:hover{background:var(--soft)}
 
   window.__ecoApplyLive = (live) => {
     const I = (live && live.indicators) || {};
+    LIVE.state = "done";
     const put = (k, row) => { if (!row) return; IND[k] = Object.assign({}, IND[k], { display: row.display || IND[k].display, change: row.change_text || IND[k].change, dir: row.direction || IND[k].dir, note: row.note || IND[k].note, short: row.change_text || IND[k].short }); };
     put("selic", I.selic); put("ipca12", I.ipca12); put("dolar", I.dolar); put("ibov", I.ibov); put("desemprego", I.desemprego);
     if (I.selic && I.ipca12 && I.selic.value != null && I.ipca12.value != null) IND.juroReal = "≈ " + fmtNum(Math.round(((1 + I.selic.value / 100) / (1 + I.ipca12.value / 100) - 1) * 1000) / 10) + "%";
     const stamps = Object.values(I).map((r) => r.updated_at).filter(Boolean).sort();
-    if (stamps.length) { const d = new Date(stamps[stamps.length - 1]); IND.asOf = d.toLocaleDateString("pt-BR", { day: "numeric", month: "numeric" }) + " às " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }); }
+    if (stamps.length) { const d = new Date(stamps[stamps.length - 1]); LIVE.indAt = d.getTime() || 0; IND.asOf = d.toLocaleDateString("pt-BR", { day: "numeric", month: "numeric" }) + " às " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }); }
     if (I.ipca_mensal && Array.isArray(I.ipca_mensal.series) && I.ipca_mensal.series.length) {
       const sr = I.ipca_mensal.series;
       PRESETS.ipca.labels = sr.map((x) => x.label); PRESETS.ipca.values = sr.map((x) => Number(x.value));
-      PRESETS.ipca.title = "IPCA mensal (%) · " + sr[0].label + " a " + sr[sr.length - 1].label;
+      PRESETS.ipca.title = ipcaTitle();
     }
     DATA.SELIC = [IND.selic.display + " a.a.", (IND.selic.note || "") + " · Banco Central"];
     DATA.IPCA = [IND.ipca12.display + " em 12 meses", (IND.ipca12.change || "") + " · IBGE"];
     DATA.DOLAR = [IND.dolar.display, "Atualizado em " + IND.asOf + " · " + (IND.dolar.change || "")];
     DATA.IBOV = [IND.ibov.display + " pts", "Atualizado em " + IND.asOf + " · " + (IND.ibov.change || "")];
     if (live && Array.isArray(live.news) && live.news.length) {
+      LIVE.newsAt = Math.max(0, ...live.news.map((n) => Date.parse(n.fetched_at || n.published_at) || 0));
       NEWS.splice(0, NEWS.length, ...live.news.map((n) => ({ src: n.source, cat: n.category || "Brasil", date: new Date(n.published_at).toLocaleDateString("pt-BR", { day: "numeric", month: "numeric" }), ts: Date.parse(n.published_at) || 0, title: n.title, prev: n.summary || "", href: n.url })));
     }
     render();
