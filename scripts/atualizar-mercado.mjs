@@ -18,6 +18,11 @@ const dir = (v) => (v > 0 ? "up" : v < 0 ? "dn" : "nt");
 const parseBR = (s) => { const [d, m, y] = s.split("/").map(Number); return new Date(Date.UTC(y, m - 1, d)); };
 const iso = (d) => d.toISOString().slice(0, 10);
 const ddmm = (d) => String(d.getUTCDate()) + "/" + String(d.getUTCMonth() + 1);
+// Datas sempre no horário de Brasília. O robô roda em UTC: à noite (depois das 21h de
+// Brasília) o "hoje" em UTC já é o dia seguinte, e os indicadores saíam com a data errada.
+const diaSP = (d) => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(d);   // "2026-11-15"
+const hojeSP = () => diaSP(new Date());
+const hojeData = () => new Date(hojeSP() + "T00:00:00Z");   // meia-noite de hoje, no mesmo formato das datas do Banco Central
 const mesAno = (d) => MESES[d.getUTCMonth()] + "/" + String(d.getUTCFullYear()).slice(2);
 
 // ---------------------------------------------------------------------
@@ -44,7 +49,7 @@ async function sgs(code, n) {
 const brDate = (d) => String(d.getUTCDate()).padStart(2, "0") + "/" + String(d.getUTCMonth() + 1).padStart(2, "0") + "/" + d.getUTCFullYear();
 async function sgsRange(code, days) {
   if (FIX) return fixture(code, days);
-  const fim = new Date(), ini = new Date(Date.now() - days * 864e5);
+  const fim = hojeData(), ini = new Date(fim.getTime() - days * 864e5);
   const url = `https://api.bcb.gov.br/dados/serie/bcdata.sgs.${code}/dados?formato=json&dataInicial=${brDate(ini)}&dataFinal=${brDate(fim)}`;
   for (let tent = 1; tent <= 3; tent++) {
     try {
@@ -68,9 +73,10 @@ async function selic() {
   const last = rows[rows.length - 1];
   let since = last.date, prev = null;
   for (let i = rows.length - 2; i >= 0; i--) { if (rows[i].value !== last.value) { prev = rows[i].value; break; } since = rows[i].date; }
-  const hoje = iso(new Date());
+  const hoje = hojeSP();
   const next = (cfg.copom || []).find((d) => d >= hoje);
   const nextTxt = next ? ddmm(new Date(next + "T00:00:00Z")) : null;
+  if (!next) console.warn("AVISO: não há próxima reunião do Copom em fontes.json. Atualize a lista \"copom\" com o calendário do Banco Central.");
   let move = "mantida desde " + ddmm(since);
   if (prev !== null) {
     const diff = last.value - prev;
@@ -121,7 +127,7 @@ async function ibovespa() {
   }
   const t = q.regularMarketTime ? new Date(q.regularMarketTime) : new Date();
   add({ key: "ibov", value: q.regularMarketPrice, display: nf(q.regularMarketPrice, 0), change_text: pct(q.regularMarketChangePercent) + " no dia",
-        direction: dir(q.regularMarketChangePercent), ref_date: iso(t), source: "B3 via brapi.dev" });
+        direction: dir(q.regularMarketChangePercent), ref_date: diaSP(t), source: "B3 via brapi.dev" });
 }
 
 // ---------------------------------------------------------------------
